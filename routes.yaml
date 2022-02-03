@@ -1,0 +1,5 @@
+app_name: ch-processor-poc
+group: api
+weight: 991
+routes:
+   1: ^/ch-processor-poc/healthcheck

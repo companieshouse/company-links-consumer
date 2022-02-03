@@ -1,0 +1,25 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: company-links-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+insolvency:
+  stream:
+    topic:
+      main: {$STREAM_INSOLVENCY_TOPIC:stream-insolvency-topic} #TODO how to define the EV
+      retry: {$STREAM_INSOLVENCY_TOPIC_RETRY:stream-insolvency-topic-retry}
+      error: {$STREAM_INSOLVENCY_TOPIC_ERROR:stream-insolvency-topic-error}
+
+charges:
+  stream:
+    topic:
+      main: {$STREAM_CHARGES_TOPIC:stream-charges-topic}
+      retry: {$STREAM_CHARGES_TOPIC_RETRY:stream-charges-topic-retry}
+      error: {$STREAM_CHARGES_TOPIC_ERROR:stream-charges-topic-error}
+
+logger:
+  namespace: company-links-consumer

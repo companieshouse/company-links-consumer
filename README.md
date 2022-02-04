@@ -3,6 +3,28 @@ company-links-consumer
 
 company-links-consumer is responsible for determining if company links need to be updated
 
+## Development
+Common commands used for development and running locally can be found in the Makefile, each make target has a 
+description which can be listed by running `make help`
+
+```text
+Target               Description
+------               -----------
+all                  Calls methods required to build a locally runnable version, typically the build target
+build                Pull down any dependencies and compile code into an executable if required
+clean                Reset repo to pre-build state (i.e. a clean checkout state)
+deps                 Install dependencies
+docker/kafka         Run kafka and create topics within docker
+docker/kafka-create-topics Create kafka topics within docker
+docker/kafka-start   Run kafka within docker
+docker/kafka-stop    Stop kafka within docker
+package              Create a single versioned deployable package (i.e. jar, zip, tar, etc.). May be dependent on the build target being run before package
+sonar                Run sonar scan
+test                 Run all test-* targets (convenience method for developers)
+test-integration     Run integration tests
+test-unit            Run unit tests
+
+```
 ## Running kafka locally
 From root folder of this project run ```docker-compose up -d```
 

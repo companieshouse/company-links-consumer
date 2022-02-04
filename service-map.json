@@ -1,0 +1,21 @@
+{
+  "type": "Service",
+  "name": "company-links-consumer",
+  "description": "company-links-consumer is responsible for determining if company links need to be updated",
+  "language": "Java",
+  "integration_outgoing": [
+    "chs-delta-api,GETS_DATA_FROM",
+    "insolvency-data-api,CALLS_API"
+  ],
+  "owned_by": "Thunderpigs",
+  "documentation": "https://companieshouse.atlassian.net/wiki/spaces/DSPR/pages/3634724966/Data+Synchronisation+Service+Architecture",
+  "git_repo": "https://github.com/companieshouse/company-links-consumerr",
+  "specification": "tbc",
+  "public": "false",
+  "users": "internal",
+  "code_analysis_link": "tbc",
+  "test_automation_repo": "https://github.com/companieshouse/taf-api-karate",
+  "service_area": "tbc",
+  "service_component": "tbc",
+  "healthcheck_endpoint": "tbc"
+}

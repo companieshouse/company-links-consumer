@@ -1,34 +1,43 @@
 package uk.gov.companieshouse.company.links.config;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import uk.gov.companieshouse.company.links.serialization.ChsDeltaDeserializer;
 import uk.gov.companieshouse.delta.ChsDelta;
-import uk.gov.companieshouse.company.links.deserializer.ChsDeltaDeserializer;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Configuration
+@Profile("!test")
 public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
-    //TODO Do we need seperate model for this consumer (like ChsDelta)   //Action: Zaid to confirm
+    /**
+     * Kafka Consumer Factory Message.
+     */
+    //TODO Do we need separate model for this consumer (like ChsDelta)
+    // Action: Zaid to confirm
     @Bean
     public ConsumerFactory<String, ChsDelta> consumerFactoryMessage() {
         return new DefaultKafkaConsumerFactory<>(consumerConfigs(), new StringDeserializer(),
                 new ChsDeltaDeserializer());
     }
 
+    /**
+     * Kafka Listener Container Factory.
+     */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, ChsDelta> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, ChsDelta> factory = new ConcurrentKafkaListenerContainerFactory<>();
+    public ConcurrentKafkaListenerContainerFactory<String, ChsDelta> listenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, ChsDelta> factory
+                = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactoryMessage());
         return factory;
     }

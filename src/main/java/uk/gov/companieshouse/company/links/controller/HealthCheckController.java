@@ -8,10 +8,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HealthCheckController {
 
-  @GetMapping("/healthcheck")
-  public ResponseEntity<Void> healthcheck() {
-    //TODO: Introduce spring actuator
-    return ResponseEntity.status(HttpStatus.OK).build();
-  }
+    /**
+     * healthcheck.
+     */
+    @GetMapping("/healthcheck")
+    public ResponseEntity<Void> healthcheck() {
+        //TODO: Introduce spring actuator
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
 
 }

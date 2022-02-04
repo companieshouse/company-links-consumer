@@ -9,6 +9,7 @@ spring:
 
 insolvency:
   stream:
+    group-id: company-links-consumer
     topic:
       main: stream-insolvency-topic
       retry: stream-insolvency-topic-retry
@@ -16,6 +17,7 @@ insolvency:
 
 charges:
   stream:
+    group-id: company-links-consumer
     topic:
       main: stream-charges-topic
       retry: stream-charges-topic-retry

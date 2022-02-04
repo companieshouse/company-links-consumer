@@ -1,5 +1,7 @@
 package uk.gov.companieshouse.company.links.producer;
 
+import java.util.concurrent.ExecutionException;
+import javax.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,9 +10,6 @@ import uk.gov.companieshouse.kafka.message.Message;
 import uk.gov.companieshouse.kafka.producer.Acks;
 import uk.gov.companieshouse.kafka.producer.CHKafkaProducer;
 import uk.gov.companieshouse.kafka.producer.ProducerConfig;
-
-import javax.annotation.PostConstruct;
-import java.util.concurrent.ExecutionException;
 
 //TODO Do we need separate classes for insolvency and charges
 @Component
@@ -22,6 +21,9 @@ public class ChargesStreamProducer {
 
     private CHKafkaProducer chKafkaProducer;
 
+    /**
+     * init.
+     */
     @PostConstruct
     public void init() {
         LOGGER.debug("Configuring CH Kafka producer");
@@ -33,6 +35,9 @@ public class ChargesStreamProducer {
         chKafkaProducer = new CHKafkaProducer(config);
     }
 
+    /**
+     * send.
+     */
     public void send(Message message) {
         try {
             chKafkaProducer.send(message);
@@ -41,6 +46,9 @@ public class ChargesStreamProducer {
         }
     }
 
+    /**
+     * createProducerConfig.
+     */
     protected ProducerConfig createProducerConfig() {
         final ProducerConfig config = new ProducerConfig();
         config.setBrokerAddresses(bootstrapServers.split(","));

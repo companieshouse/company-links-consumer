@@ -49,17 +49,4 @@ public class InsolvencyStreamConsumer {
                         chsDeltaMessage.getPayload(), chsDeltaMessage.getHeaders()));
         deltaProcessor.process(chsDeltaMessage);
     }
-
-    /**
-     * Receives Error topic messages.
-     */
-    @KafkaListener(topics = "${insolvency.stream.topic.error}",
-            groupId = "insolvency.stream.topic.error",
-            autoStartup = "${company-links.consumer.insolvency.enable}")
-    public void error(Message<ChsDelta> chsDeltaMessage) {
-        LOGGER.info(
-                String.format("A new message read from ERROR topic with payload:%s and headers:%s ",
-                        chsDeltaMessage.getPayload(), chsDeltaMessage.getHeaders()));
-        deltaProcessor.process(chsDeltaMessage);
-    }
 }

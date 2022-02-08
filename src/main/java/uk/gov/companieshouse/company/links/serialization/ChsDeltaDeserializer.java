@@ -20,7 +20,6 @@ public class ChsDeltaDeserializer implements Deserializer<ChsDelta> {
     @Override
     public ChsDelta deserialize(String topic, byte[] data) {
         try {
-            // TODO: Zahid: Use AvroDeserializer after adding util method in ch-kafka
             Decoder decoder = DecoderFactory.get().binaryDecoder(data, null);
             DatumReader<ChsDelta> reader = new ReflectDatumReader<>(ChsDelta.class);
             return reader.read(null, decoder);

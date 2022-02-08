@@ -47,16 +47,4 @@ public class ChargesStreamConsumer {
                         chsDeltaMessage.getPayload(), chsDeltaMessage.getHeaders()));
         streamProcessor.process(chsDeltaMessage);
     }
-
-    /**
-     * Receives Error topic messages.
-     */
-    @KafkaListener(topics = "${charges.stream.topic.error}", groupId = "charges.stream.topic.error",
-            autoStartup = "${company-links.consumer.charges.enable}")
-    public void error(Message<ChsDelta> chsDeltaMessage) {
-        LOGGER.info(
-                String.format("A new message read from ERROR topic with payload:%s and headers:%s ",
-                        chsDeltaMessage.getPayload(), chsDeltaMessage.getHeaders()));
-        streamProcessor.process(chsDeltaMessage);
-    }
 }

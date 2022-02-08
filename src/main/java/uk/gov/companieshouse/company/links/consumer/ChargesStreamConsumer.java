@@ -27,7 +27,8 @@ public class ChargesStreamConsumer {
      * Receives Main topic messages.
      */
     // TODO is groupId is same as topicId.  // name of component will be groupId
-    @KafkaListener(topics = "${charges.stream.topic.main}", groupId = "charges.stream.topic.main", autoStartup = "${company-links.consumer.charges.enable}")
+    @KafkaListener(topics = "${charges.stream.topic.main}", groupId = "charges.stream.topic.main",
+            autoStartup = "${company-links.consumer.charges.enable}")
     @Retryable
     public void receive(Message<ChsDelta> chsDeltaMessage) {
         LOGGER.info(
@@ -38,7 +39,8 @@ public class ChargesStreamConsumer {
     /**
      * Receives Retry topic messages.
      */
-    @KafkaListener(topics = "${charges.stream.topic.retry}", groupId = "charges.stream.topic.retry", autoStartup = "${company-links.consumer.charges.enable}")
+    @KafkaListener(topics = "${charges.stream.topic.retry}", groupId = "charges.stream.topic.retry",
+            autoStartup = "${company-links.consumer.charges.enable}")
     public void retry(Message<ChsDelta> chsDeltaMessage) {
         LOGGER.info(
                 String.format("A new message read from RETRY topic with payload:%s and headers:%s ",
@@ -49,7 +51,8 @@ public class ChargesStreamConsumer {
     /**
      * Receives Error topic messages.
      */
-    @KafkaListener(topics = "${charges.stream.topic.error}", groupId = "charges.stream.topic.error", autoStartup = "${company-links.consumer.charges.enable}")
+    @KafkaListener(topics = "${charges.stream.topic.error}", groupId = "charges.stream.topic.error",
+            autoStartup = "${company-links.consumer.charges.enable}")
     public void error(Message<ChsDelta> chsDeltaMessage) {
         LOGGER.info(
                 String.format("A new message read from ERROR topic with payload:%s and headers:%s ",

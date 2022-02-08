@@ -27,7 +27,8 @@ public class InsolvencyStreamConsumer {
      * Receives Main topic messages.
      */
     @KafkaListener(topics = "${insolvency.stream.topic.main}",
-            groupId = "insolvency.stream.topic.main", autoStartup = "${company-links.consumer.insolvency.enable}")
+            groupId = "insolvency.stream.topic.main",
+            autoStartup = "${company-links.consumer.insolvency.enable}")
     @Retryable
     public void receive(Message<ChsDelta> chsDeltaMessage) {
         LOGGER.info(
@@ -40,7 +41,8 @@ public class InsolvencyStreamConsumer {
      */
     //TODO is groupId is same as topicId.
     @KafkaListener(topics = "${insolvency.stream.topic.retry}",
-            groupId = "insolvency.stream.topic.retry", autoStartup = "${company-links.consumer.insolvency.enable}")
+            groupId = "insolvency.stream.topic.retry",
+            autoStartup = "${company-links.consumer.insolvency.enable}")
     public void retry(Message<ChsDelta> chsDeltaMessage) {
         LOGGER.info(
                 String.format("A new message read from RETRY topic with payload:%s and headers:%s ",
@@ -52,7 +54,8 @@ public class InsolvencyStreamConsumer {
      * Receives Error topic messages.
      */
     @KafkaListener(topics = "${insolvency.stream.topic.error}",
-            groupId = "insolvency.stream.topic.error", autoStartup = "${company-links.consumer.insolvency.enable}")
+            groupId = "insolvency.stream.topic.error",
+            autoStartup = "${company-links.consumer.insolvency.enable}")
     public void error(Message<ChsDelta> chsDeltaMessage) {
         LOGGER.info(
                 String.format("A new message read from ERROR topic with payload:%s and headers:%s ",

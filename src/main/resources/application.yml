@@ -28,3 +28,11 @@ logger:
 
 api:
     endpoint: ${COMPANY_PROFILE_API_URL:localhost}
+
+company-links:
+  consumer:
+    insolvency:
+      enable: true
+    charges:
+      enable: false
+

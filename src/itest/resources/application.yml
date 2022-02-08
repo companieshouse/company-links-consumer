@@ -23,3 +23,10 @@ charges:
 
 logger:
   namespace: company-links-consumer
+
+company-links:
+  consumer:
+    insolvency:
+      enable: true
+    charges:
+      enable: false

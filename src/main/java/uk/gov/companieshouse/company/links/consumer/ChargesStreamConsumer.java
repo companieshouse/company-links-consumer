@@ -3,6 +3,7 @@ package uk.gov.companieshouse.company.links.consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.Message;
 import org.springframework.retry.annotation.Retryable;
@@ -10,8 +11,6 @@ import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.processor.ChargesStreamProcessor;
 import uk.gov.companieshouse.delta.ChsDelta;
 
-// TODO Do we need to load a component based on the property value as suggested by 'Dom' //Action:
-// Zaid to confirm
 @Component
 public class ChargesStreamConsumer {
 
@@ -28,7 +27,7 @@ public class ChargesStreamConsumer {
      * Receives Main topic messages.
      */
     // TODO is groupId is same as topicId.  // name of component will be groupId
-    @KafkaListener(topics = "${charges.stream.topic.main}", groupId = "charges.stream.topic.main")
+    @KafkaListener(topics = "${charges.stream.topic.main}", groupId = "charges.stream.topic.main", autoStartup = "${company-links.consumer.charges.enable}")
     @Retryable
     public void receive(Message<ChsDelta> chsDeltaMessage) {
         LOGGER.info(
@@ -39,7 +38,7 @@ public class ChargesStreamConsumer {
     /**
      * Receives Retry topic messages.
      */
-    @KafkaListener(topics = "${charges.stream.topic.retry}", groupId = "charges.stream.topic.retry")
+    @KafkaListener(topics = "${charges.stream.topic.retry}", groupId = "charges.stream.topic.retry", autoStartup = "${company-links.consumer.charges.enable}")
     public void retry(Message<ChsDelta> chsDeltaMessage) {
         LOGGER.info(
                 String.format("A new message read from RETRY topic with payload:%s and headers:%s ",
@@ -50,7 +49,7 @@ public class ChargesStreamConsumer {
     /**
      * Receives Error topic messages.
      */
-    @KafkaListener(topics = "${charges.stream.topic.error}", groupId = "charges.stream.topic.error")
+    @KafkaListener(topics = "${charges.stream.topic.error}", groupId = "charges.stream.topic.error", autoStartup = "${company-links.consumer.charges.enable}")
     public void error(Message<ChsDelta> chsDeltaMessage) {
         LOGGER.info(
                 String.format("A new message read from ERROR topic with payload:%s and headers:%s ",

@@ -3,7 +3,6 @@ package uk.gov.companieshouse.company.links.consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.Message;
 import org.springframework.retry.annotation.Retryable;
@@ -26,7 +25,6 @@ public class ChargesStreamConsumer {
     /**
      * Receives Main topic messages.
      */
-    // TODO is groupId is same as topicId.  // name of component will be groupId
     @KafkaListener(topics = "${charges.stream.topic.main}", groupId = "charges.stream.topic.main",
             autoStartup = "${company-links.consumer.charges.enable}")
     @Retryable

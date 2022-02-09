@@ -1,6 +1,6 @@
 spring:
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${BOOTSTRAP_SERVERSL:localhost:9092}
 
 insolvency:
   stream:

@@ -1,5 +1,5 @@
-app_name: ch-processor-poc
-group: api
-weight: 991
+app_name: company-links-consumer
+group: internalapi
+weight: 900
 routes:
-   1: ^/ch-processor-poc/healthcheck
+   1: ^/company-links-consumer/healthcheck

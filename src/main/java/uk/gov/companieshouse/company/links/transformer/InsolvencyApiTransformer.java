@@ -1,4 +1,4 @@
-package uk.gov.companieshouse.company.links.tranformer;
+package uk.gov.companieshouse.company.links.transformer;
 
 import org.springframework.stereotype.Component;
 

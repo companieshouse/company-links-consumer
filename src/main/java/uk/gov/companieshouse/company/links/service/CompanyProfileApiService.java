@@ -10,9 +10,9 @@ import uk.gov.companieshouse.api.model.ApiResponse;
 public class CompanyProfileApiService {
 
     /**
-     * Invoke Insolvency API.
+     * Invoke Company Profile API.
      */
-    public ApiResponse<?> invokeInsolvencyApi() {
+    public ApiResponse<?> invokeCompanyProfileApi() {
         InternalApiClient internalApiClient = getInternalApiClient();
         internalApiClient.setBasePath("apiUrl");
 

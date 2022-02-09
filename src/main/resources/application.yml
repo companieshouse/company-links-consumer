@@ -13,7 +13,6 @@ insolvency:
     topic:
       main: stream-insolvency-topic
       retry: stream-insolvency-topic-retry
-      error: stream-insolvency-topic-error
 
 charges:
   stream:
@@ -21,7 +20,6 @@ charges:
     topic:
       main: stream-charges-topic
       retry: stream-charges-topic-retry
-      error: stream-charges-topic-error
 
 logger:
   namespace: company-links-consumer

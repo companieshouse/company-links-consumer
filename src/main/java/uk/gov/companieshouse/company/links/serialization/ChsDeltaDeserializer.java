@@ -10,7 +10,8 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.delta.ChsDelta;
 
-//TODO Do we need separate deserializer one for charges and for insolvancy
+
+//Confirmed that charges and insolvency will have same avro schema
 @Component
 public class ChsDeltaDeserializer implements Deserializer<ChsDelta> {
 

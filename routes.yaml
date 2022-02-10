@@ -1,0 +1,5 @@
+app_name: company-links-consumer
+group: internalapi
+weight: 900
+routes:
+   1: ^/company-links-consumer/healthcheck

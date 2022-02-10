@@ -1,0 +1,31 @@
+spring:
+  kafka:
+    bootstrap-servers: ${BOOTSTRAP_SERVERSL:localhost:9092}
+
+insolvency:
+  stream:
+    group-id: company-links-consumer
+    topic:
+      main: stream-insolvency-topic
+      retry: stream-insolvency-topic-retry
+
+charges:
+  stream:
+    group-id: company-links-consumer
+    topic:
+      main: stream-charges-topic
+      retry: stream-charges-topic-retry
+
+logger:
+  namespace: company-links-consumer
+
+api:
+    endpoint: ${COMPANY_PROFILE_API_URL:localhost}
+
+company-links:
+  consumer:
+    insolvency:
+      enable: true
+    charges:
+      enable: false
+

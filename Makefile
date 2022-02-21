@@ -64,7 +64,6 @@ endif
 	$(info Packaging version: $(version))
 	@test -s ./$(artifact_name).jar || { echo "ERROR: Service JAR not found"; exit 1; }
 	$(eval tmpdir:=$(shell mktemp -d build-XXXXXXXXXX))
-	pwd
 	cp ./start.sh $(tmpdir)
 	cp ./routes.yaml $(tmpdir)
 	cp ./$(artifact_name).jar $(tmpdir)/$(artifact_name).jar

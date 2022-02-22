@@ -66,8 +66,6 @@ endif
 	cp ./start.sh $(tmpdir)
 	cp ./routes.yaml $(tmpdir)
 	cp ./$(artifact_name).jar $(tmpdir)/$(artifact_name).jar
-	pwd
-	ls -lrt
 	cd $(tmpdir); zip -r ../$(artifact_name)-$(version).zip *
 	rm -rf $(tmpdir)
 

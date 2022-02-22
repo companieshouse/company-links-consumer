@@ -56,9 +56,6 @@ run-local:
 .PHONY: package
 package:
 	@# Help: Create a single versioned deployable package (i.e. jar, zip, tar, etc.). May be dependent on the build target being run before package
-ifndef version
-	$(error No version given. Aborting)
-endif
 	mvn versions:set -DnewVersion=$(version) -DgenerateBackupPoms=false
 	$(info Packaging version: $(version))
 	@test -s ./$(artifact_name).jar || { echo "ERROR: Service JAR not found"; exit 1; }

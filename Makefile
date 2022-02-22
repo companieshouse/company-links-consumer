@@ -32,7 +32,7 @@ build:
 	mvn versions:set -DnewVersion=$(version) -DgenerateBackupPoms=false
 	$(info Packing version: $(version))
 	mvn package -Dmaven.test.skip=true
-	cp ./target/$(artifact_name)-$(version).jar ./target/$(artifact_name).jar
+	cp ./target/$(artifact_name)-$(version).jar ./$(artifact_name).jar
 
 .PHONY: test
 test: test-integration test-unit 
@@ -61,8 +61,7 @@ ifndef version
 endif
 	mvn versions:set -DnewVersion=$(version) -DgenerateBackupPoms=false
 	$(info Packaging version: $(version))
-	ls -lrt
-	@test -s ./$(artifact_name).jar || { echo "ERROR: Service JAR not found"; exit 1; }
+    @test -s ./$(artifact_name).jar || { echo "ERROR: Service JAR not found"; exit 1; }
 	$(eval tmpdir:=$(shell mktemp -d build-XXXXXXXXXX))
 	cp ./start.sh $(tmpdir)
 	cp ./routes.yaml $(tmpdir)

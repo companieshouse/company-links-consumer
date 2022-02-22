@@ -61,6 +61,7 @@ ifndef version
 endif
 	mvn versions:set -DnewVersion=$(version) -DgenerateBackupPoms=false
 	$(info Packaging version: $(version))
+	ls -lrt
 	@test -s ./$(artifact_name).jar || { echo "ERROR: Service JAR not found"; exit 1; }
 	$(eval tmpdir:=$(shell mktemp -d build-XXXXXXXXXX))
 	cp ./start.sh $(tmpdir)

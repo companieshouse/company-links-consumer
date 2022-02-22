@@ -55,7 +55,7 @@ run-local:
 
 .PHONY: package
 package:
-    echo "@ Package"
+    echo "At Package"
 	@# Help: Create a single versioned deployable package (i.e. jar, zip, tar, etc.). May be dependent on the build target being run before package
 ifndef version
 	$(error No version given. Aborting)

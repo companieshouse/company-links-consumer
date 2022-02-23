@@ -27,12 +27,12 @@ clean:
 
 .PHONY: build
 build:
-	@# Help: Pull down any dependencies and compile code into an executable if requiredmvn package -Dmaven.test.skip=true
+	@# Help: Pull down any dependencies and compile code into an executable if required
 	$(info Setting version: $(version))
 	mvn versions:set -DnewVersion=$(version) -DgenerateBackupPoms=false
 	$(info Packing version: $(version))
 	mvn package -Dmaven.test.skip=true
-	cp ./target/$(artifact_name)-$(version).jar ./target/$(artifact_name).jar
+	cp ./target/$(artifact_name)-$(version).jar ./$(artifact_name).jar
 
 .PHONY: test
 test: test-integration test-unit 
@@ -56,9 +56,6 @@ run-local:
 .PHONY: package
 package:
 	@# Help: Create a single versioned deployable package (i.e. jar, zip, tar, etc.). May be dependent on the build target being run before package
-ifndef version
-	$(error No version given. Aborting)
-endif
 	mvn versions:set -DnewVersion=$(version) -DgenerateBackupPoms=false
 	$(info Packaging version: $(version))
 	@test -s ./$(artifact_name).jar || { echo "ERROR: Service JAR not found"; exit 1; }

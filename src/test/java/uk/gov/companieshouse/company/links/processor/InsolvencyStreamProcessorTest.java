@@ -1,6 +1,5 @@
 package uk.gov.companieshouse.company.links.processor;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.contains;

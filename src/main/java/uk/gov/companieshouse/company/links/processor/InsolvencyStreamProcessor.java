@@ -72,7 +72,7 @@ public class InsolvencyStreamProcessor {
                     companyProfileService.getCompanyProfile(logContext, companyNumber);
             logger.trace(String.format("Retrieved company profile for company number %s: %s",
                     companyNumber, response.getData()));
-            handleResponse(null, HttpStatus.valueOf(response.getStatusCode()), logContext,
+            handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                     "Response from GET call to company profile api", logMap, logger);
 
             // TODO check if company needs updating - use response.getData()

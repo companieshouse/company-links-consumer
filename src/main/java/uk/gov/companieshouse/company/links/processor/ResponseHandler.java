@@ -8,13 +8,15 @@ import uk.gov.companieshouse.company.links.exception.RetryErrorException;
 import uk.gov.companieshouse.logging.Logger;
 
 
-public class ResponseHandler {
+public final class ResponseHandler {
+
+    private ResponseHandler() {
+    }
 
     /**
      * Common response handler.
      */
     public static void handleResponse(
-            final ResponseStatusException ex,
             final HttpStatus httpStatus,
             final String logContext,
             final String msg,

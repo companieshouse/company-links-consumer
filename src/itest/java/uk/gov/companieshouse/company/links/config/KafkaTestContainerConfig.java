@@ -7,12 +7,16 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
-import org.springframework.kafka.core.*;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
-import uk.gov.companieshouse.company.links.serialization.ChsDeltaDeserializer;
-import uk.gov.companieshouse.company.links.serialization.ChsDeltaSerializer;
-import uk.gov.companieshouse.delta.ChsDelta;
+import uk.gov.companieshouse.company.links.serialization.ResourceChangedDataDeserializer;
+import uk.gov.companieshouse.company.links.serialization.ResourceChangedDataSerializer;
+import uk.gov.companieshouse.stream.ResourceChangedData;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -47,21 +51,21 @@ public class KafkaTestContainerConfig {
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "company-links-consumer");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ChsDeltaDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ResourceChangedDataDeserializer.class);
         return props;
     }
 
     @Bean
-    public ProducerFactory<String, ChsDelta> producerFactory(KafkaContainer kafkaContainer) {
+    public ProducerFactory<String, ResourceChangedData> producerFactory(KafkaContainer kafkaContainer) {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ChsDeltaSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ResourceChangedDataSerializer.class);
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
     @Bean
-    public KafkaTemplate<String, ChsDelta> kafkaTemplate() {
+    public KafkaTemplate<String, ResourceChangedData> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory(kafkaContainer()));
     }
 

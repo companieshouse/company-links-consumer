@@ -2,6 +2,10 @@ spring:
   kafka:
     bootstrap-servers: ${BOOTSTRAP_SERVERSL:localhost:9092}
 
+springfox:
+  documentation:
+    auto-startup: false
+
 insolvency:
   stream:
     group-id: company-links-consumer
@@ -20,7 +24,8 @@ logger:
   namespace: company-links-consumer
 
 api:
-    endpoint: ${COMPANY_PROFILE_API_URL:localhost}
+  endpoint: ${COMPANY_PROFILE_API_URL:localhost}
+  company-profile-api-key: ${COMPANY_PROFILE_API_KEY:localhost}
 
 company-links:
   consumer:

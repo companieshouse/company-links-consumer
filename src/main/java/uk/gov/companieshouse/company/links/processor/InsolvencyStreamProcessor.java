@@ -2,7 +2,6 @@ package uk.gov.companieshouse.company.links.processor;
 
 import static uk.gov.companieshouse.company.links.processor.ResponseHandler.handleResponse;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -13,15 +12,12 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.company.CompanyProfile;
-import uk.gov.companieshouse.api.delta.Insolvency;
-import uk.gov.companieshouse.api.delta.InsolvencyDelta;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryErrorException;
 import uk.gov.companieshouse.company.links.producer.InsolvencyStreamProducer;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
-import uk.gov.companieshouse.delta.ChsDelta;
 import uk.gov.companieshouse.logging.Logger;
-
+import uk.gov.companieshouse.stream.ResourceChangedData;
 
 @Component
 public class InsolvencyStreamProcessor {
@@ -43,30 +39,24 @@ public class InsolvencyStreamProcessor {
     }
 
     /**
-     * Process CHS Delta message.
+     * Process a ResourceChangedData message.
      */
-    //TODO What model should we use here? Is it a Avro?
-    public void process(Message<ChsDelta> chsDelta) {
+    public void process(Message<ResourceChangedData> resourceChangedMessage) {
         try {
-            MessageHeaders headers = chsDelta.getHeaders();
+            MessageHeaders headers = resourceChangedMessage.getHeaders();
             final String receivedTopic =
                     Objects.requireNonNull(headers.get(KafkaHeaders.RECEIVED_TOPIC)).toString();
             //TODO need to check where we set this property.
             //TODO We need to create a new one for this processor
             final boolean isRetry = headers.containsKey("INSOLVENCY_DELTA_RETRY_COUNT");
-            final ChsDelta payload = chsDelta.getPayload();
+            final ResourceChangedData payload = resourceChangedMessage.getPayload();
             final String logContext = payload.getContextId();
             final Map<String, Object> logMap = new HashMap<>();
 
-            ObjectMapper mapper = new ObjectMapper();
-            InsolvencyDelta insolvencyDelta = mapper.readValue(payload.getData(),
-                    InsolvencyDelta.class);
-            logger.trace(String.format("InsolvencyDelta extracted "
-                    + "from Kafka message: %s", insolvencyDelta));
-
-            // We always receive only one insolvency per delta from CHIPS
-            Insolvency insolvency = insolvencyDelta.getInsolvency().get(0);
-            final String companyNumber = insolvency.getCompanyNumber();
+            // the resource_id field returned represents the insolvency record's company number
+            final String companyNumber = payload.getResourceId();
+            logger.trace(String.format("Resource changed message of kind %s "
+                    + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
 
             final ApiResponse<CompanyProfile> response =
                     companyProfileService.getCompanyProfile(logContext, companyNumber);
@@ -75,21 +65,21 @@ public class InsolvencyStreamProcessor {
             handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                     "Response from GET call to company profile api", logMap, logger);
 
-            // TODO check if company needs updating - use response.getData()
-            // TODO PATCH company profile
+            // TODO DSND-375: check if company needs updating - use response.getData()
+            // TODO DSND-603: PATCH company profile
         } catch (RetryErrorException ex) {
-            retry(chsDelta);
+            retry(resourceChangedMessage);
         } catch (Exception ex) {
-            handleErrors(chsDelta);
+            handleErrors(resourceChangedMessage);
             // send to error topic
         }
     }
 
-    public void retry(Message<ChsDelta> chsDelta) {
+    public void retry(Message<ResourceChangedData> resourceChangedMessage) {
 
     }
 
-    private void handleErrors(Message<ChsDelta> chsDelta) {
+    private void handleErrors(Message<ResourceChangedData> resourceChangedMessage) {
 
     }
 }

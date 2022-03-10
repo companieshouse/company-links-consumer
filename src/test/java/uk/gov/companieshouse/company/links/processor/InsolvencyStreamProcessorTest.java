@@ -26,8 +26,9 @@ import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.producer.InsolvencyStreamProducer;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
-import uk.gov.companieshouse.delta.ChsDelta;
 import uk.gov.companieshouse.logging.Logger;
+import uk.gov.companieshouse.stream.EventRecord;
+import uk.gov.companieshouse.stream.ResourceChangedData;
 
 @ExtendWith(MockitoExtension.class)
 class InsolvencyStreamProcessorTest {
@@ -52,9 +53,9 @@ class InsolvencyStreamProcessorTest {
     }
 
     @Test
-    @DisplayName("Successfully processes a kafka message containing a ChsDelta payload")
-    void successfullyProcessInsolvencyDelta() throws IOException {
-        Message<ChsDelta> mockChsDeltaMessage = createChsDeltaMessage();
+    @DisplayName("Successfully processes a kafka message containing a ResourceChangedData payload")
+    void successfullyProcessResourceChangedData() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
 
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyProfile());
@@ -62,32 +63,34 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
-        insolvencyProcessor.process(mockChsDeltaMessage);
+        insolvencyProcessor.process(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
         verify(logger, times(2)).trace(anyString());
-        verify(logger, atLeastOnce()).trace(contains(
-                "InsolvencyDelta extracted from Kafka message"));
+        verify(logger, atLeastOnce()).trace(
+                contains("Resource changed message of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace((
                 String.format("Retrieved company profile for company number %s: %s",
                         MOCK_COMPANY_NUMBER, companyProfileApiResponse.getData())));
     }
 
-    private Message<ChsDelta> createChsDeltaMessage() throws IOException {
+    private Message<ResourceChangedData> createResourceChangedMessage() throws IOException {
         InputStreamReader exampleInsolvencyJsonPayload = new InputStreamReader(
-                Objects.requireNonNull(
-                        ClassLoader.getSystemClassLoader().getResourceAsStream("insolvency-delta" +
-                                ".json")));
-        String insolvencyData = FileCopyUtils.copyToString(exampleInsolvencyJsonPayload);
+                Objects.requireNonNull(ClassLoader.getSystemClassLoader()
+                        .getResourceAsStream("insolvency-record.json")));
+        String insolvencyRecord = FileCopyUtils.copyToString(exampleInsolvencyJsonPayload);
 
-        ChsDelta mockChsDelta = ChsDelta.newBuilder()
-                .setData(insolvencyData)
+        ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
                 .setContextId("context_id")
-                .setAttempt(1)
+                .setResourceId(MOCK_COMPANY_NUMBER)
+                .setResourceKind("company-insolvency")
+                .setResourceUri(String.format("/company/%s/insolvency", MOCK_COMPANY_NUMBER))
+                .setEvent(new EventRecord())
+                .setData(insolvencyRecord)
                 .build();
 
         return MessageBuilder
-                .withPayload(mockChsDelta)
+                .withPayload(resourceChangedData)
                 .setHeader(KafkaHeaders.RECEIVED_TOPIC, "test")
                 .build();
     }

@@ -8,21 +8,21 @@ import org.apache.avro.reflect.ReflectDatumReader;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.stereotype.Component;
-import uk.gov.companieshouse.delta.ChsDelta;
-
+import uk.gov.companieshouse.stream.ResourceChangedData;
 
 //Confirmed that charges and insolvency will have same avro schema
 @Component
-public class ChsDeltaDeserializer implements Deserializer<ChsDelta> {
+public class ResourceChangedDataDeserializer implements Deserializer<ResourceChangedData> {
 
     /**
      * deserialize.
      */
     @Override
-    public ChsDelta deserialize(String topic, byte[] data) {
+    public ResourceChangedData deserialize(String topic, byte[] data) {
         try {
             Decoder decoder = DecoderFactory.get().binaryDecoder(data, null);
-            DatumReader<ChsDelta> reader = new ReflectDatumReader<>(ChsDelta.class);
+            DatumReader<ResourceChangedData> reader =
+                    new ReflectDatumReader<>(ResourceChangedData.class);
             return reader.read(null, decoder);
         } catch (Exception ex) {
             throw new SerializationException(

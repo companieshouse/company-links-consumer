@@ -9,7 +9,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import uk.gov.companieshouse.company.links.config.KafkaTestContainerConfig;
-import uk.gov.companieshouse.delta.ChsDelta;
+import uk.gov.companieshouse.stream.EventRecord;
+import uk.gov.companieshouse.stream.ResourceChangedData;
+
+import java.util.Arrays;
 
 @SpringBootTest
 @DirtiesContext
@@ -18,15 +21,29 @@ import uk.gov.companieshouse.delta.ChsDelta;
 public class ChargesStreamConsumerITest {
 
     @Autowired
-    public KafkaTemplate<String, ChsDelta> kafkaTemplate;
+    public KafkaTemplate<String, ResourceChangedData> kafkaTemplate;
 
     @Value("${charges.stream.topic.main}")
     private String mainTopic;
 
     @Test
     public void testSendingKafkaMessage() {
-        ChsDelta chsDelta = new ChsDelta("{ \"key\": \"value\" }", 1, "some_id");
-        kafkaTemplate.send(mainTopic, chsDelta);
+        EventRecord event = EventRecord.newBuilder()
+                .setType("changed")
+                .setPublishedAt("2022-02-22T10:51:30")
+                .setFieldsChanged(Arrays.asList("foo", "moo"))
+                .build();
+
+        ResourceChangedData resourceChanged = ResourceChangedData.newBuilder()
+                .setContextId("context_id")
+                .setResourceId("12345678")
+                .setResourceKind("company-insolvency")
+                .setResourceUri("/company/12345678/insolvency")
+                .setData("{ \"key\": \"value\" }")
+                .setEvent(event)
+                .build();
+
+        kafkaTemplate.send(mainTopic, resourceChanged);
     }
 
 }

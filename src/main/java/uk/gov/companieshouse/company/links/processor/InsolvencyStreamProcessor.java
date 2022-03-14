@@ -5,6 +5,7 @@ import static uk.gov.companieshouse.company.links.processor.ResponseHandler.hand
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -12,6 +13,8 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.company.CompanyProfile;
+import uk.gov.companieshouse.api.company.Data;
+import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryErrorException;
 import uk.gov.companieshouse.company.links.producer.InsolvencyStreamProducer;
@@ -65,7 +68,27 @@ public class InsolvencyStreamProcessor {
             handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                     "Response from GET call to company profile api", logMap, logger);
 
-            // TODO DSND-375: check if company needs updating - use response.getData()
+            Links responseLinks = response.getData().getData().getLinks();
+            if (responseLinks.getInsolvency() != null) {
+                logger.trace(String.format("Company profile with company number %s,"
+                        + " already contains insolvency links, will not perform patch"));
+                return;
+            }
+
+            logger.trace(String.format("Current company profile with company number %s,"
+                    + " does not contain an insolvency link, attaching an insolvency link",
+                    companyNumber));
+
+            Data data = response.getData().getData();
+            Links links = data.getLinks();
+            links.setInsolvency(String.format("/company/%s/insolvency", companyNumber));
+            data.setLinks(links);
+            CompanyProfile companyProfile = new CompanyProfile();
+            companyProfile.setData(data);
+
+            logger.trace(String.format("Performing a PATCH with new company profile %s",
+                    companyProfile));
+
             // TODO DSND-603: PATCH company profile
         } catch (RetryErrorException ex) {
             retry(resourceChangedMessage);

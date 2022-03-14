@@ -5,7 +5,6 @@ import static uk.gov.companieshouse.company.links.processor.ResponseHandler.hand
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.support.KafkaHeaders;

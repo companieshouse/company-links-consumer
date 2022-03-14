@@ -70,7 +70,8 @@ public class InsolvencyStreamProcessor {
             Links responseLinks = response.getData().getData().getLinks();
             if (responseLinks.getInsolvency() != null) {
                 logger.trace(String.format("Company profile with company number %s,"
-                        + " already contains insolvency links, will not perform patch"));
+                        + " already contains insolvency links, will not perform patch",
+                        companyNumber));
                 return;
             }
 

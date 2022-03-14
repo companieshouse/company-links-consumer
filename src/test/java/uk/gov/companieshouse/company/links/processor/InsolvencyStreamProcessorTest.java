@@ -107,7 +107,8 @@ class InsolvencyStreamProcessorTest {
                         MOCK_COMPANY_NUMBER, companyProfileApiResponse.getData())));
         verify(logger, atLeastOnce()).trace((
                 String.format("Company profile with company number %s,"
-                        + " already contains insolvency links, will not perform patch")
+                        + " already contains insolvency links, will not perform patch",
+                        MOCK_COMPANY_NUMBER)
                 ));
     }
 

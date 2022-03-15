@@ -12,6 +12,8 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.company.CompanyProfile;
+import uk.gov.companieshouse.api.company.Data;
+import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryErrorException;
 import uk.gov.companieshouse.company.links.producer.InsolvencyStreamProducer;
@@ -64,8 +66,28 @@ public class InsolvencyStreamProcessor {
                     companyNumber, response.getData()));
             handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                     "Response from GET call to company profile api", logMap, logger);
+            Data data = response.getData().getData();
+            Links links = data.getLinks();
 
-            // TODO DSND-375: check if company needs updating - use response.getData()
+            if (links.getInsolvency() != null) {
+                logger.trace(String.format("Company profile with company number %s,"
+                        + " already contains insolvency links, will not perform patch",
+                        companyNumber));
+                return;
+            }
+
+            logger.trace(String.format("Current company profile with company number %s,"
+                    + " does not contain an insolvency link, attaching an insolvency link",
+                    companyNumber));
+
+            links.setInsolvency(String.format("/company/%s/insolvency", companyNumber));
+            data.setLinks(links);
+            CompanyProfile companyProfile = new CompanyProfile();
+            companyProfile.setData(data);
+
+            logger.trace(String.format("Performing a PATCH with new company profile %s",
+                    companyProfile));
+
             // TODO DSND-603: PATCH company profile
         } catch (RetryErrorException ex) {
             retry(resourceChangedMessage);

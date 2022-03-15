@@ -66,9 +66,10 @@ public class InsolvencyStreamProcessor {
                     companyNumber, response.getData()));
             handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                     "Response from GET call to company profile api", logMap, logger);
+            Data data = response.getData().getData();
+            Links links = data.getLinks();
 
-            Links responseLinks = response.getData().getData().getLinks();
-            if (responseLinks.getInsolvency() != null) {
+            if (links.getInsolvency() != null) {
                 logger.trace(String.format("Company profile with company number %s,"
                         + " already contains insolvency links, will not perform patch",
                         companyNumber));
@@ -79,8 +80,6 @@ public class InsolvencyStreamProcessor {
                     + " does not contain an insolvency link, attaching an insolvency link",
                     companyNumber));
 
-            Data data = response.getData().getData();
-            Links links = data.getLinks();
             links.setInsolvency(String.format("/company/%s/insolvency", companyNumber));
             data.setLinks(links);
             CompanyProfile companyProfile = new CompanyProfile();

@@ -26,6 +26,7 @@ import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.producer.InsolvencyStreamProducer;
+import uk.gov.companieshouse.company.links.serialization.ResourceChangedDataSerializer;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.EventRecord;
@@ -56,24 +57,29 @@ class InsolvencyStreamProcessorTest {
     @Test
     @DisplayName("Successfully processes a kafka message containing a ResourceChangedData payload, updating insolvency links")
     void successfullyProcessResourceChangedDataInsolvencyLinksGetsUpdated() throws IOException {
+
         Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
 
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyProfile());
+
+        logger.info(String.format("successfullyProcessResourceChangedDataInsolvencyLinksGetsUpdated() - companyProfileApiResponse %s", companyProfileApiResponse));
+
 
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
         insolvencyProcessor.process(mockResourceChangedMessage);
 
+        logger.info(String.format("successfullyProcessResourceChangedDataInsolvencyLinksGetsUpdated() - after processor companyProfileApiResponse %s", companyProfileApiResponse));
+
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(2)).trace(anyString());
+        verify(logger, times(4)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace((
                 String.format("Retrieved company profile for company number %s: %s",
-                        MOCK_COMPANY_NUMBER, companyProfileApiResponse.getData())));
-
+                        MOCK_COMPANY_NUMBER, createCompanyProfile())));
         verify(logger, atLeastOnce()).trace((
                 String.format("Current company profile with company number %s," +
                         " does not contain an insolvency link, attaching an insolvency link", MOCK_COMPANY_NUMBER
@@ -81,9 +87,8 @@ class InsolvencyStreamProcessorTest {
         verify(logger, atLeastOnce()).trace((
                 String.format("Performing a PATCH with new company profile %s",
                         createCompanyProfileWithInsolvencyLinks())
-                ));
+                ));   
     }
-
 
     @Test
     @DisplayName("Successfully processes a kafka message containing a ResourceChangedData payload, insolvency links doesn't need updating")
@@ -99,7 +104,7 @@ class InsolvencyStreamProcessorTest {
         insolvencyProcessor.process(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(2)).trace(anyString());
+        verify(logger, times(3)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace((
@@ -111,6 +116,8 @@ class InsolvencyStreamProcessorTest {
                         MOCK_COMPANY_NUMBER)
                 ));
     }
+
+    
 
     private Message<ResourceChangedData> createResourceChangedMessage() throws IOException {
         InputStreamReader exampleInsolvencyJsonPayload = new InputStreamReader(
@@ -137,20 +144,28 @@ class InsolvencyStreamProcessorTest {
         Data companyProfileData = new Data();
         companyProfileData.setCompanyNumber(MOCK_COMPANY_NUMBER);
 
+        logger.info(String.format("createCompanyProfile() - companyProfileData: %s", companyProfileData));
+
         CompanyProfile companyProfile = new CompanyProfile();
         companyProfile.setData(companyProfileData);
+
+        logger.info(String.format("createCompanyProfile() - companyProfile: %s", companyProfileData));
+
         return companyProfile;
     }
 
     private CompanyProfile createCompanyProfileWithInsolvencyLinks() {
         Data companyProfileData = new Data();
         companyProfileData.setCompanyNumber(MOCK_COMPANY_NUMBER);
-        Links links = companyProfileData.getLinks();
+
+        Links links = new Links();
         links.setInsolvency(String.format("/company/%s/insolvency", MOCK_COMPANY_NUMBER));
         companyProfileData.setLinks(links);
 
+        
         CompanyProfile companyProfile = new CompanyProfile();
         companyProfile.setData(companyProfileData);
+
         return companyProfile;
     }
 

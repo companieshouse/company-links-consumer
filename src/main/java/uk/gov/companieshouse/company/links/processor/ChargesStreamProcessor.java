@@ -27,7 +27,6 @@ public class ChargesStreamProcessor {
     /**
      * process.
      */
-    //TODO What model should we use here? Is it a Avro? //Action Zaid to confirm
     public void process(Message<ResourceChangedData> resourceChangedMessage) {
         try {
             MessageHeaders headers = resourceChangedMessage.getHeaders();

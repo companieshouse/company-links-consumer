@@ -5,6 +5,7 @@ import static uk.gov.companieshouse.company.links.processor.ResponseHandler.hand
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -12,7 +13,6 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.company.CompanyProfile;
-import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryErrorException;
@@ -66,10 +66,11 @@ public class InsolvencyStreamProcessor {
                     companyNumber, response.getData()));
             handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                     "Response from GET call to company profile api", logMap, logger);
-            Data data = response.getData().getData();
-            Links links = data.getLinks();
 
-            if (links.getInsolvency() != null) {
+            var data = response.getData().getData();
+            var links = data.getLinks();
+
+            if (links != null && links.getInsolvency() != null) {
                 logger.trace(String.format("Company profile with company number %s,"
                         + " already contains insolvency links, will not perform patch",
                         companyNumber));
@@ -80,9 +81,13 @@ public class InsolvencyStreamProcessor {
                     + " does not contain an insolvency link, attaching an insolvency link",
                     companyNumber));
 
+            if (links == null) {
+                links = new Links();
+            }
+
             links.setInsolvency(String.format("/company/%s/insolvency", companyNumber));
             data.setLinks(links);
-            CompanyProfile companyProfile = new CompanyProfile();
+            var companyProfile = new CompanyProfile();
             companyProfile.setData(data);
 
             logger.trace(String.format("Performing a PATCH with new company profile %s",

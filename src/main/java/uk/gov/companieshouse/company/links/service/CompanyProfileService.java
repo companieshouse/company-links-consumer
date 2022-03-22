@@ -38,7 +38,7 @@ public class CompanyProfileService extends BaseApiClientServiceImpl {
      * @return an ApiResponse containing the CompanyProfileApi data model
      */
     public ApiResponse<CompanyProfile> getCompanyProfile(String contextId, String companyNumber) {
-        String uri = String.format("/company/%s", companyNumber);
+        var uri = String.format("/company/%s", companyNumber);
 
         Map<String, Object> logMap = createLogMap(companyNumber, "GET", uri);
         logger.infoContext(contextId, String.format("GET %s", uri), logMap);
@@ -53,13 +53,13 @@ public class CompanyProfileService extends BaseApiClientServiceImpl {
      * Get an internal api client instance.
      */
     public InternalApiClient getApiClient(String contextId) {
-        InternalApiClient apiClient = new InternalApiClient(getHttpClient(contextId));
+        var apiClient = new InternalApiClient(getHttpClient(contextId));
         apiClient.setBasePath(companyProfileApiUrl);
         return apiClient;
     }
 
     private HttpClient getHttpClient(String contextId) {
-        ApiKeyHttpClient httpClient = new ApiKeyHttpClient(companyProfileApiKey);
+        var httpClient = new ApiKeyHttpClient(companyProfileApiKey);
         httpClient.setRequestId(contextId);
         return httpClient;
     }

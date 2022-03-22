@@ -19,15 +19,17 @@ public class ChargesStreamProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ChargesStreamProcessor.class);
     private final ChargesStreamProducer chargesStreamProducer;
 
+    /**
+     * Construct an insolvency stream processor.
+     */
     @Autowired
     public ChargesStreamProcessor(ChargesStreamProducer chargesStreamProducer) {
         this.chargesStreamProducer = chargesStreamProducer;
     }
 
     /**
-     * process.
+     * Process a ResourceChangedData message.
      */
-    //TODO What model should we use here? Is it a Avro? //Action Zaid to confirm
     public void process(Message<ResourceChangedData> resourceChangedMessage) {
         try {
             MessageHeaders headers = resourceChangedMessage.getHeaders();
@@ -45,12 +47,14 @@ public class ChargesStreamProcessor {
         }
     }
 
+    @Override
     public void retry(Message<ResourceChangedData> resourceChangedMessage) {
-
+        // Retry functionality added in a future ticket
     }
 
+    @Override
     private void handleErrors(Message<ResourceChangedData> resourceChangedMessage) {
-
+        // Error functionality added in a future ticket
     }
 
 }

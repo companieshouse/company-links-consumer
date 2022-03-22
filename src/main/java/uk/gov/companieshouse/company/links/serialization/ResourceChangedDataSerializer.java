@@ -16,7 +16,7 @@ public class ResourceChangedDataSerializer implements Serializer<ResourceChanged
     public byte[] serialize(String var1, ResourceChangedData resourceChangedData) {
         try {
             DatumWriter<ResourceChangedData> writer = new SpecificDatumWriter<>();
-            EncoderFactory encoderFactory = EncoderFactory.get();
+            var encoderFactory = EncoderFactory.get();
 
             AvroSerializer<ResourceChangedData> avroSerializer = new AvroSerializer<>(writer,
                     encoderFactory);

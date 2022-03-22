@@ -18,8 +18,16 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 @Configuration
 @Profile("!test")
 public class KafkaConfig {
-    @Value("${spring.kafka.bootstrap-servers}")
-    private String bootstrapServers;
+
+    private final ResourceChangedDataDeserializer resourceChangedDataDeserializer;
+
+    private final String bootstrapServers;
+
+    public KafkaConfig(ResourceChangedDataDeserializer resourceChangedDataDeserializer, 
+            @Value("${spring.kafka" + ".bootstrap-servers}") String bootstrapServers) {
+        this.resourceChangedDataDeserializer = resourceChangedDataDeserializer;
+        this.bootstrapServers = bootstrapServers;
+    }
 
     /**
      * Kafka Consumer Factory Message.
@@ -27,7 +35,7 @@ public class KafkaConfig {
     @Bean
     public ConsumerFactory<String, ResourceChangedData> consumerFactoryMessage() {
         return new DefaultKafkaConsumerFactory<>(consumerConfigs(), new StringDeserializer(),
-                new ResourceChangedDataDeserializer());
+                 resourceChangedDataDeserializer);
     }
 
     /**

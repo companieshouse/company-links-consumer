@@ -67,12 +67,12 @@ class InsolvencyStreamProcessorTest {
         insolvencyProcessor.process(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(2)).trace(anyString());
+        verify(logger, times(4)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace((
                 String.format("Retrieved company profile for company number %s: %s",
-                        MOCK_COMPANY_NUMBER, companyProfileApiResponse.getData())));
+                        MOCK_COMPANY_NUMBER, createCompanyProfile())));
 
         verify(logger, atLeastOnce()).trace((
                 String.format("Current company profile with company number %s," +
@@ -99,7 +99,7 @@ class InsolvencyStreamProcessorTest {
         insolvencyProcessor.process(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(2)).trace(anyString());
+        verify(logger, times(3)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace((
@@ -145,7 +145,7 @@ class InsolvencyStreamProcessorTest {
     private CompanyProfile createCompanyProfileWithInsolvencyLinks() {
         Data companyProfileData = new Data();
         companyProfileData.setCompanyNumber(MOCK_COMPANY_NUMBER);
-        Links links = companyProfileData.getLinks();
+        Links links = new Links();
         links.setInsolvency(String.format("/company/%s/insolvency", MOCK_COMPANY_NUMBER));
         companyProfileData.setLinks(links);
 

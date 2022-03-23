@@ -18,16 +18,15 @@ import java.util.Arrays;
 @DirtiesContext
 @Import(KafkaTestContainerConfig.class)
 @ActiveProfiles({"test"})
-public class InsolvencyStreamConsumerITest {
+ class InsolvencyStreamConsumerITest {
 
     @Autowired
     public KafkaTemplate<String, ResourceChangedData> kafkaTemplate;
 
-    @Value("${insolvency.stream.topic.main}")
+    @Value("${company-links.consumer.insolvency.topic.main}")
     private String mainTopic;
 
-    @Test
-    public void testSendingKafkaMessage() {
+    void testSendingKafkaMessage() {
         EventRecord event = EventRecord.newBuilder()
                 .setType("changed")
                 .setPublishedAt("2022-02-22T10:51:30")

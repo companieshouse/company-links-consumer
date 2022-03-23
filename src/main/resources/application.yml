@@ -1,24 +1,11 @@
+---
 spring:
   kafka:
-    bootstrap-servers: ${DATA_SYNC_KAFKA_BROKER_URL:localhost:9092}
+    bootstrap-servers: ${DATA_SYNC_KAFKA_BROKER_URL:localhost:29092}
 
 springfox:
   documentation:
     auto-startup: false
-
-insolvency:
-  stream:
-    group-id: company-links-consumer
-    topic:
-      main: stream-insolvency
-      retry: stream-insolvency-retry
-
-charges:
-  stream:
-    group-id: company-links-consumer
-    topic:
-      main: stream-charges
-      retry: stream-charges-retry
 
 logger:
   namespace: company-links-consumer
@@ -31,6 +18,13 @@ company-links:
   consumer:
     insolvency:
       enable: true
+      group-id: company-links-consumer
+      topic:
+        main: stream-insolvency
+
     charges:
       enable: false
+      group-id: company-links-consumer
+      topic:
+        main: stream-charges
 

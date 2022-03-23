@@ -2,7 +2,6 @@ package uk.gov.companieshouse.company.links.processor;
 
 import java.util.Map;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import uk.gov.companieshouse.company.links.exception.NonRetryErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryErrorException;
 import uk.gov.companieshouse.logging.Logger;

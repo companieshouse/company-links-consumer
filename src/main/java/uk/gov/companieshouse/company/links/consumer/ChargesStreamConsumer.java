@@ -15,11 +15,11 @@ public class ChargesStreamConsumer {
 
     private static final Logger logger = LoggerFactory.getLogger(ChargesStreamConsumer.class);
 
-    private final ChargesStreamProcessor streamProcessor;
+    private final ChargesStreamProcessor chargesProcessor;
 
     @Autowired
-    public ChargesStreamConsumer(ChargesStreamProcessor streamProcessor) {
-        this.streamProcessor = streamProcessor;
+    public ChargesStreamConsumer(ChargesStreamProcessor chargesProcessor) {
+        this.chargesProcessor = chargesProcessor;
     }
 
     /**
@@ -32,7 +32,7 @@ public class ChargesStreamConsumer {
         logger.info(
                 String.format("A new message read from MAIN topic with payload: %s",
                         resourceChangedMessage.getPayload()));
-        streamProcessor.process(resourceChangedMessage);
+        chargesProcessor.process(resourceChangedMessage);
     }
 
 }

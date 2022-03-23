@@ -47,12 +47,10 @@ public class ChargesStreamProcessor {
         }
     }
 
-    @Override
     public void retry(Message<ResourceChangedData> resourceChangedMessage) {
         // Retry functionality added in a future ticket
     }
 
-    @Override
     private void handleErrors(Message<ResourceChangedData> resourceChangedMessage) {
         // Error functionality added in a future ticket
     }

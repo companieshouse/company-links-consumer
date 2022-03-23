@@ -28,7 +28,6 @@ public class ChargesStreamConsumer {
     @KafkaListener(topics = "${company-links.consumer.charges.topic.main}", 
             groupId = "${company-links.consumer.charges.group-id}",
             autoStartup = "${company-links.consumer.charges.enable}")
-    @Retryable
     public void receive(Message<ResourceChangedData> resourceChangedMessage) {
         logger.info(
                 String.format("A new message read from MAIN topic with payload: %s",

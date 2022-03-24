@@ -15,7 +15,6 @@ import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryErrorException;
-import uk.gov.companieshouse.company.links.producer.InsolvencyStreamProducer;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -24,17 +23,15 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 public class InsolvencyStreamProcessor {
 
     private final Logger logger;
-    private final InsolvencyStreamProducer insolvencyStreamProducer;
     private final CompanyProfileService companyProfileService;
 
     /**
      * Construct an insolvency stream processor.
      */
     @Autowired
-    public InsolvencyStreamProcessor(InsolvencyStreamProducer insolvencyStreamProducer,
+    public InsolvencyStreamProcessor(
                                      CompanyProfileService companyProfileService,
                                      Logger logger) {
-        this.insolvencyStreamProducer = insolvencyStreamProducer;
         this.companyProfileService = companyProfileService;
         this.logger = logger;
     }

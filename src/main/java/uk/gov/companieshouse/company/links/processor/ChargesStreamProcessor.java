@@ -9,7 +9,6 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.RetryErrorException;
-import uk.gov.companieshouse.company.links.producer.ChargesStreamProducer;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 
@@ -17,14 +16,12 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 public class ChargesStreamProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChargesStreamProcessor.class);
-    private final ChargesStreamProducer chargesStreamProducer;
 
     /**
      * Construct an insolvency stream processor.
      */
     @Autowired
-    public ChargesStreamProcessor(ChargesStreamProducer chargesStreamProducer) {
-        this.chargesStreamProducer = chargesStreamProducer;
+    public ChargesStreamProcessor() {
     }
 
     /**

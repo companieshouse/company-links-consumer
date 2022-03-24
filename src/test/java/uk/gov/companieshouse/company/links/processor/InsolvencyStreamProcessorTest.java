@@ -25,7 +25,6 @@ import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
-import uk.gov.companieshouse.company.links.producer.InsolvencyStreamProducer;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.EventRecord;
@@ -36,8 +35,6 @@ class InsolvencyStreamProcessorTest {
     private static final String MOCK_COMPANY_NUMBER = "02588581";
     private InsolvencyStreamProcessor insolvencyProcessor;
 
-    @Mock
-    private InsolvencyStreamProducer insolvencyProducer;
 
     @Mock
     private CompanyProfileService companyProfileService;
@@ -48,7 +45,6 @@ class InsolvencyStreamProcessorTest {
     @BeforeEach
     void setUp() {
         insolvencyProcessor = new InsolvencyStreamProcessor(
-                insolvencyProducer,
                 companyProfileService,
                 logger);
     }

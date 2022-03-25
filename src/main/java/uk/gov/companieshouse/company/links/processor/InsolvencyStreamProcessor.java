@@ -85,10 +85,16 @@ public class InsolvencyStreamProcessor {
             var companyProfile = new CompanyProfile();
             companyProfile.setData(data);
 
+            final ApiResponse<Void> patchResponse =
+                    companyProfileService.patchCompanyProfile(
+                            logContext, companyNumber, companyProfile
+                    );
+
             logger.trace(String.format("Performing a PATCH with new company profile %s",
                     companyProfile));
+            handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
+                    "Response from PATCH call to company profile api", logMap, logger);
 
-            // TODO DSND-603: PATCH company profile
         } catch (RetryErrorException ex) {
             retry(resourceChangedMessage);
         } catch (Exception ex) {

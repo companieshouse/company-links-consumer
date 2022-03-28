@@ -9,50 +9,47 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.RetryErrorException;
-import uk.gov.companieshouse.company.links.producer.ChargesStreamProducer;
-import uk.gov.companieshouse.delta.ChsDelta;
+import uk.gov.companieshouse.stream.ResourceChangedData;
 
 
 @Component
 public class ChargesStreamProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChargesStreamProcessor.class);
-    private final ChargesStreamProducer chargesStreamProducer;
 
+    /**
+     * Construct an insolvency stream processor.
+     */
     @Autowired
-    public ChargesStreamProcessor(ChargesStreamProducer chargesStreamProducer) {
-        this.chargesStreamProducer = chargesStreamProducer;
+    public ChargesStreamProcessor() {
     }
 
     /**
-     * process.
+     * Process a ResourceChangedData message.
      */
-    //TODO What model should we use here? Is it a Avro? //Action Zaid to confirm
-    public void process(Message<ChsDelta> chsDelta) {
+    public void process(Message<ResourceChangedData> resourceChangedMessage) {
         try {
-            MessageHeaders headers = chsDelta.getHeaders();
+            MessageHeaders headers = resourceChangedMessage.getHeaders();
             final String receivedTopic =
                     Objects.requireNonNull(headers.get(KafkaHeaders.RECEIVED_TOPIC)).toString();
             //TODO need to check where we set this property.
-            // We need to create a new one for this processor
-            // can be removed safely
-            //final boolean isRetry = headers.containsKey("INSOLVENCY_DELTA_RETRY_COUNT");
-            //final ChsDelta payload = chsDelta.getPayload();
+            //TODO We need to create a new one for this processor
+            final boolean isRetry = headers.containsKey("INSOLVENCY_DELTA_RETRY_COUNT");
 
         } catch (RetryErrorException ex) {
-            retry(chsDelta);
+            retry(resourceChangedMessage);
         } catch (Exception ex) {
-            handleErrors(chsDelta);
+            handleErrors(resourceChangedMessage);
             // send to error topic
         }
     }
 
-    public void retry(Message<ChsDelta> chsDelta) {
-
+    public void retry(Message<ResourceChangedData> resourceChangedMessage) {
+        // Retry functionality added in a future ticket
     }
 
-    private void handleErrors(Message<ChsDelta> chsDelta) {
-
+    private void handleErrors(Message<ResourceChangedData> resourceChangedMessage) {
+        // Error functionality added in a future ticket
     }
 
 }

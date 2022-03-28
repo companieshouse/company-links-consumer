@@ -93,12 +93,12 @@ docker/kafka-start:
 .PHONY: docker/kafka-create-topics
 docker/kafka-create-topics:
 	@# Help: Create kafka topics within docker
-	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-insolvency-topic
-	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-insolvency-topic-retry
-	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-insolvency-topic-error
-	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-charges-topic
-    @kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-charges-topic-retry
-    @kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-charges-topic-error
+	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-insolvency
+	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-insolvency-retry
+	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-insolvency-error
+	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-charges
+    @kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-charges-retry
+    @kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-charges-error
 	@printf "\nKafka Topics:\n\n"
 	@kafka-topics --list --bootstrap-server localhost:29092
 

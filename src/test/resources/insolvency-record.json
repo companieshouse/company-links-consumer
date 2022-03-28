@@ -1,0 +1,37 @@
+{
+  "cases": [
+    {
+      "dates": [
+        {
+          "date": "2020-02-20",
+          "type": "wound-up-on"
+        }
+      ],
+      "number": "1",
+      "practitioners": [
+        {
+          "address": {
+            "address_line_1": "50 Strathclyde Road",
+            "locality": "Belfast"
+          },
+          "appointed_on": "2020-02-20",
+          "name": "John Hunter",
+          "role": "practitioner"
+        },
+        {
+          "address": {
+            "address_line_1": "50 Strathclyde Road",
+            "locality": "Belfast",
+            "postal_code": "BT1 5FL",
+            "region": "County Antrim"
+          },
+          "appointed_on": "2020-02-20",
+          "name": "Patrick Robert Doherty",
+          "role": "practitioner"
+        }
+      ],
+      "type": "creditors-voluntary-liquidation"
+    }
+  ],
+  "etag": "018bcd3e7cba3b108f8bec8a422d76f1b9c7ceeb"
+}

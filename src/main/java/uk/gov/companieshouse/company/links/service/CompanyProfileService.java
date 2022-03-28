@@ -64,6 +64,26 @@ public class CompanyProfileService extends BaseApiClientServiceImpl {
         return httpClient;
     }
 
+    /**
+     * Update a company profile given a company number using PATCH from company-profile-api.
+     *
+     * @param companyNumber the company's company number
+     * @param companyProfile the company profile
+     * @return an ApiResponse
+     */
+    public ApiResponse<Void> patchCompanyProfile(String contextId, String companyNumber,
+                                                 CompanyProfile companyProfile) {
+        String uri = String.format("/company/%s/links", companyNumber);
+
+        Map<String, Object> logMap = createLogMap(companyNumber, "PATCH", uri);
+        logger.infoContext(contextId, String.format("PATCH %s", uri), logMap);
+
+        return executeOp(contextId, "patchCompanyProfileApi", uri,
+                getApiClient(contextId)
+                        .privateCompanyResourceHandler()
+                        .patchCompanyProfile(uri, companyProfile));
+    }
+
     private Map<String, Object> createLogMap(String companyNumber, String method, String path) {
         final Map<String, Object> logMap = new HashMap<>();
         logMap.put("company_number", companyNumber);

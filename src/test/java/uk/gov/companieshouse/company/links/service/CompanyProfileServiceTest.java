@@ -21,6 +21,7 @@ import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.company.PrivateCompanyResourceHandler;
 import uk.gov.companieshouse.api.handler.company.request.PrivateCompanyProfileGet;
+import uk.gov.companieshouse.api.handler.company.request.PrivateCompanyProfilePatch;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.logging.Logger;
@@ -30,6 +31,8 @@ class CompanyProfileServiceTest {
     private static final String MOCK_CONTEXT_ID = "context_id";
     private static final String MOCK_COMPANY_NUMBER = "6146287";
     private static final String MOCK_COMPANY_URI = String.format("/company/%s",
+            MOCK_COMPANY_NUMBER);
+    private static final String MOCK_COMPANY_LINKS_URI = String.format("/company/%s/links",
             MOCK_COMPANY_NUMBER);
 
     private CompanyProfileService companyProfileService;
@@ -48,6 +51,9 @@ class CompanyProfileServiceTest {
 
     @Mock
     private PrivateCompanyProfileGet privateCompanyProfileGet;
+
+    @Mock
+    private PrivateCompanyProfilePatch privateCompanyProfilePatch;
 
     @BeforeEach
     void setup() {
@@ -123,5 +129,20 @@ class CompanyProfileServiceTest {
                         MOCK_COMPANY_NUMBER));
 
         assertThat(exception.getStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @Test
+    @DisplayName("Successfully send a PATCH request with a company profile")
+    void patchCompanyProfile() throws ApiErrorResponseException, URIValidationException {
+        final ApiResponse<Void> expected = new ApiResponse<>(
+                HttpStatus.OK.value(), Collections.emptyMap(), null);
+
+        when(companyResourceHandler.patchCompanyProfile(MOCK_COMPANY_LINKS_URI, companyProfile)).thenReturn(privateCompanyProfilePatch);
+        when(privateCompanyProfilePatch.execute()).thenReturn(expected);
+
+        final ApiResponse<Void> response = companyProfileService.patchCompanyProfile(
+                MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER, companyProfile);
+
+        assertThat(response).isSameAs(expected);
     }
 }

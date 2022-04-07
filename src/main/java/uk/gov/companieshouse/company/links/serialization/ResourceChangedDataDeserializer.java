@@ -30,8 +30,8 @@ public class ResourceChangedDataDeserializer implements Deserializer<ResourceCha
     @Override
     public ResourceChangedData deserialize(String topic, byte[] data) {
         try {
-            logger.trace(String.format("DSND-374: Message picked up from topic with data: %s",
-                    new String(data)));
+            logger.trace(String.format("DSND-374 and DSND-604: Message picked up from topic "
+                            + "with data: %s", new String(data)));
 
             Decoder decoder = DecoderFactory.get().binaryDecoder(data, null);
             DatumReader<ResourceChangedData> reader =

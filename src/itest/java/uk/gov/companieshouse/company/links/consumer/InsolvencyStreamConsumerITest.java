@@ -23,7 +23,7 @@ import java.util.Arrays;
     @Autowired
     public KafkaTemplate<String, ResourceChangedData> kafkaTemplate;
 
-    @Value("${company-links.consumer.insolvency.topic.main}")
+    @Value("${company-links.consumer.insolvency.topic}")
     private String mainTopic;
 
     void testSendingKafkaMessage() {

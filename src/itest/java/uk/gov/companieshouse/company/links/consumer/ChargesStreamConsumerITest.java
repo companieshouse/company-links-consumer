@@ -23,7 +23,7 @@ class ChargesStreamConsumerITest {
     @Autowired
     public KafkaTemplate<String, ResourceChangedData> kafkaTemplate;
 
-    @Value("${company-links.consumer.charges.topic.main}")
+    @Value("${company-links.consumer.charges.topic}")
     private String mainTopic;
 
     void testSendingKafkaMessage() {

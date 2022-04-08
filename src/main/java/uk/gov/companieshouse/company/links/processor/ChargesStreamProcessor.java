@@ -62,12 +62,16 @@ public class ChargesStreamProcessor {
         final ApiResponse<CompanyProfile> response =
                 getCompanyProfileApi(logContext, logMap, companyNumber);
 
-        processCompanyProfileUpdates(logContext, logMap, companyNumber, response,
+        ApiResponse<Void> patchResponse = processCompanyProfileUpdates(logContext, logMap,
+                companyNumber, response,
                 payload, headers);
-
+        if (patchResponse != null) {
+            handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
+                    "Response from PATCH call to company profile api", logMap, logger);
+        }
     }
 
-    void processCompanyProfileUpdates(String logContext, Map<String, Object> logMap,
+    ApiResponse<Void> processCompanyProfileUpdates(String logContext, Map<String, Object> logMap,
                                       String companyNumber,
                                       ApiResponse<CompanyProfile> response,
                                       ResourceChangedData payload,
@@ -77,15 +81,15 @@ public class ChargesStreamProcessor {
         var links = data.getLinks();
 
         if (doesCompanyProfileHaveCharges(companyNumber, links)) {
-            return;
+            return null;
         }
 
-        updateCompanyProfileWithCharges(logContext, logMap, companyNumber, data,
+        return updateCompanyProfileWithCharges(logContext, logMap, companyNumber, data,
                 links, payload, headers);
 
     }
 
-    void updateCompanyProfileWithCharges(String logContext, Map<String, Object> logMap,
+    ApiResponse<Void> updateCompanyProfileWithCharges(String logContext, Map<String, Object> logMap,
                                          String companyNumber, Data data, Links links,
                                          ResourceChangedData payload,
                                          MessageHeaders headers)
@@ -110,8 +114,7 @@ public class ChargesStreamProcessor {
 
         logger.trace(String.format("Performing a PATCH with new company profile %s",
                 companyProfile));
-        handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                "Response from PATCH call to company profile api", logMap, logger);
+        return patchResponse;
     }
 
     boolean doesCompanyProfileHaveCharges(String companyNumber, Links links) {

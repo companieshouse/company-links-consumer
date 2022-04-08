@@ -62,7 +62,7 @@ public class ChargesStreamProcessor {
         final ApiResponse<CompanyProfile> response =
                 getCompanyProfileApi(logContext, logMap, companyNumber);
 
-        ApiResponse<Void> patchResponse = processCompanyProfileUpdates(logContext, logMap,
+        ApiResponse<Void> patchResponse = processCompanyProfileUpdates(logContext,
                 companyNumber, response,
                 payload, headers);
         if (patchResponse != null) {
@@ -71,7 +71,7 @@ public class ChargesStreamProcessor {
         }
     }
 
-    ApiResponse<Void> processCompanyProfileUpdates(String logContext, Map<String, Object> logMap,
+    ApiResponse<Void> processCompanyProfileUpdates(String logContext,
                                       String companyNumber,
                                       ApiResponse<CompanyProfile> response,
                                       ResourceChangedData payload,
@@ -80,17 +80,17 @@ public class ChargesStreamProcessor {
         var data = response.getData().getData();
         var links = data.getLinks();
 
-        if (doesCompanyProfileHaveCharges(companyNumber, links)) {
+        if (doesCompanyProfileHaveCharges(companyNumber, data)) {
             return null;
         }
 
-        return updateCompanyProfileWithCharges(logContext, logMap, companyNumber, data,
-                links, payload, headers);
+        return updateCompanyProfileWithCharges(logContext, companyNumber, data,
+                payload, headers);
 
     }
 
-    ApiResponse<Void> updateCompanyProfileWithCharges(String logContext, Map<String, Object> logMap,
-                                         String companyNumber, Data data, Links links,
+    ApiResponse<Void> updateCompanyProfileWithCharges(String logContext,
+                                         String companyNumber, Data data,
                                          ResourceChangedData payload,
                                          MessageHeaders headers)
             throws JsonProcessingException {
@@ -98,7 +98,8 @@ public class ChargesStreamProcessor {
                         + " does not contain charges link, attaching charges link",
                 companyNumber));
 
-        if (links == null) {
+        Links links = null;
+        if (data.getLinks() == null) {
             links = new Links();
         }
 
@@ -117,7 +118,9 @@ public class ChargesStreamProcessor {
         return patchResponse;
     }
 
-    boolean doesCompanyProfileHaveCharges(String companyNumber, Links links) {
+    boolean doesCompanyProfileHaveCharges(String companyNumber, Data data) {
+
+        Links links = data.getLinks();
         if (links != null && links.getCharges() != null) {
             logger.trace(String.format("Company profile with company number %s,"
                             + " already contains charges links, will not perform patch",

@@ -1,7 +1,7 @@
 ---
 spring:
   kafka:
-    bootstrap-servers: ${DATA_SYNC_KAFKA_BROKER_URL:localhost:29092}
+    bootstrap-servers: ${STREAMING_KAFKA_BROKER_URL:localhost:29092}
 
 springfox:
   documentation:

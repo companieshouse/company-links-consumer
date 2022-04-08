@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.consumer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,8 @@ public class ChargesStreamConsumer {
     @KafkaListener(topics = "${company-links.consumer.charges.topic.main}", 
             groupId = "${company-links.consumer.charges.group-id}",
             autoStartup = "${company-links.consumer.charges.enable}")
-    public void receive(Message<ResourceChangedData> resourceChangedMessage) {
+    public void receive(Message<ResourceChangedData> resourceChangedMessage)
+            throws JsonProcessingException {
         logger.info(
                 String.format("A new message read from MAIN topic with payload: %s",
                         resourceChangedMessage.getPayload()));

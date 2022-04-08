@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Objects;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.contains;
@@ -56,6 +57,7 @@ class ChargesStreamProcessorTest {
         Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
 
         CompanyProfile companyProfile = createCompanyProfile();
+        CompanyProfile companyProfileWithLinks = createCompanyProfileWithChargesLinks();
 
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, companyProfile);
@@ -72,27 +74,71 @@ class ChargesStreamProcessorTest {
         chargesStreamProcessor.process(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(4)).trace(anyString());
+
+        verify(companyProfileService).patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER,
+                companyProfileWithLinks);
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a ResourceChangedData payload, updating charges links")
+    void doesCompanyProfileHaveCharges_should_return_false() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+
+        CompanyProfile companyProfile = createCompanyProfile();
+        CompanyProfile companyProfileWithLinks = createCompanyProfileWithChargesLinks();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, companyProfile);
+
+        final ApiResponse<Void> updatedCompanyProfileApiResponse = new ApiResponse<Void>(
+                HttpStatus.OK.value(), null, null);
+
+        assertTrue(!chargesStreamProcessor.doesCompanyProfileHaveCharges(MOCK_COMPANY_NUMBER,
+               companyProfile.getData().getLinks()));
+
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a ResourceChangedData payload, links doesn't need updating")
+    void successfullyProcessResourceChangedDataChargesDoesntGetUpdated() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+
+        CompanyProfile companyProfileWithLinks = createCompanyProfileWithChargesLinks();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, companyProfileWithLinks);
+
+        final ApiResponse<Void> updatedCompanyProfileApiResponse = new ApiResponse<Void>(
+                HttpStatus.OK.value(), null, null);
+
+        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+
+        chargesStreamProcessor.process(mockResourceChangedMessage);
+
+        verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
+        verify(logger, times(3)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message of kind company-charges"));
         verify(logger, atLeastOnce()).trace((
                 String.format("Retrieved company profile for company number %s: %s",
-                        MOCK_COMPANY_NUMBER, createCompanyProfile())));
+                        MOCK_COMPANY_NUMBER, companyProfileWithLinks)));
 
-        verify(logger, atLeastOnce()).trace((
+        verify(logger, times(0)).trace((
                 String.format("Current company profile with company number %s," +
                         " does not contain charges link, attaching charges link", MOCK_COMPANY_NUMBER
                 )));
-        verify(logger, times(0)).trace((
+        verify(logger, atLeastOnce()).trace((
                 String.format("Company profile with company number %s," +
                         " already contains charges links, will not perform patch", MOCK_COMPANY_NUMBER
                 )));
-        verify(logger, atLeastOnce()).trace((
+        verify(logger, times(0)).trace((
                 String.format("Performing a PATCH with new company profile %s",
-                        createCompanyProfileWithChargesLinks())
-                ));
+                        companyProfileWithLinks)
+        ));
 
-        verify(companyProfileService).patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER, companyProfile);
+        verify(companyProfileService, times(0)).patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER,
+                companyProfileWithLinks);
     }
 
     private Message<ResourceChangedData> createResourceChangedMessage() throws IOException {
@@ -113,6 +159,8 @@ class ChargesStreamProcessorTest {
         return MessageBuilder
                 .withPayload(resourceChangedData)
                 .setHeader(KafkaHeaders.RECEIVED_TOPIC, "test")
+                .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, "partition_1")
+                .setHeader(KafkaHeaders.OFFSET, "offset_1")
                 .build();
     }
 
@@ -126,15 +174,16 @@ class ChargesStreamProcessorTest {
     }
 
     private CompanyProfile createCompanyProfileWithChargesLinks() {
-        Data companyProfileData = new Data();
-        companyProfileData.setCompanyNumber(MOCK_COMPANY_NUMBER);
+
+        CompanyProfile companyProfile = createCompanyProfile();
+        updateWithLinks(companyProfile);
+        return companyProfile;
+    }
+
+    private void updateWithLinks(CompanyProfile companyProfile) {
         Links links = new Links();
         links.setCharges(String.format("/company/%s/charges", MOCK_COMPANY_NUMBER));
-        companyProfileData.setLinks(links);
-
-        CompanyProfile companyProfile = new CompanyProfile();
-        companyProfile.setData(companyProfileData);
-        return companyProfile;
+        companyProfile.getData().setLinks(links);
     }
 
 }

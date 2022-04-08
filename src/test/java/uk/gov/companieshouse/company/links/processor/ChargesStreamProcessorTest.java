@@ -4,8 +4,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
@@ -24,14 +27,24 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Objects;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ChargesStreamProcessorTest {
     private static final String MOCK_COMPANY_NUMBER = "03105860";
+    private static final String CONTEXT_ID = "context_id";
+    public static final String RESOURCE_KIND = "company-charges";
+    public static final String TOPIC = "test";
+    public static final String PARTITION = "partition_1";
+    public static final String OFFSET = "offset_1";
+    public static final String COMPANY_CHARGES_LINK = "/company/%s/charges";
     private ChargesStreamProcessor chargesStreamProcessor;
 
 
@@ -51,29 +64,35 @@ class ChargesStreamProcessorTest {
     @Test
     @DisplayName("Successfully processes a kafka message containing a ResourceChangedData payload, updating charges links")
     void successfullyProcessResourceChangedDataChargesLinksGetsUpdated() throws IOException {
+
         Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
 
         CompanyProfile companyProfile = createCompanyProfile();
-        CompanyProfile companyProfileWithLinks = createCompanyProfileWithChargesLinks();
 
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, companyProfile);
-
-        final ApiResponse<Void> updatedCompanyProfileApiResponse = new ApiResponse<Void>(
+        final ApiResponse<CompanyProfile> updatedCompanyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, null);
 
-        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
-                .thenReturn(companyProfileApiResponse);
+        ArgumentCaptor<CompanyProfile> argument = ArgumentCaptor.forClass(CompanyProfile.class);
+        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), (argument.capture()))).thenAnswer(
+                (Answer) invocationOnMock -> updatedCompanyProfileApiResponse);
 
-        when(companyProfileService.patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER, companyProfile))
-                .thenReturn(updatedCompanyProfileApiResponse);
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
 
         chargesStreamProcessor.process(mockResourceChangedMessage);
 
-        verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-
-        verify(companyProfileService).patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER,
-                companyProfileWithLinks);
+        verify(companyProfileService, times(1)).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
+        // dont need to know that this method is called with a specific value just that it was called
+        verify(companyProfileService, times(1)).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
+                Mockito.any(CompanyProfile.class));
+        // here we should check that the profile has been correctly updated for the call
+        assertEquals(1, argument.getAllValues().size()); // should have only captured 1 argument
+        assertNotNull(argument.getValue().getData().getLinks()); // we have links
+        String links = argument.getValue().getData().getLinks().getCharges();
+        assertTrue(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER).equals(links)); // and the charges link is as expected
+        verifyNoMoreInteractions(companyProfileService);
     }
 
     @Test
@@ -96,14 +115,16 @@ class ChargesStreamProcessorTest {
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, companyProfileWithLinks);
 
-        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
         chargesStreamProcessor.process(mockResourceChangedMessage);
 
-        verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(companyProfileService, times(0)).patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER,
-                companyProfileWithLinks);
+        verify(companyProfileService).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
+        verify(companyProfileService, times(0)).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
+                Mockito.any(CompanyProfile.class));
+
+        verifyNoMoreInteractions(companyProfileService);
     }
 
     @Test
@@ -131,18 +152,25 @@ class ChargesStreamProcessorTest {
 
         final ApiResponse<Void> updatedCompanyProfileApiResponse = new ApiResponse<Void>(
                 HttpStatus.OK.value(), null, null);
+        ArgumentCaptor<CompanyProfile> argument = ArgumentCaptor.forClass(CompanyProfile.class);
 
-        when(companyProfileService.patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER,
-                companyProfile))
-                .thenReturn(updatedCompanyProfileApiResponse);
+        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
+                        (argument.capture())))
+                .thenAnswer((Answer) invocation -> updatedCompanyProfileApiResponse);
 
         chargesStreamProcessor.processCompanyProfileUpdates(
-                "context_id", MOCK_COMPANY_NUMBER, companyProfileApiResponse,
+                CONTEXT_ID, MOCK_COMPANY_NUMBER, companyProfileApiResponse,
                 mockResourceChangedMessage.getPayload(), mockResourceChangedMessage.getHeaders());
 
-        verify(companyProfileService).patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER,
-                companyProfileWithLinks);
+        verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
+                Mockito.any(CompanyProfile.class));
 
+        assertEquals(1, argument.getAllValues().size());
+        Links links = argument.getValue().getData().getLinks();
+        assertNotNull(links);
+        String charges = links.getCharges();
+        assertTrue(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER).equals(charges));
+        verifyNoMoreInteractions(companyProfileService);
     }
 
     @Test
@@ -156,17 +184,14 @@ class ChargesStreamProcessorTest {
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, companyProfileWithLinks);
 
-        final ApiResponse<Void> updatedCompanyProfileApiResponse = new ApiResponse<Void>(
-                HttpStatus.OK.value(), null, null);
-
         chargesStreamProcessor.processCompanyProfileUpdates(
-                "context_id", MOCK_COMPANY_NUMBER, companyProfileApiResponse,
+                CONTEXT_ID, MOCK_COMPANY_NUMBER, companyProfileApiResponse,
                 mockResourceChangedMessage.getPayload(), mockResourceChangedMessage.getHeaders());
 
         verify(companyProfileService, times(0)).
-                patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER,
-                companyProfileWithLinks);
-
+                patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
+                Mockito.any(CompanyProfile.class));
+        verifyNoMoreInteractions(companyProfileService);
     }
 
     @Test
@@ -180,16 +205,23 @@ class ChargesStreamProcessorTest {
         final ApiResponse<Void> updatedCompanyProfileApiResponse = new ApiResponse<Void>(
                 HttpStatus.OK.value(), null, null);
 
-        when(companyProfileService.patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER,
-                companyProfile))
-                .thenReturn(updatedCompanyProfileApiResponse);
+        ArgumentCaptor<CompanyProfile> argument = ArgumentCaptor.forClass(CompanyProfile.class);
 
-        chargesStreamProcessor.updateCompanyProfileWithCharges("context_id", MOCK_COMPANY_NUMBER,
+        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
+                (argument.capture())))
+                .thenAnswer((Answer) invocation -> updatedCompanyProfileApiResponse);
+
+        chargesStreamProcessor.updateCompanyProfileWithCharges(CONTEXT_ID, MOCK_COMPANY_NUMBER,
                 companyProfile.getData(), mockResourceChangedMessage.getPayload(),
                 mockResourceChangedMessage.getHeaders());
 
-        verify(companyProfileService).patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER,
-                companyProfileWithLinks);
+        verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
+                Mockito.any(CompanyProfile.class));
+        assertEquals(1, argument.getAllValues().size());
+        Links links = argument.getValue().getData().getLinks();
+        assertNotNull(links);
+        assertTrue(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER).equals(links.getCharges()));
+        verifyNoMoreInteractions(companyProfileService);
     }
 
     private Message<ResourceChangedData> createResourceChangedMessage() throws IOException {
@@ -199,19 +231,19 @@ class ChargesStreamProcessorTest {
         String chargesRecord = FileCopyUtils.copyToString(exampleChargesJsonPayload);
 
         ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
-                .setContextId("context_id")
+                .setContextId(CONTEXT_ID)
                 .setResourceId(MOCK_COMPANY_NUMBER)
-                .setResourceKind("company-charges")
-                .setResourceUri(String.format("/company/%s/charges", MOCK_COMPANY_NUMBER))
+                .setResourceKind(RESOURCE_KIND)
+                .setResourceUri(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER))
                 .setEvent(new EventRecord())
                 .setData(chargesRecord)
                 .build();
 
         return MessageBuilder
                 .withPayload(resourceChangedData)
-                .setHeader(KafkaHeaders.RECEIVED_TOPIC, "test")
-                .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, "partition_1")
-                .setHeader(KafkaHeaders.OFFSET, "offset_1")
+                .setHeader(KafkaHeaders.RECEIVED_TOPIC, TOPIC)
+                .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, PARTITION)
+                .setHeader(KafkaHeaders.OFFSET, OFFSET)
                 .build();
     }
 
@@ -233,7 +265,7 @@ class ChargesStreamProcessorTest {
 
     private void updateWithLinks(CompanyProfile companyProfile) {
         Links links = new Links();
-        links.setCharges(String.format("/company/%s/charges", MOCK_COMPANY_NUMBER));
+        links.setCharges(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER));
         companyProfile.getData().setLinks(links);
     }
 

@@ -23,7 +23,7 @@ company-links:
         main: stream-insolvency
 
     charges:
-      enable: false
+      enable: true
       group-id: company-links-consumer
       topic:
         main: stream-charges

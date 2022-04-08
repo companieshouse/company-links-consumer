@@ -8,11 +8,15 @@ import org.springframework.context.annotation.Import;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.util.FileCopyUtils;
 import uk.gov.companieshouse.company.links.config.KafkaTestContainerConfig;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.Objects;
 
 @SpringBootTest
 @DirtiesContext
@@ -26,23 +30,33 @@ class ChargesStreamConsumerITest {
     @Value("${company-links.consumer.charges.topic.main}")
     private String mainTopic;
 
-    void testSendingKafkaMessage() {
+    @Test
+    void testSendingKafkaMessage() throws IOException {
         EventRecord event = EventRecord.newBuilder()
                 .setType("changed")
                 .setPublishedAt("2022-02-22T10:51:30")
                 .setFieldsChanged(Arrays.asList("foo", "moo"))
                 .build();
 
+        String chargesData = getChargesData("charges-record.json");
+
         ResourceChangedData resourceChanged = ResourceChangedData.newBuilder()
                 .setContextId("context_id")
                 .setResourceId("12345678")
                 .setResourceKind("company-insolvency")
                 .setResourceUri("/company/12345678/insolvency")
-                .setData("{ \"key\": \"value\" }")
+                .setData(chargesData)
                 .setEvent(event)
                 .build();
 
         kafkaTemplate.send(mainTopic, resourceChanged);
+    }
+
+    private String getChargesData(String filename) throws IOException {
+        InputStreamReader exampleChargesJsonPayload = new InputStreamReader(
+                Objects.requireNonNull(ClassLoader.getSystemClassLoader()
+                        .getResourceAsStream(filename)));
+        return FileCopyUtils.copyToString(exampleChargesJsonPayload);
     }
 
 }

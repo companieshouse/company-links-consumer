@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Objects;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,11 +60,15 @@ class InsolvencyStreamProcessorTest {
 
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
+        final ApiResponse<Void> response = new ApiResponse<>(HttpStatus.OK.value(), null, null);
+
+        when(companyProfileService.patchCompanyProfile("context_id", MOCK_COMPANY_NUMBER, getMockCompanyProfile()))
+                .thenReturn(response);
 
         insolvencyProcessor.process(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(4)).trace(anyString());
+        verify(logger, times(7)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace((
@@ -95,7 +100,7 @@ class InsolvencyStreamProcessorTest {
         insolvencyProcessor.process(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(3)).trace(anyString());
+        verify(logger, times(4)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace((
@@ -150,4 +155,14 @@ class InsolvencyStreamProcessorTest {
         return companyProfile;
     }
 
+    private CompanyProfile getMockCompanyProfile(){
+        CompanyProfile companyProfile = new CompanyProfile();
+        Data data = new Data();
+        data.setCompanyNumber(MOCK_COMPANY_NUMBER);
+        Links links = new Links();
+        links.setInsolvency("/company/"+MOCK_COMPANY_NUMBER+"/insolvency");
+        data.setLinks(links);
+        companyProfile.setData(data);
+        return  companyProfile;
+    }
 }

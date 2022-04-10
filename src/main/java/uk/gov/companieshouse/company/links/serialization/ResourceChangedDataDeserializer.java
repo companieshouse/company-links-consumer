@@ -46,5 +46,4 @@ public class ResourceChangedDataDeserializer implements Deserializer<ResourceCha
                             + "] cannot be deserialized", ex);
         }
     }
-
 }

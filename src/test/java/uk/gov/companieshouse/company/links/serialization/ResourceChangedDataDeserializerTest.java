@@ -30,7 +30,10 @@ class ResourceChangedDataDeserializerTest {
     void When_deserialize_Expect_ValidResourceChangedDataObject() {
 
         EventRecord eventRecord = new EventRecord("published_at", "type", List.of("fields_changed"));
-        ResourceChangedData resourceChangedData = new ResourceChangedData("resource_kind", "resource_uri", "context_id", "resource_id", "data", eventRecord );
+        ResourceChangedData resourceChangedData = new ResourceChangedData("resource_kind",
+                "resource_uri", "context_id", "resource_id",
+                "data", eventRecord );
+
         byte[] data = encodedData(resourceChangedData);
 
         ResourceChangedData deserializedObject = deserializer.deserialize("", data);
@@ -40,7 +43,7 @@ class ResourceChangedDataDeserializerTest {
     }
 
     private byte[] encodedData(ResourceChangedData resourceChangedData) {
-        ResourceChangedDataSerializer serializer = new ResourceChangedDataSerializer();
+        ResourceChangedDataSerializer serializer = new ResourceChangedDataSerializer(this.logger);
         return serializer.serialize("", resourceChangedData);
     }
 

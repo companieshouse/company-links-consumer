@@ -26,13 +26,15 @@ public class InsolvencyStreamConsumer {
      * Receives Main topic messages.
      */
     @KafkaListener(
-            topics = "${company-links.consumer.insolvency.topic.main}",
+            id = "${company-links.consumer.insolvency.topic}-consumer",
+            topics = "${company-links.consumer.insolvency.topic}",
             groupId = "${company-links.consumer.insolvency.group-id}",
+            autoStartup = "${company-links.consumer.insolvency.enable}",
             containerFactory = "listenerContainerFactory"
             )
     public void receive(Message<ResourceChangedData> resourceChangedMessage) {
         logger.info(
-                "A new message read from MAIN topic with payload: "
+                "A new message read from Stream-insolvency topic with payload: "
                         + resourceChangedMessage.getPayload());
         insolvencyProcessor.process(resourceChangedMessage);
     }

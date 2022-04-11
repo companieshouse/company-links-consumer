@@ -10,22 +10,16 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.springframework.http.HttpStatus;
-import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.support.MessageBuilder;
-import org.springframework.util.FileCopyUtils;
+
 import uk.gov.companieshouse.api.company.CompanyProfile;
-import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
-import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -35,18 +29,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static uk.gov.companieshouse.company.links.consumer.TestData.CONTEXT_ID;
+import static uk.gov.companieshouse.company.links.processor.TestData.COMPANY_CHARGES_LINK;
+import static uk.gov.companieshouse.company.links.processor.TestData.MOCK_COMPANY_NUMBER;
 
 @ExtendWith(MockitoExtension.class)
 class ChargesStreamProcessorTest {
-    private static final String MOCK_COMPANY_NUMBER = "03105860";
-    private static final String CONTEXT_ID = "context_id";
-    public static final String RESOURCE_KIND = "company-charges";
-    public static final String TOPIC = "test";
-    public static final String PARTITION = "partition_1";
-    public static final String OFFSET = "offset_1";
-    public static final String COMPANY_CHARGES_LINK = "/company/%s/charges";
-    private ChargesStreamProcessor chargesStreamProcessor;
 
+    private ChargesStreamProcessor chargesStreamProcessor;
 
     @Mock
     private CompanyProfileService companyProfileService;
@@ -54,20 +44,23 @@ class ChargesStreamProcessorTest {
     @Mock
     private Logger logger;
 
+    private TestData testData;
+
     @BeforeEach
     void setUp() {
         chargesStreamProcessor = new ChargesStreamProcessor(
                 companyProfileService,
                 logger);
+        testData = new TestData();
     }
 
     @Test
     @DisplayName("Successfully processes a kafka message containing a ResourceChangedData payload, updating charges links")
     void successfullyProcessResourceChangedDataChargesLinksGetsUpdated() throws IOException {
 
-        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessage();
 
-        CompanyProfile companyProfile = createCompanyProfile();
+        CompanyProfile companyProfile = testData.createCompanyProfile();
 
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, companyProfile);
@@ -98,7 +91,7 @@ class ChargesStreamProcessorTest {
     @Test
     @DisplayName("Checks if company profile has links and should return false if there are no charges inside links")
     void doesCompanyProfileHaveCharges_should_return_false() throws IOException {
-        CompanyProfile companyProfile = createCompanyProfile();
+        CompanyProfile companyProfile = testData.createCompanyProfile();
 
         assertTrue(!chargesStreamProcessor.doesCompanyProfileHaveCharges(MOCK_COMPANY_NUMBER,
                companyProfile.getData()));
@@ -108,9 +101,9 @@ class ChargesStreamProcessorTest {
     @Test
     @DisplayName("Successfully processes a kafka message containing a ResourceChangedData payload, links doesn't need updating")
     void successfullyProcessResourceChangedDataChargesDoesntGetUpdated() throws IOException {
-        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessage();
 
-        CompanyProfile companyProfileWithLinks = createCompanyProfileWithChargesLinks();
+        CompanyProfile companyProfileWithLinks = testData.createCompanyProfileWithChargesLinks();
 
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, companyProfileWithLinks);
@@ -131,7 +124,7 @@ class ChargesStreamProcessorTest {
     @DisplayName("Checks if company profile has links and should return true if there are charges inside links")
     void doesCompanyProfileHaveCharges_should_return_true() throws IOException {
 
-        CompanyProfile companyProfileWithLinks = createCompanyProfileWithChargesLinks();
+        CompanyProfile companyProfileWithLinks = testData.createCompanyProfileWithChargesLinks();
 
         assertTrue(chargesStreamProcessor.doesCompanyProfileHaveCharges(MOCK_COMPANY_NUMBER,
                 companyProfileWithLinks.getData()));
@@ -142,10 +135,10 @@ class ChargesStreamProcessorTest {
     @DisplayName("process CompanyProfile Updates where charges inside links are updated successfully")
     void processCompanyProfileUpdates_SuccessfullyChargesLinksGetsUpdated() throws IOException {
 
-        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessage();
 
-        CompanyProfile companyProfile = createCompanyProfile();
-        CompanyProfile companyProfileWithLinks = createCompanyProfileWithChargesLinks();
+        CompanyProfile companyProfile = testData.createCompanyProfile();
+        CompanyProfile companyProfileWithLinks = testData.createCompanyProfileWithChargesLinks();
 
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, companyProfile);
@@ -177,9 +170,9 @@ class ChargesStreamProcessorTest {
     @DisplayName("process CompanyProfile Updates where charges inside links are not updated successfully")
     void processCompanyProfileUpdates_ChargesLinksNotUpdated() throws IOException {
 
-        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessage();
 
-        CompanyProfile companyProfileWithLinks = createCompanyProfileWithChargesLinks();
+        CompanyProfile companyProfileWithLinks = testData.createCompanyProfileWithChargesLinks();
 
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, companyProfileWithLinks);
@@ -197,10 +190,10 @@ class ChargesStreamProcessorTest {
     @Test
     @DisplayName("update CompanyProfile With Charges")
     void updateCompanyProfileWithCharges() throws IOException {
-        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessage();
 
-        CompanyProfile companyProfile = createCompanyProfile();
-        CompanyProfile companyProfileWithLinks = createCompanyProfileWithChargesLinks();
+        CompanyProfile companyProfile = testData.createCompanyProfile();
+        CompanyProfile companyProfileWithLinks = testData.createCompanyProfileWithChargesLinks();
 
         final ApiResponse<Void> updatedCompanyProfileApiResponse = new ApiResponse<Void>(
                 HttpStatus.OK.value(), null, null);
@@ -222,51 +215,6 @@ class ChargesStreamProcessorTest {
         assertNotNull(links);
         assertTrue(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER).equals(links.getCharges()));
         verifyNoMoreInteractions(companyProfileService);
-    }
-
-    private Message<ResourceChangedData> createResourceChangedMessage() throws IOException {
-        InputStreamReader exampleChargesJsonPayload = new InputStreamReader(
-                Objects.requireNonNull(ClassLoader.getSystemClassLoader()
-                        .getResourceAsStream("charges-record.json")));
-        String chargesRecord = FileCopyUtils.copyToString(exampleChargesJsonPayload);
-
-        ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
-                .setContextId(CONTEXT_ID)
-                .setResourceId(MOCK_COMPANY_NUMBER)
-                .setResourceKind(RESOURCE_KIND)
-                .setResourceUri(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER))
-                .setEvent(new EventRecord())
-                .setData(chargesRecord)
-                .build();
-
-        return MessageBuilder
-                .withPayload(resourceChangedData)
-                .setHeader(KafkaHeaders.RECEIVED_TOPIC, TOPIC)
-                .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, PARTITION)
-                .setHeader(KafkaHeaders.OFFSET, OFFSET)
-                .build();
-    }
-
-    private CompanyProfile createCompanyProfile() {
-        Data companyProfileData = new Data();
-        companyProfileData.setCompanyNumber(MOCK_COMPANY_NUMBER);
-
-        CompanyProfile companyProfile = new CompanyProfile();
-        companyProfile.setData(companyProfileData);
-        return companyProfile;
-    }
-
-    private CompanyProfile createCompanyProfileWithChargesLinks() {
-
-        CompanyProfile companyProfile = createCompanyProfile();
-        updateWithLinks(companyProfile);
-        return companyProfile;
-    }
-
-    private void updateWithLinks(CompanyProfile companyProfile) {
-        Links links = new Links();
-        links.setCharges(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER));
-        companyProfile.getData().setLinks(links);
     }
 
 }

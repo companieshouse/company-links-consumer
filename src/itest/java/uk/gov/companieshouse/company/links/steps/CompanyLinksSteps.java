@@ -41,9 +41,9 @@ public class CompanyLinksSteps {
         assertThat(companyProfileService).isNotNull();
     }
 
-    @When("a message is published to the topic {string}")
-    public void a_message_is_published_to_the_topic(String topicName) throws InterruptedException {
-        kafkaTemplate.send(topicName, createMessage());
+    @When("a message is published to the topic {string} for companyNumber {string}")
+    public void a_message_is_published_to_the_topic_for_company_number(String topicName, String companyNumber) throws InterruptedException {
+        kafkaTemplate.send(topicName, createMessage(companyNumber));
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
         countDownLatch.await(5, TimeUnit.SECONDS);
@@ -57,6 +57,22 @@ public class CompanyLinksSteps {
         wireMockServer.stop();
     }
 
+    @Then("the Company Links Consumer should send a GET request to the Company Profile API")
+    public void the_company_links_consumer_should_send_a_get_request_to_the_company_profile_api() {
+        verify(1, getRequestedFor(urlPathEqualTo("/company/00006400")));
+        verify(0, patchRequestedFor(urlPathEqualTo("/company/00006400/links")));
+
+        wireMockServer.stop();
+    }
+
+    @Then("the Company Links Consumer should send a PATCH request to the Company Profile API")
+    public void the_company_links_consumer_should_send_a_patch_request_to_the_company_profile_api() {
+        verify(1, getRequestedFor(urlPathEqualTo("/company/00006401")));
+        verify(1, patchRequestedFor(urlPathEqualTo("/company/00006401/links")));
+
+        wireMockServer.stop();
+    }
+
     private void stubCompanyProfileServiceCalls() {
         String getCompanyProfileJson = loadFile("getCompanyProfile.json");
         stubFor(
@@ -65,9 +81,29 @@ public class CompanyLinksSteps {
                                 .withStatus(200)
                                 .withHeader("Content-Type", "application/json")
                                 .withBody(getCompanyProfileJson)));
+
+        stubFor(
+                put(urlPathEqualTo("/company/00006400/links"))
+                        .withRequestBody(containing("00006400"))
+                        .willReturn(aResponse()
+                                .withStatus(200)));
+
+        getCompanyProfileJson = loadFile("patchCompanyProfile.json");
+        stubFor(
+                get(urlPathEqualTo("/company/00006401"))
+                        .willReturn(aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(getCompanyProfileJson)));
+
+        stubFor(
+                put(urlPathEqualTo("/company/00006401/links"))
+                        .withRequestBody(containing("00006401"))
+                        .willReturn(aResponse()
+                                .withStatus(200)));
     }
 
-    private ResourceChangedData createMessage() {
+    private ResourceChangedData createMessage(String companyNumber) {
         EventRecord event = EventRecord.newBuilder()
                 .setType("changed")
                 .setPublishedAt("2022-02-22T10:51:30")
@@ -76,9 +112,9 @@ public class CompanyLinksSteps {
 
         return ResourceChangedData.newBuilder()
                 .setContextId("context_id")
-                .setResourceId("00006400")
+                .setResourceId(companyNumber)
                 .setResourceKind("company-insolvency")
-                .setResourceUri("/company/00006400/links")
+                .setResourceUri("/company/"+companyNumber+"/links")
                 .setData("{ \"key\": \"value\" }")
                 .setEvent(event)
                 .build();

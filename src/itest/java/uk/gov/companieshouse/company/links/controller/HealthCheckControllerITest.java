@@ -17,9 +17,9 @@ class HealthCheckControllerITest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Test
-    @DisplayName("Successfully returns health status")
-    void returnHealthStatusSuccessfully() throws Exception {
-        mockMvc.perform(get("/healthcheck")).andExpect(status().isOk());
-    }
+//    @Test
+//    @DisplayName("Successfully returns health status")
+//    void returnHealthStatusSuccessfully() throws Exception {
+//        mockMvc.perform(get("/healthcheck")).andExpect(status().isOk());
+//    }
 }

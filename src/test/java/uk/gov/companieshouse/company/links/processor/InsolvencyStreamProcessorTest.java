@@ -1,11 +1,8 @@
 package uk.gov.companieshouse.company.links.processor;
 
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.contains;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -25,6 +22,8 @@ import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
+import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.EventRecord;
@@ -60,10 +59,13 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
+        when(companyProfileService.patchCompanyProfile(any(), any(), any())).thenReturn(new ApiResponse<Void>(200, null, null));
+
+
         insolvencyProcessor.process(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(4)).trace(anyString());
+        verify(logger, times(6)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace((
@@ -95,7 +97,7 @@ class InsolvencyStreamProcessorTest {
         insolvencyProcessor.process(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(3)).trace(anyString());
+        verify(logger, times(4)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace((
@@ -106,6 +108,108 @@ class InsolvencyStreamProcessorTest {
                         + " already contains insolvency links, will not perform patch",
                         MOCK_COMPANY_NUMBER)
                 ));
+    }
+
+    @Test
+    @DisplayName("GET company profile returns BAD REQUEST, non retryable error")
+    void getCompanyProfileReturnsBadRequest_then_nonRetryableError() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.BAD_REQUEST.value(), null, createCompanyProfileWithInsolvencyLinks());
+
+        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+
+        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+    }
+
+    @Test
+    @DisplayName("GET company profile returns 4xx, retryable error")
+    void getCompanyProfileReturnsUnauthorized_then_nonRetryableError() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.UNAUTHORIZED.value(), null, createCompanyProfileWithInsolvencyLinks());
+
+        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+    }
+
+    @Test
+    @DisplayName("GET company profile returns internal server error, retryable error")
+    void getCompanyProfileReturnsInternalServerError_then_nonRetryableError() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(), null, createCompanyProfileWithInsolvencyLinks());
+
+        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+    }
+
+    @Test
+    @DisplayName("PATCH company profile returns BAD REQUEST, non retryable error")
+    void patchCompanyProfileReturnsBadRequest_then_nonRetryableError() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+
+        final ApiResponse<CompanyProfile> companyProfileGetApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, createCompanyProfile());
+
+        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileGetApiResponse);
+
+        final ApiResponse<Void> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.BAD_REQUEST.value(), null);
+
+        when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
+                .thenReturn(companyProfileApiResponse);
+
+        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+    }
+
+    @Test
+    @DisplayName("PATCH company profile returns 4xx, retryable error")
+    void patchCompanyProfileReturnsUnauthorized_then_nonRetryableError() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+
+        final ApiResponse<CompanyProfile> companyProfileGetApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, createCompanyProfile());
+
+        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileGetApiResponse);
+
+        final ApiResponse<Void> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.UNAUTHORIZED.value(), null);
+
+        when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
+                .thenReturn(companyProfileApiResponse);
+
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+    }
+
+    @Test
+    @DisplayName("PATCH company profile returns internal server error, retryable error")
+    void patchCompanyProfileReturnsInternalServerError_then_nonRetryableError() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
+
+        final ApiResponse<CompanyProfile> companyProfileGetApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, createCompanyProfile());
+
+        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileGetApiResponse);
+
+        final ApiResponse<Void> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(), null);
+
+        when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
+                .thenReturn(companyProfileApiResponse);
+
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
     }
 
     private Message<ResourceChangedData> createResourceChangedMessage() throws IOException {

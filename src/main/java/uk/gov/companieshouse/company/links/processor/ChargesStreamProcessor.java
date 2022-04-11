@@ -98,18 +98,12 @@ public class ChargesStreamProcessor {
                         + " does not contain charges link, attaching charges link",
                 companyNumber));
 
-        Links links = null;
-        if (data.getLinks() == null) {
-            links = new Links();
-        }
+        Links links = data.getLinks() == null ? new Links() : data.getLinks();
 
         links.setCharges(String.format("/company/%s/charges", companyNumber));
         data.setLinks(links);
         var companyProfile = new CompanyProfile();
         companyProfile.setData(data);
-        //TODO This is still in question, as there is no data fields
-        // in the data model for these values to be set.
-        setupHeaders(headers, payload);
         final ApiResponse<Void> patchResponse =
                 companyProfileService.patchCompanyProfile(
                         logContext, companyNumber, companyProfile
@@ -142,44 +136,5 @@ public class ChargesStreamProcessor {
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                 "Response from GET call to company profile api", logMap, logger);
         return response;
-    }
-
-    ChargesDelta getChargesRecord(ResourceChangedData payload) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper.readValue(payload.getData(), ChargesDelta.class);
-    }
-
-    String getUpdatedBy(MessageHeaders headers) {
-        final String receivedTopic =
-                headers.get(KafkaHeaders.RECEIVED_TOPIC).toString();
-        final String partition =
-                headers.get(KafkaHeaders.RECEIVED_PARTITION_ID).toString();
-        final String offset =
-                headers.get(KafkaHeaders.OFFSET).toString();
-
-        return String.format("%s-%s-%s", receivedTopic, partition, offset);
-    }
-
-    String getDeltaAt(ChargesDelta chargesDelta) {
-        if (chargesDelta.getCharges().size() > 0) {
-            // assuming we always get only one charge item inside charges delta
-            Charge charge = chargesDelta.getCharges().get(0);
-            return charge.getDeltaAt();
-        } else {
-            throw new NonRetryErrorException("No charge item found inside ChargesDelta");
-        }
-
-    }
-
-    //TODO This is still in question, as there is no data fields
-    // in the data model for these values to be set.
-    Map<String, String> setupHeaders(MessageHeaders msgHeaders,
-                                     ResourceChangedData payload)
-            throws JsonProcessingException {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("updated_by", getUpdatedBy(msgHeaders));
-        String deltaAt = getDeltaAt(getChargesRecord(payload));
-        headers.put("delta_at", deltaAt);
-        return headers;
     }
 }

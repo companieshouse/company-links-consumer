@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.consumer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +36,7 @@ public class ChargesStreamConsumer {
     public void receive(Message<ResourceChangedData> resourceChangedMessage,
                         @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
                         @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
-                        @Header(KafkaHeaders.OFFSET) String offset) {
+                        @Header(KafkaHeaders.OFFSET) String offset) throws JsonProcessingException {
         logger.info(
                 String.format("DSND-604: A new message read from stream-charges topic with "
                                 + "payload: %s", resourceChangedMessage.getPayload()));

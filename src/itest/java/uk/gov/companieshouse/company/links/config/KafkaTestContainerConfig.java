@@ -4,6 +4,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
@@ -24,6 +25,13 @@ import java.util.Map;
 @TestConfiguration
 public class KafkaTestContainerConfig {
 
+    private final ResourceChangedDataDeserializer resourceChangedDataDeserializer;
+
+    @Autowired
+    public KafkaTestContainerConfig(ResourceChangedDataDeserializer resourceChangedDataDeserializer) {
+        this.resourceChangedDataDeserializer = resourceChangedDataDeserializer;
+    }
+
     @Bean
     public KafkaContainer kafkaContainer() {
         KafkaContainer kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:latest"));
@@ -32,16 +40,18 @@ public class KafkaTestContainerConfig {
     }
 
     @Bean
-    ConcurrentKafkaListenerContainerFactory<Integer, String> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<Integer, String> factory =
+    ConcurrentKafkaListenerContainerFactory<String, ResourceChangedData> listenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, ResourceChangedData> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
         return factory;
     }
 
     @Bean
-    public ConsumerFactory<Integer, String> consumerFactory() {
-        return new DefaultKafkaConsumerFactory<>(consumerConfigs(kafkaContainer()));
+    public ConsumerFactory<String, ResourceChangedData> consumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(consumerConfigs(kafkaContainer()),
+                new StringDeserializer(),
+                resourceChangedDataDeserializer);
     }
 
     @Bean

@@ -25,9 +25,10 @@ public class ChargesStreamConsumer {
     /**
      * Receives Main topic messages.
      */
-    @KafkaListener(topics = "${company-links.consumer.charges.topic.main}", 
+    @KafkaListener(
+            topics = "${company-links.consumer.charges.topic.main}",
             groupId = "${company-links.consumer.charges.group-id}",
-            autoStartup = "${company-links.consumer.charges.enable}")
+            containerFactory = "listenerContainerFactory")
     public void receive(Message<ResourceChangedData> resourceChangedMessage)
             throws JsonProcessingException {
         logger.info(

@@ -107,6 +107,8 @@ public class ChargesStreamProcessor {
         data.setLinks(links);
         var companyProfile = new CompanyProfile();
         companyProfile.setData(data);
+        //TODO This is still in question, as there is no data fields
+        // in the data model for these values to be set.
         setupHeaders(headers, payload);
         final ApiResponse<Void> patchResponse =
                 companyProfileService.patchCompanyProfile(
@@ -169,6 +171,8 @@ public class ChargesStreamProcessor {
 
     }
 
+    //TODO This is still in question, as there is no data fields
+    // in the data model for these values to be set.
     Map<String, String> setupHeaders(MessageHeaders msgHeaders,
                                      ResourceChangedData payload)
             throws JsonProcessingException {

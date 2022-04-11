@@ -26,7 +26,6 @@ public class InsolvencyStreamConsumer {
      * Receives Main topic messages.
      */
     @KafkaListener(
-            id = "${company-links.consumer.insolvency.group-id}",
             topics = "${company-links.consumer.insolvency.topic.main}",
             groupId = "${company-links.consumer.insolvency.group-id}",
             containerFactory = "listenerContainerFactory"

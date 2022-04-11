@@ -1,7 +1,7 @@
 ---
 spring:
   kafka:
-    bootstrap-servers: ${DATA_SYNC_KAFKA_BROKER_URL:localhost:29092}
+    bootstrap-servers: ${STREAMING_KAFKA_BROKER_URL:localhost:29092}
 
 springfox:
   documentation:
@@ -19,12 +19,10 @@ company-links:
     insolvency:
       enable: true
       group-id: company-links-consumer
-      topic:
-        main: stream-insolvency
+      topic: stream-company-insolvency
 
     charges:
-      enable: false
+      enable: true
       group-id: company-links-consumer
-      topic:
-        main: stream-charges
+      topic: stream-company-charges
 

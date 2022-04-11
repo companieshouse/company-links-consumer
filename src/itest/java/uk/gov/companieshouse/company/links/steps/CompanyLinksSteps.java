@@ -11,6 +11,7 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.util.ResourceUtils;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
@@ -22,7 +23,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class CompanyLinksSteps {
 
+    @Value("${wiremock.server.port}")
+    private String port;
+
+    @Value("${company-links.consumer.insolvency.topic}")
+    private String topic;
+
     private static WireMockServer wireMockServer;
+
+    private String companyNumber;
 
     @Autowired
     private CompanyProfileService companyProfileService;
@@ -32,73 +41,85 @@ public class CompanyLinksSteps {
 
     @Given("Company links consumer api service is running")
     public void company_links_consumer_api_service_is_running() {
-        wireMockServer = new WireMockServer(8888);
-        wireMockServer.start();
-        configureFor("localhost", 8888);
-
-        stubCompanyProfileServiceCalls();
-
         assertThat(companyProfileService).isNotNull();
     }
 
-    @When("a message is published to the topic {string} for companyNumber {string}")
-    public void a_message_is_published_to_the_topic_for_company_number(String topicName, String companyNumber) throws InterruptedException {
-        kafkaTemplate.send(topicName, createMessage(companyNumber));
+    @When("a message is published for companyNumber {string} to update links")
+    public void a_message_is_published_for_company_number_to_update_links(String companyNumber) throws InterruptedException {
+        this.companyNumber = companyNumber;
+        configureWiremock();
+
+        stubUpdateConsumerLinks();
+        kafkaTemplate.send(topic, createMessage(this.companyNumber));
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
         countDownLatch.await(5, TimeUnit.SECONDS);
     }
 
-    @Then("the insolvency consumer should consume and process the message")
-    public void the_insolvency_consumer_should_consume_and_process_the_message() {
-        verify(1, getRequestedFor(urlPathEqualTo("/company/00006400")));
-        verify(0, patchRequestedFor(urlPathEqualTo("/company/00006400/links")));
+    @When("a message is published for companyNumber {string} to check for links")
+    public void a_message_is_published_for_company_number_to_check_for_links(String companyNumber) throws InterruptedException {
+        this.companyNumber = companyNumber;
+        configureWiremock();
 
-        wireMockServer.stop();
+        stubGetConsumerLinks();
+        kafkaTemplate.send(topic, createMessage(companyNumber));
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        countDownLatch.await(5, TimeUnit.SECONDS);
     }
 
     @Then("the Company Links Consumer should send a GET request to the Company Profile API")
     public void the_company_links_consumer_should_send_a_get_request_to_the_company_profile_api() {
-        verify(1, getRequestedFor(urlPathEqualTo("/company/00006400")));
-        verify(0, patchRequestedFor(urlPathEqualTo("/company/00006400/links")));
+        verify(1, getRequestedFor(urlPathMatching("/company/([0-9]*)")));
+        verify(0, patchRequestedFor(urlPathMatching("/company/([0-9]*)/links")));
 
         wireMockServer.stop();
     }
 
     @Then("the Company Links Consumer should send a PATCH request to the Company Profile API")
     public void the_company_links_consumer_should_send_a_patch_request_to_the_company_profile_api() {
-        verify(1, getRequestedFor(urlPathEqualTo("/company/00006401")));
-        verify(1, patchRequestedFor(urlPathEqualTo("/company/00006401/links")));
+        verify(1, getRequestedFor(urlPathMatching("/company/([0-9]*)")));
+        verify(1, patchRequestedFor(urlPathMatching("/company/([0-9]*)/links")));
 
         wireMockServer.stop();
     }
 
-    private void stubCompanyProfileServiceCalls() {
-        String getCompanyProfileJson = loadFile("getCompanyProfile.json");
+
+    private void configureWiremock() {
+        wireMockServer = new WireMockServer(Integer.parseInt(port));
+        wireMockServer.start();
+        configureFor("localhost", Integer.parseInt(port));
+    }
+
+    private void stubUpdateConsumerLinks() {
+        String response = loadFile("patchCompanyProfile.json");
+
         stubFor(
-                get(urlPathEqualTo("/company/00006400"))
+                get(urlPathMatching("/company/([0-9]*)"))
                         .willReturn(aResponse()
                                 .withStatus(200)
                                 .withHeader("Content-Type", "application/json")
-                                .withBody(getCompanyProfileJson)));
+                                .withBody(response)));
 
         stubFor(
-                put(urlPathEqualTo("/company/00006400/links"))
-                        .withRequestBody(containing("00006400"))
+                patch(urlPathMatching("/company/([0-9]*)/links"))
+                        .withRequestBody(containing(this.companyNumber))
                         .willReturn(aResponse()
                                 .withStatus(200)));
+    }
 
-        getCompanyProfileJson = loadFile("patchCompanyProfile.json");
+    private void stubGetConsumerLinks() {
+        String response = loadFile("getCompanyProfile.json");
         stubFor(
-                get(urlPathEqualTo("/company/00006401"))
+                get(urlPathMatching("/company/([0-9]*)"))
                         .willReturn(aResponse()
                                 .withStatus(200)
                                 .withHeader("Content-Type", "application/json")
-                                .withBody(getCompanyProfileJson)));
+                                .withBody(response)));
 
         stubFor(
-                put(urlPathEqualTo("/company/00006401/links"))
-                        .withRequestBody(containing("00006401"))
+                patch(urlPathMatching("/company/([0-9]*)/links"))
+                        .withRequestBody(containing(this.companyNumber))
                         .willReturn(aResponse()
                                 .withStatus(200)));
     }

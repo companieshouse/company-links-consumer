@@ -1,7 +1,5 @@
 package uk.gov.companieshouse.company.links.config;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -10,21 +8,28 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
-import org.springframework.kafka.core.*;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 import uk.gov.companieshouse.company.links.serialization.ResourceChangedDataDeserializer;
 import uk.gov.companieshouse.company.links.serialization.ResourceChangedDataSerializer;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @TestConfiguration
 public class KafkaTestContainerConfig {
 
-    private final ResourceChangedDataDeserializer chsDeltaDeserializer;
+    private final ResourceChangedDataDeserializer resourceChangedDataDeserializer;
 
     @Autowired
-    public KafkaTestContainerConfig(ResourceChangedDataDeserializer chsDeltaDeserializer) {
-        this.chsDeltaDeserializer = chsDeltaDeserializer;
+    public KafkaTestContainerConfig(ResourceChangedDataDeserializer resourceChangedDataDeserializer) {
+        this.resourceChangedDataDeserializer = resourceChangedDataDeserializer;
     }
 
     @Bean
@@ -38,15 +43,15 @@ public class KafkaTestContainerConfig {
     ConcurrentKafkaListenerContainerFactory<String, ResourceChangedData> listenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, ResourceChangedData> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(kafkaConsumerFactory());
+        factory.setConsumerFactory(consumerFactory());
         return factory;
     }
 
     @Bean
-    public ConsumerFactory<String, ResourceChangedData> kafkaConsumerFactory() {
+    public ConsumerFactory<String, ResourceChangedData> consumerFactory() {
         return new DefaultKafkaConsumerFactory<>(consumerConfigs(kafkaContainer()),
                 new StringDeserializer(),
-                chsDeltaDeserializer);
+                resourceChangedDataDeserializer);
     }
 
     @Bean

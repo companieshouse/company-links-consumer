@@ -19,10 +19,10 @@ company-links:
     insolvency:
       enable: true
       group-id: company-links-consumer
-      topic: stream-insolvency
+      topic: stream-company-insolvency
 
     charges:
       enable: true
       group-id: company-links-consumer
-      topic: stream-charges
+      topic: stream-company-charges
 

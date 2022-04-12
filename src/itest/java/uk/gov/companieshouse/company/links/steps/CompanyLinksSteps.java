@@ -70,16 +70,17 @@ public class CompanyLinksSteps {
 
     @Then("the Company Links Consumer should send a GET request to the Company Profile API")
     public void the_company_links_consumer_should_send_a_get_request_to_the_company_profile_api() {
-        verify(1, getRequestedFor(urlPathMatching("/company/([0-9]*)")));
-        verify(0, patchRequestedFor(urlPathMatching("/company/([0-9]*)/links")));
+        verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+        verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
 
         wireMockServer.stop();
     }
 
     @Then("the Company Links Consumer should send a PATCH request to the Company Profile API")
     public void the_company_links_consumer_should_send_a_patch_request_to_the_company_profile_api() {
-        verify(1, getRequestedFor(urlPathMatching("/company/([0-9]*)")));
-        verify(1, patchRequestedFor(urlPathMatching("/company/([0-9]*)/links")));
+        verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+        verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links"))
+                .withRequestBody(containing("/company/" + this.companyNumber + "/insolvency")));
 
         wireMockServer.stop();
     }
@@ -92,36 +93,30 @@ public class CompanyLinksSteps {
     }
 
     private void stubUpdateConsumerLinks() {
-        String response = loadFile("patchCompanyProfile.json");
+        String response = loadFile("profile-with-out-links.json");
 
         stubFor(
-                get(urlPathMatching("/company/([0-9]*)"))
+                get(urlEqualTo("/company/" + this.companyNumber + "/links"))
                         .willReturn(aResponse()
                                 .withStatus(200)
                                 .withHeader("Content-Type", "application/json")
                                 .withBody(response)));
 
         stubFor(
-                patch(urlPathMatching("/company/([0-9]*)/links"))
-                        .withRequestBody(containing(this.companyNumber))
+                patch(urlEqualTo("/company/" + this.companyNumber + "/links"))
+                        .withRequestBody(containing("/company/" + this.companyNumber + "/insolvency"))
                         .willReturn(aResponse()
                                 .withStatus(200)));
     }
 
     private void stubGetConsumerLinks() {
-        String response = loadFile("getCompanyProfile.json");
+        String response = loadFile("profile-with-links.json");
         stubFor(
-                get(urlPathMatching("/company/([0-9]*)"))
+                get(urlEqualTo("/company/" + this.companyNumber + "/links"))
                         .willReturn(aResponse()
                                 .withStatus(200)
                                 .withHeader("Content-Type", "application/json")
                                 .withBody(response)));
-
-        stubFor(
-                patch(urlPathMatching("/company/([0-9]*)/links"))
-                        .withRequestBody(containing(this.companyNumber))
-                        .willReturn(aResponse()
-                                .withStatus(200)));
     }
 
     private ResourceChangedData createMessage(String companyNumber) {

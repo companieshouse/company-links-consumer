@@ -38,7 +38,7 @@ public class CompanyProfileService extends BaseApiClientServiceImpl {
      * @return an ApiResponse containing the CompanyProfileApi data model
      */
     public ApiResponse<CompanyProfile> getCompanyProfile(String contextId, String companyNumber) {
-        String uri = String.format("/company/%s", companyNumber);
+        String uri = String.format("/company/%s/links", companyNumber);
 
         Map<String, Object> logMap = createLogMap(companyNumber, "GET", uri);
         logger.infoContext(contextId, String.format("GET %s", uri), logMap);

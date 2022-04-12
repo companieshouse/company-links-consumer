@@ -4,6 +4,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -20,6 +23,7 @@ import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 import java.io.IOException;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -217,4 +221,19 @@ class ChargesStreamProcessorTest {
         verifyNoMoreInteractions(companyProfileService);
     }
 
+    static Stream<Arguments> testExtractCompanyNumberFromResourceUri() {
+        return Stream.of(
+                Arguments.of("/company/OC330796/charges/--GWGxXZanPgGtcE5dTZcrLlk3k", "OC330796"),
+                Arguments.of("/companyabc/OC330796/charges/--GWGxXZanPgGtcE5dTZcrLlk3k", null),
+                Arguments.of("/company/12345678/aabccharges/--GWGxXZanPgGtcE5dTZcrLlk3k", null),
+                Arguments.of("/company//OC330796//charges/--GWGxXZanPgGtcE5dTZcrLlk3k", "/OC330796/")
+        );
+    }
+
+    @ParameterizedTest(name = "{index} ==> {2}: is {0} valid? {1}")
+    @MethodSource("testExtractCompanyNumberFromResourceUri")
+    public void urlPatternTest(String input, String expected) {
+        String companyNumber = chargesStreamProcessor.extractCompanyNumber(input);
+        assertEquals(expected, companyNumber);
+    }
 }

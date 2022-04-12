@@ -30,7 +30,7 @@ import uk.gov.companieshouse.logging.Logger;
 class CompanyProfileServiceTest {
     private static final String MOCK_CONTEXT_ID = "context_id";
     private static final String MOCK_COMPANY_NUMBER = "6146287";
-    private static final String MOCK_COMPANY_URI = String.format("/company/%s",
+    private static final String MOCK_COMPANY_URI = String.format("/company/%s/links",
             MOCK_COMPANY_NUMBER);
     private static final String MOCK_COMPANY_LINKS_URI = String.format("/company/%s/links",
             MOCK_COMPANY_NUMBER);

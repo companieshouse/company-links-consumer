@@ -21,7 +21,7 @@ import java.io.IOException;
  class InsolvencyStreamConsumerITest {
 
     @Autowired
-    public KafkaTemplate<String, ResourceChangedData> kafkaTemplate;
+    public KafkaTemplate<String, Object> kafkaTemplate;
 
     @Value("${company-links.consumer.insolvency.topic}")
     private String mainTopic;

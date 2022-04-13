@@ -20,6 +20,8 @@ company-links:
       enable: true
       group-id: company-links-consumer
       topic: stream-company-insolvency
+      attempts: 4
+      backoff-delay: 100
 
     charges:
       enable: true

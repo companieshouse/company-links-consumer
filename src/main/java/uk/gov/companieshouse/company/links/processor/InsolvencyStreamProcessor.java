@@ -36,8 +36,6 @@ public class InsolvencyStreamProcessor {
      * Process a ResourceChangedData message.
      */
     public void process(Message<ResourceChangedData> resourceChangedMessage) {
-        //TODO need to check where we set this property.
-        //TODO We need to create a new one for this processor
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
         final Map<String, Object> logMap = new HashMap<>();

@@ -30,14 +30,12 @@ import java.util.Map;
 @TestConfiguration
 public class KafkaTestContainerConfig {
 
-    @MockBean
-    private CHKafkaProducer chKafkaProducer;
-
     private final ResourceChangedDataSerializer resourceChangedDataSerializer;
     private final ResourceChangedDataDeserializer resourceChangedDataDeserializer;
 
     @Autowired
-    public KafkaTestContainerConfig(ResourceChangedDataSerializer resourceChangedDataSerializer, ResourceChangedDataDeserializer resourceChangedDataDeserializer) {
+    public KafkaTestContainerConfig(ResourceChangedDataSerializer resourceChangedDataSerializer,
+                                    ResourceChangedDataDeserializer resourceChangedDataDeserializer) {
         this.resourceChangedDataSerializer = resourceChangedDataSerializer;
         this.resourceChangedDataDeserializer = resourceChangedDataDeserializer;
     }

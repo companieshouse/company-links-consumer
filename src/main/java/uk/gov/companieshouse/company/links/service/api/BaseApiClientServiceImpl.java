@@ -41,6 +41,7 @@ public abstract class BaseApiClientServiceImpl {
         try {
             return executor.execute();
         } catch (URIValidationException ex) {
+            ex.printStackTrace();
             logger.errorContext(logContext, "SDK exception", ex, logMap);
             throw new RetryableErrorException("SDK Exception", ex);
         } catch (ApiErrorResponseException ex) {

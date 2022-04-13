@@ -10,6 +10,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
@@ -39,11 +40,8 @@ public class ResourceChangedDataDeserializer implements Deserializer<ResourceCha
             return reader.read(null, decoder);
         } catch (Exception ex) {
             logger.error("Serialization exception while converting to Avro schema object", ex);
-            throw new SerializationException(
-                    "Message data [" + Arrays.toString(data)
-                            + "] from topic ["
-                            + topic
-                            + "] cannot be deserialized", ex);
+            throw new NonRetryableErrorException("De-Serialization exception "
+                    + "while converting to Avro schema object", ex);
         }
     }
 

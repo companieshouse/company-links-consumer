@@ -24,6 +24,7 @@ import uk.gov.companieshouse.api.handler.company.request.PrivateCompanyProfileGe
 import uk.gov.companieshouse.api.handler.company.request.PrivateCompanyProfilePatch;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
+import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,12 +82,11 @@ class CompanyProfileServiceTest {
         when(companyResourceHandler.getCompanyProfile(MOCK_COMPANY_LINKS_URI)).thenReturn(privateCompanyProfileGet);
         when(privateCompanyProfileGet.execute()).thenThrow(new URIValidationException("expected"));
 
-        final ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        assertThrows(
+                RetryableErrorException.class,
                 () -> companyProfileService.getCompanyProfile(MOCK_CONTEXT_ID,
                         MOCK_COMPANY_NUMBER));
 
-        assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -100,12 +100,10 @@ class CompanyProfileServiceTest {
         when(privateCompanyProfileGet.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
-        final ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        assertThrows(
+                RetryableErrorException.class,
                 () -> companyProfileService.getCompanyProfile(MOCK_CONTEXT_ID,
                         MOCK_COMPANY_NUMBER));
-
-        assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -121,12 +119,11 @@ class CompanyProfileServiceTest {
         when(privateCompanyProfileGet.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
-        final ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        assertThrows(
+                RetryableErrorException.class,
                 () -> companyProfileService.getCompanyProfile(MOCK_CONTEXT_ID,
                         MOCK_COMPANY_NUMBER));
 
-        assertThat(exception.getStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @Test

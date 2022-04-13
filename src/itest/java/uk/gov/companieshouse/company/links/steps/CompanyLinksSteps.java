@@ -37,7 +37,7 @@ public class CompanyLinksSteps {
     private CompanyProfileService companyProfileService;
 
     @Autowired
-    public KafkaTemplate<String, ResourceChangedData> kafkaTemplate;
+    public KafkaTemplate<String, Object> kafkaTemplate;
 
     @Given("Company links consumer api service is running")
     public void company_links_consumer_api_service_is_running() {

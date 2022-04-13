@@ -248,7 +248,7 @@ class ChargesStreamProcessorTest {
         chargesStreamProcessor.process(mockResourceChangedMessage);
 
         verify(companyProfileService, times(0)).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
-        
+
         verify(companyProfileService, times(0)).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
                 Mockito.any(CompanyProfile.class));
     }

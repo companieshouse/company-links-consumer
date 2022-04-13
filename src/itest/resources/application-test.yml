@@ -32,7 +32,7 @@ logger:
   namespace: company-links-consumer
 
 api:
-  endpoint: ${API_URL:http://localhost:8888}
+  endpoint: ${COMPANY_PROFILE_API_URL:http://localhost:8888}
   company-profile-api-key: ${COMPANY_PROFILE_API_KEY:MGQ1MGNlYmFkYzkxZTM2MzlkNGVmMzg4ZjgxMmEz}
 
 wiremock:

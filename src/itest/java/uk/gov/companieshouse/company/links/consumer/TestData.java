@@ -13,7 +13,7 @@ public class TestData {
 
     public static final String CHANGED = "changed";
     public static final String CONTEXT_ID = "context_id";
-    public static final String RESOURCE_ID = "12345678";
+    public static final String RESOURCE_ID = "11223344";
     public static final String RESOURCE_KIND_CHARGES = "company-charges";
     public static final String RESOURCE_KIND_INSOLVENCY = "company-insolvency";
     public static final String CHARGES_RESOURCE_URI = "/company/12345678/charges";

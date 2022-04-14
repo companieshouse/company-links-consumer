@@ -4,6 +4,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -20,6 +23,7 @@ import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 import java.io.IOException;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -58,7 +62,7 @@ class ChargesStreamProcessorTest {
     @DisplayName("Successfully processes a kafka message containing a ResourceChangedData payload, updating charges links")
     void successfullyProcessResourceChangedDataChargesLinksGetsUpdated() throws IOException {
 
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessage();
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessageWithValidResourceUri();
 
         CompanyProfile companyProfile = testData.createCompanyProfile();
 
@@ -101,7 +105,7 @@ class ChargesStreamProcessorTest {
     @Test
     @DisplayName("Successfully processes a kafka message containing a ResourceChangedData payload, links doesn't need updating")
     void successfullyProcessResourceChangedDataChargesDoesntGetUpdated() throws IOException {
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessage();
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessageWithValidResourceUri();
 
         CompanyProfile companyProfileWithLinks = testData.createCompanyProfileWithChargesLinks();
 
@@ -135,7 +139,7 @@ class ChargesStreamProcessorTest {
     @DisplayName("process CompanyProfile Updates where charges inside links are updated successfully")
     void processCompanyProfileUpdates_SuccessfullyChargesLinksGetsUpdated() throws IOException {
 
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessage();
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessageWithValidResourceUri();
 
         CompanyProfile companyProfile = testData.createCompanyProfile();
         CompanyProfile companyProfileWithLinks = testData.createCompanyProfileWithChargesLinks();
@@ -170,7 +174,7 @@ class ChargesStreamProcessorTest {
     @DisplayName("process CompanyProfile Updates where charges inside links are not updated successfully")
     void processCompanyProfileUpdates_ChargesLinksNotUpdated() throws IOException {
 
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessage();
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessageWithValidResourceUri();
 
         CompanyProfile companyProfileWithLinks = testData.createCompanyProfileWithChargesLinks();
 
@@ -190,7 +194,7 @@ class ChargesStreamProcessorTest {
     @Test
     @DisplayName("update CompanyProfile With Charges")
     void updateCompanyProfileWithCharges() throws IOException {
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessage();
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessageWithValidResourceUri();
 
         CompanyProfile companyProfile = testData.createCompanyProfile();
         CompanyProfile companyProfileWithLinks = testData.createCompanyProfileWithChargesLinks();
@@ -217,4 +221,35 @@ class ChargesStreamProcessorTest {
         verifyNoMoreInteractions(companyProfileService);
     }
 
+    static Stream<Arguments> testExtractCompanyNumberFromResourceUri() {
+        return Stream.of(
+                Arguments.of("/company/OC330796/charges/--GWGxXZanPgGtcE5dTZcrLlk3k", "OC330796"),
+                Arguments.of("/companyabc/OC330796/charges/--GWGxXZanPgGtcE5dTZcrLlk3k", null),
+                Arguments.of("/company/12345678/aabccharges/--GWGxXZanPgGtcE5dTZcrLlk3k", null),
+                Arguments.of("/companyabc/12345678/aabccharges/--GWGxXZanPgGtcE5dTZcrLlk3k", null),
+                Arguments.of("/company//OC330796//charges/--GWGxXZanPgGtcE5dTZcrLlk3k", "/OC330796/")
+        );
+    }
+
+    @ParameterizedTest(name = "{index} ==> {2}: is {0} valid? {1}")
+    @MethodSource("testExtractCompanyNumberFromResourceUri")
+    public void urlPatternTest(String input, String expected) {
+        String companyNumber = chargesStreamProcessor.extractCompanyNumber(input);
+        assertEquals(expected, companyNumber);
+    }
+
+    @Test
+    @DisplayName("No Company Number Extracted")
+    void noCompanyNumberExtracted() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData
+                .createResourceChangedMessageWithInValidResourceUri();
+
+        chargesStreamProcessor.process(mockResourceChangedMessage);
+
+        verify(companyProfileService, times(0)).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
+
+        verify(companyProfileService, times(0)).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
+                Mockito.any(CompanyProfile.class));
+    }
 }

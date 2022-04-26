@@ -27,4 +27,5 @@ company-links:
       enable: true
       group-id: company-links-consumer
       topic: stream-company-charges
-
+      attempts: 4
+      backoff-delay: 100

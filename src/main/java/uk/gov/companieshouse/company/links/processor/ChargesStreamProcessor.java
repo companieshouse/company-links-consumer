@@ -47,9 +47,6 @@ public class ChargesStreamProcessor {
             throws JsonProcessingException {
         MessageHeaders headers = resourceChangedMessage.getHeaders();
 
-        //TODO need to check where we set this property.
-        //TODO We need to create a new one for this processor
-        final boolean isRetry = headers.containsKey("CHARGES_DELTA_RETRY_COUNT");
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
         final Map<String, Object> logMap = new HashMap<>();

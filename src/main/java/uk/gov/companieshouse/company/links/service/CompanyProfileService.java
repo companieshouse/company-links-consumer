@@ -11,11 +11,10 @@ import uk.gov.companieshouse.api.http.ApiKeyHttpClient;
 import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
-import uk.gov.companieshouse.company.links.service.api.BaseApiClientServiceImpl;
 import uk.gov.companieshouse.logging.Logger;
 
 @Service
-public class CompanyProfileService extends BaseApiClientServiceImpl {
+public class CompanyProfileService extends BaseApiClientService {
 
     @Value("${api.company-profile-api-key}")
     private String companyProfileApiKey;

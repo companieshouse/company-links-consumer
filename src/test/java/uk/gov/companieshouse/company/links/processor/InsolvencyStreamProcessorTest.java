@@ -11,6 +11,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -120,6 +123,31 @@ class InsolvencyStreamProcessorTest {
 
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
+
+        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+    }
+
+    @Test
+    @DisplayName("Company number is blank, non retryable error")
+    void invalidJsonThrowsNonRetryableError() throws IOException {
+        InputStreamReader exampleInsolvencyJsonPayload = new InputStreamReader(
+                Objects.requireNonNull(ClassLoader.getSystemClassLoader()
+                        .getResourceAsStream("insolvency-record.json")));
+        String insolvencyRecord = FileCopyUtils.copyToString(exampleInsolvencyJsonPayload);
+
+        ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
+                .setContextId("context_id")
+                .setResourceId("")
+                .setResourceKind("company-insolvency")
+                .setResourceUri(String.format("/company/%s/insolvency", MOCK_COMPANY_NUMBER))
+                .setEvent(new EventRecord())
+                .setData(insolvencyRecord)
+                .build();
+
+        Message<ResourceChangedData> mockResourceChangedMessage = MessageBuilder
+                .withPayload(resourceChangedData)
+                .setHeader(KafkaHeaders.RECEIVED_TOPIC, "test")
+                .build();
 
         assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
     }

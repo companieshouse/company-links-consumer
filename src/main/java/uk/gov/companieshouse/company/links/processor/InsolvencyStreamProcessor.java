@@ -4,6 +4,8 @@ import static uk.gov.companieshouse.company.links.processor.ResponseHandler.hand
 
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.utils.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
+import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -42,6 +45,10 @@ public class InsolvencyStreamProcessor {
 
         // the resource_id field returned represents the insolvency record's company number
         final String companyNumber = payload.getResourceId();
+        if (StringUtils.isEmpty(companyNumber)) {
+            logger.error("Company number is empty or null");
+            throw new NonRetryableErrorException("Company number is empty or null");
+        }
         logger.trace(String.format("Resource changed message of kind %s "
                 + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
 

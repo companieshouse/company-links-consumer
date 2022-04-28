@@ -1,9 +1,8 @@
-package uk.gov.companieshouse.company.links.service.api;
+package uk.gov.companieshouse.company.links.service;
 
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.Executor;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
@@ -13,10 +12,10 @@ import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 
 
-public abstract class BaseApiClientServiceImpl {
+public abstract class BaseApiClientService {
     protected Logger logger;
 
-    protected BaseApiClientServiceImpl(final Logger logger) {
+    protected BaseApiClientService(final Logger logger) {
         this.logger = logger;
     }
 

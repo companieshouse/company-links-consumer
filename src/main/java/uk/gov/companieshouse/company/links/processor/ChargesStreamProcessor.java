@@ -5,6 +5,10 @@ import static uk.gov.companieshouse.company.links.processor.ResponseHandler.hand
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
@@ -22,6 +26,7 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 @Component
 public class ChargesStreamProcessor {
 
+    public static final String EXTRACT_COMPANY_NUMBER_PATTERN = "(?<=company/)(.*?)(?=/charges)";
     private final Logger logger;
     private final CompanyProfileService companyProfileService;
 
@@ -42,27 +47,25 @@ public class ChargesStreamProcessor {
             throws JsonProcessingException {
         MessageHeaders headers = resourceChangedMessage.getHeaders();
 
-        //TODO need to check where we set this property.
-        //TODO We need to create a new one for this processor
-        final boolean isRetry = headers.containsKey("CHARGES_DELTA_RETRY_COUNT");
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
         final Map<String, Object> logMap = new HashMap<>();
 
         // the resource_id field returned represents the charges record's company number
-        final String companyNumber = payload.getResourceId();
+        final String companyNumber = extractCompanyNumber(payload.getResourceUri());
         logger.trace(String.format("Resource changed message of kind %s "
                 + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
+        if (!StringUtils.isEmpty(companyNumber)) {
+            final ApiResponse<CompanyProfile> response =
+                    getCompanyProfileApi(logContext, logMap, companyNumber);
 
-        final ApiResponse<CompanyProfile> response =
-                getCompanyProfileApi(logContext, logMap, companyNumber);
-
-        ApiResponse<Void> patchResponse = processCompanyProfileUpdates(logContext,
-                companyNumber, response,
-                payload, headers);
-        if (patchResponse != null) {
-            handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                    "Response from PATCH call to company profile api", logMap, logger);
+            ApiResponse<Void> patchResponse = processCompanyProfileUpdates(logContext,
+                    companyNumber, response,
+                    payload, headers);
+            if (patchResponse != null) {
+                handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
+                        "Response from PATCH call to company profile api", logMap, logger);
+            }
         }
     }
 
@@ -131,5 +134,20 @@ public class ChargesStreamProcessor {
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                 "Response from GET call to company profile api", logMap, logger);
         return response;
+    }
+
+    String extractCompanyNumber(String resourceUri) {
+
+        if (StringUtils.isNotBlank(resourceUri)) {
+            //matches all characters between company/ and /
+            Pattern companyNo = Pattern.compile(EXTRACT_COMPANY_NUMBER_PATTERN);
+            Matcher matcher = companyNo.matcher(resourceUri);
+            if (matcher.find()) {
+                return matcher.group(0).length() > 1 ? matcher.group(0) : null;
+            }
+        }
+        logger.trace(String.format("Could not extract company number from uri "
+                + "%s ", resourceUri));
+        return null;
     }
 }

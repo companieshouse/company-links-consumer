@@ -23,8 +23,18 @@ public class TestData {
     public static final String MOCK_COMPANY_NUMBER = "03105860";
     public static final String CONTEXT_ID = "context_id";
     public static final String COMPANY_CHARGES_LINK = "/company/%s/charges";
+    public static final String INVALID_COMPANY_CHARGES_LINK = "/company/%s/metrics";
+    public static final String RESOURCE_ID = "11223344";
 
-    public Message<ResourceChangedData> createResourceChangedMessage() throws IOException {
+    public Message<ResourceChangedData> createResourceChangedMessageWithValidResourceUri() throws IOException {
+        return createResourceChangedMessage(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER));
+    }
+
+    public Message<ResourceChangedData> createResourceChangedMessageWithInValidResourceUri() throws IOException {
+        return createResourceChangedMessage(String.format(INVALID_COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER));
+    }
+
+    public Message<ResourceChangedData> createResourceChangedMessage(String resourceUri) throws IOException {
         InputStreamReader exampleChargesJsonPayload = new InputStreamReader(
                 Objects.requireNonNull(ClassLoader.getSystemClassLoader()
                         .getResourceAsStream("charges-record.json")));
@@ -32,9 +42,9 @@ public class TestData {
 
         ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
                 .setContextId(CONTEXT_ID)
-                .setResourceId(MOCK_COMPANY_NUMBER)
+                .setResourceId(RESOURCE_ID)
                 .setResourceKind(RESOURCE_KIND)
-                .setResourceUri(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER))
+                .setResourceUri(resourceUri)
                 .setEvent(new EventRecord())
                 .setData(chargesRecord)
                 .build();

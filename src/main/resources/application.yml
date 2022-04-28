@@ -17,15 +17,15 @@ api:
 company-links:
   consumer:
     insolvency:
-      enable: true
-      group-id: company-links-consumer
-      topic: stream-company-insolvency
-      attempts: 4
-      backoff-delay: 100
+      enable: ${COMPANY_LINKS_CONSUMER_INSOLVENCY_ENABLED:true}
+      group-id: ${COMPANY_LINKS_CONSUMER_INSOLVENCY_GROUP_ID:company-links-consumer}
+      topic: ${COMPANY_LINKS_CONSUMER_INSOLVENCY_TOPIC:stream-company-insolvency}
+      attempts: ${COMPANY_LINKS_CONSUMER_INSOLVENCY_ATTEMPTS:4}
+      backoff-delay: ${COMPANY_LINKS_CONSUMER_INSOLVENCY_BACKOFF_DELAY:100}
 
     charges:
-      enable: true
-      group-id: company-links-consumer
-      topic: stream-company-charges
-      attempts: 4
-      backoff-delay: 100
+      enable: ${COMPANY_LINKS_CONSUMER_CHARGES:true}
+      group-id: ${COMPANY_LINKS_CONSUMER_CHARGES_GROUP_ID:company-links-consumer}
+      topic: ${COMPANY_LINKS_CONSUMER_CHARGES_TOPIC:stream-company-charges}
+      attempts: ${COMPANY_LINKS_CONSUMER_CHARGES_ATTEMPTS:4}
+      backoff-delay: ${COMPANY_LINKS_CONSUMER_CHARGES_BACKOFF_DELAY:100}

@@ -24,7 +24,7 @@ company-links:
       backoff-delay: ${COMPANY_LINKS_CONSUMER_INSOLVENCY_BACKOFF_DELAY:100}
 
     charges:
-      enable: ${COMPANY_LINKS_CONSUMER_CHARGES:true}
+      enable: ${COMPANY_LINKS_CONSUMER_CHARGES_ENABLED:true}
       group-id: ${COMPANY_LINKS_CONSUMER_CHARGES_GROUP_ID:company-links-consumer}
       topic: ${COMPANY_LINKS_CONSUMER_CHARGES_TOPIC:stream-company-charges}
       attempts: ${COMPANY_LINKS_CONSUMER_CHARGES_ATTEMPTS:4}

@@ -10,6 +10,7 @@ import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.http.ApiKeyHttpClient;
 import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
+import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.service.api.BaseApiClientServiceImpl;
 import uk.gov.companieshouse.logging.Logger;
 
@@ -37,8 +38,9 @@ public class CompanyProfileService extends BaseApiClientServiceImpl {
      * @param companyNumber the company's company number
      * @return an ApiResponse containing the CompanyProfileApi data model
      */
-    public ApiResponse<CompanyProfile> getCompanyProfile(String contextId, String companyNumber) {
-        String uri = String.format("/company/%s", companyNumber);
+    public ApiResponse<CompanyProfile> getCompanyProfile(String contextId, String companyNumber)
+            throws RetryableErrorException {
+        String uri = String.format("/company/%s/links", companyNumber);
 
         Map<String, Object> logMap = createLogMap(companyNumber, "GET", uri);
         logger.infoContext(contextId, String.format("GET %s", uri), logMap);

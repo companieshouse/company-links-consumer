@@ -8,11 +8,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+
 import uk.gov.companieshouse.company.links.config.KafkaTestContainerConfig;
-import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
-import java.util.Arrays;
+import java.io.IOException;
 
 @SpringBootTest
 @DirtiesContext
@@ -21,26 +21,18 @@ import java.util.Arrays;
 class ChargesStreamConsumerITest {
 
     @Autowired
-    public KafkaTemplate<String, ResourceChangedData> kafkaTemplate;
+    public KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Value("${company-links.consumer.charges.topic.main}")
+    @Value("${company-links.consumer.charges.topic}")
     private String mainTopic;
 
-    void testSendingKafkaMessage() {
-        EventRecord event = EventRecord.newBuilder()
-                .setType("changed")
-                .setPublishedAt("2022-02-22T10:51:30")
-                .setFieldsChanged(Arrays.asList("foo", "moo"))
-                .build();
+    private TestData testData = new TestData();
 
-        ResourceChangedData resourceChanged = ResourceChangedData.newBuilder()
-                .setContextId("context_id")
-                .setResourceId("12345678")
-                .setResourceKind("company-insolvency")
-                .setResourceUri("/company/12345678/insolvency")
-                .setData("{ \"key\": \"value\" }")
-                .setEvent(event)
-                .build();
+    @Test
+    void testSendingKafkaMessage() throws IOException {
+
+        ResourceChangedData resourceChanged = testData.
+                getResourceChangedData("charges-record.json");
 
         kafkaTemplate.send(mainTopic, resourceChanged);
     }

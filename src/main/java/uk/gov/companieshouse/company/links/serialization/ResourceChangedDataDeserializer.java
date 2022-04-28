@@ -10,6 +10,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
@@ -30,8 +31,8 @@ public class ResourceChangedDataDeserializer implements Deserializer<ResourceCha
     @Override
     public ResourceChangedData deserialize(String topic, byte[] data) {
         try {
-            logger.trace(String.format("DSND-374: Message picked up from topic with data: %s",
-                    new String(data)));
+            logger.trace(String.format("DSND-374 and DSND-604: Message picked up from topic "
+                            + "with data: %s", new String(data)));
 
             Decoder decoder = DecoderFactory.get().binaryDecoder(data, null);
             DatumReader<ResourceChangedData> reader =
@@ -39,11 +40,8 @@ public class ResourceChangedDataDeserializer implements Deserializer<ResourceCha
             return reader.read(null, decoder);
         } catch (Exception ex) {
             logger.error("Serialization exception while converting to Avro schema object", ex);
-            throw new SerializationException(
-                    "Message data [" + Arrays.toString(data)
-                            + "] from topic ["
-                            + topic
-                            + "] cannot be deserialized", ex);
+            throw new NonRetryableErrorException("De-Serialization exception "
+                    + "while converting to Avro schema object", ex);
         }
     }
 

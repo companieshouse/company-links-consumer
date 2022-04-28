@@ -8,6 +8,8 @@ import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.Executor;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
+import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 
 
@@ -31,26 +33,25 @@ public abstract class BaseApiClientServiceImpl {
     public <T> ApiResponse<T> executeOp(final String logContext,
                                         final String operationName,
                                         final String uri,
-                                        final Executor<ApiResponse<T>> executor) {
-
+                                        final Executor<ApiResponse<T>> executor)
+            throws RetryableErrorException {
         final Map<String, Object> logMap = new HashMap<>();
         logMap.put("operation_name", operationName);
         logMap.put("path", uri);
 
         try {
-
             return executor.execute();
-
         } catch (URIValidationException ex) {
+            ex.printStackTrace();
             logger.errorContext(logContext, "SDK exception", ex, logMap);
-
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage(), ex);
+            throw new RetryableErrorException("SDK Exception", ex);
         } catch (ApiErrorResponseException ex) {
             logMap.put("status", ex.getStatusCode());
             logger.errorContext(logContext, "SDK exception", ex, logMap);
-
-            throw new ResponseStatusException(HttpStatus.valueOf(ex.getStatusCode()),
-                    ex.getStatusMessage(), ex);
+            if (ex.getStatusCode() == HttpStatus.BAD_REQUEST.value()) {
+                throw new NonRetryableErrorException("SDK Exception", ex);
+            }
+            throw new RetryableErrorException("SDK Exception", ex);
         }
     }
 }

@@ -1,7 +1,7 @@
 ---
 spring:
   kafka:
-    bootstrap-servers: ${DATA_SYNC_KAFKA_BROKER_URL:localhost:29092}
+    bootstrap-servers: ${STREAMING_KAFKA_BROKER_URL:localhost:29092}
 
 springfox:
   documentation:
@@ -11,7 +11,7 @@ logger:
   namespace: company-links-consumer
 
 api:
-  endpoint: ${API_URL:localhost}
+  endpoint: ${COMPANY_PROFILE_API_URL:localhost}
   company-profile-api-key: ${COMPANY_PROFILE_API_KEY:localhost}
 
 company-links:
@@ -19,12 +19,13 @@ company-links:
     insolvency:
       enable: true
       group-id: company-links-consumer
-      topic:
-        main: stream-insolvency
+      topic: stream-company-insolvency
+      attempts: 4
+      backoff-delay: 100
 
     charges:
-      enable: false
+      enable: true
       group-id: company-links-consumer
-      topic:
-        main: stream-charges
-
+      topic: stream-company-charges
+      attempts: 4
+      backoff-delay: 100

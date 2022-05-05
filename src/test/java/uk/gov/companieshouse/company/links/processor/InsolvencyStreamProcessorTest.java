@@ -11,9 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -65,7 +62,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.patchCompanyProfile(any(), any(), any())).thenReturn(new ApiResponse<Void>(200, null, null));
 
 
-        insolvencyProcessor.process(mockResourceChangedMessage);
+        insolvencyProcessor.processDelta(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
         verify(logger, times(6)).trace(anyString());
@@ -97,7 +94,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
-        insolvencyProcessor.process(mockResourceChangedMessage);
+        insolvencyProcessor.processDelta(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
         verify(logger, times(4)).trace(anyString());
@@ -124,7 +121,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -149,7 +146,7 @@ class InsolvencyStreamProcessorTest {
                 .setHeader(KafkaHeaders.RECEIVED_TOPIC, "test")
                 .build();
 
-        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -163,7 +160,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -177,7 +174,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -197,7 +194,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -217,7 +214,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -237,7 +234,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     private Message<ResourceChangedData> createResourceChangedMessage() throws IOException {

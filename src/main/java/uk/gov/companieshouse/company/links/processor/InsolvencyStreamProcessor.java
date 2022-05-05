@@ -5,7 +5,6 @@ import static uk.gov.companieshouse.company.links.processor.ResponseHandler.hand
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.common.utils.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
@@ -35,10 +34,30 @@ public class InsolvencyStreamProcessor {
         this.logger = logger;
     }
 
+    //TODO Actual implementation will be done as part of DSND-827
+    /**
+     * Process a ResourceChangedData deleted message.
+     */
+    public void processDelete(Message<ResourceChangedData> resourceChangedMessage) {
+        final ResourceChangedData payload = resourceChangedMessage.getPayload();
+        final String logContext = payload.getContextId();
+        final Map<String, Object> logMap = new HashMap<>();
+
+        // the resource_id field returned represents the insolvency record's company number
+        final String companyNumber = payload.getResourceId();
+        if (StringUtils.isEmpty(companyNumber)) {
+            logger.error("Company number is empty or null");
+            throw new NonRetryableErrorException("Company number is empty or null");
+        }
+        logger.trace(String.format("Resource changed message for deleted event of kind %s "
+                + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
+
+    }
+
     /**
      * Process a ResourceChangedData message.
      */
-    public void process(Message<ResourceChangedData> resourceChangedMessage) {
+    public void processDelta(Message<ResourceChangedData> resourceChangedMessage) {
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
         final Map<String, Object> logMap = new HashMap<>();

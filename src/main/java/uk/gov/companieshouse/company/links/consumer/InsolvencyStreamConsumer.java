@@ -51,11 +51,17 @@ public class InsolvencyStreamConsumer {
                         @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
                         @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
                         @Header(KafkaHeaders.OFFSET) String offset) {
-        logger.info(
-                "A new message read from Stream-insolvency topic with payload: "
-                        + resourceChangedMessage.getPayload());
         try {
-            insolvencyProcessor.process(resourceChangedMessage);
+            ResourceChangedData payload = resourceChangedMessage.getPayload();
+            logger.info(
+                    "A new message read from Stream-insolvency topic with payload: "
+                            + payload);
+            if ((payload.getEvent() != null) && (payload.getEvent().getType()
+                            .equalsIgnoreCase("deleted"))) {
+                insolvencyProcessor.processDelete(resourceChangedMessage);
+            } else {
+                insolvencyProcessor.processDelta(resourceChangedMessage);
+            }
         } catch (Exception exception) {
             logger.error(String.format("Exception occurred while processing the topic %s "
                     + "with message %s, exception thrown is %s",

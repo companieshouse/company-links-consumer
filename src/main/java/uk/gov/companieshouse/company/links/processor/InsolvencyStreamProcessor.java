@@ -78,6 +78,7 @@ public class InsolvencyStreamProcessor {
 
         links.setInsolvency(String.format("/company/%s/insolvency", companyNumber));
         data.setLinks(links);
+        data.setHasInsolvencyHistory(true);
         var companyProfile = new CompanyProfile();
         companyProfile.setData(data);
 

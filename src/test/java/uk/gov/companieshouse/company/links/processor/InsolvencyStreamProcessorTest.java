@@ -333,7 +333,6 @@ class InsolvencyStreamProcessorTest {
     private CompanyProfile createCompanyProfileWithoutInsolvencyLinks() {
         Data companyProfileData = new Data();
         companyProfileData.setCompanyNumber(MOCK_COMPANY_NUMBER);
-        companyProfileData.setHasInsolvencyHistory(false);
         Links links = new Links();
         companyProfileData.setLinks(links);
 

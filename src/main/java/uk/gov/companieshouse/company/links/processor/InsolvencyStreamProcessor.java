@@ -67,7 +67,6 @@ public class InsolvencyStreamProcessor {
             return;
         }
 
-        data.setHasInsolvencyHistory(false);
         links.setInsolvency(null);
         CompanyProfile companyProfile = new CompanyProfile();
         companyProfile.setData(data);

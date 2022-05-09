@@ -34,7 +34,6 @@ public class InsolvencyStreamProcessor {
         this.logger = logger;
     }
 
-    //TODO Actual implementation will be done as part of DSND-827
     /**
      * Process a ResourceChangedData deleted message.
      */
@@ -52,6 +51,35 @@ public class InsolvencyStreamProcessor {
         logger.trace(String.format("Resource changed message for deleted event of kind %s "
                 + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
 
+        final ApiResponse<CompanyProfile> response =
+                companyProfileService.getCompanyProfile(logContext, companyNumber);
+        logger.trace(String.format("Retrieved company profile for company number %s: %s",
+                companyNumber, response.getData()));
+        handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
+                "Response from GET call to company profile api", logMap, logger);
+        var data = response.getData().getData();
+        var links = data.getLinks();
+
+        if (links != null && links.getInsolvency() == null) {
+            logger.trace(String.format("Company profile with company number %s,"
+                            + " does not contain insolvency links, will not perform patch",
+                    companyNumber));
+            return;
+        }
+
+        links.setInsolvency(null);
+        CompanyProfile companyProfile = new CompanyProfile();
+        companyProfile.setData(data);
+
+        final ApiResponse<Void> patchResponse =
+                companyProfileService.patchCompanyProfile(
+                        logContext, companyNumber, companyProfile
+                );
+
+        logger.trace(String.format("Performing a PATCH with new company profile %s",
+                companyProfile));
+        handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
+                "Response from PATCH call to company profile api", logMap, logger);
     }
 
     /**

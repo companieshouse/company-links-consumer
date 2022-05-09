@@ -65,6 +65,13 @@ public class CompanyChargesSteps {
         setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-out-charges.json", companyNumber));
      }
 
+    @Given("Company profile stubbed with charges present for {string}")
+    public void company_profile_exists_with_charges(String companyNumber) {
+        this.companyNumber = companyNumber;
+        configureWiremock();
+        setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-charges-links.json", this.companyNumber));
+    }
+
     @When("A valid avro message is sent to the Kafka topic {string}")
     public void send_kafka_message(String topicName) throws InterruptedException {
         kafkaTemplate.send(topicName, createChargesMessage(companyNumber));
@@ -84,13 +91,6 @@ public class CompanyChargesSteps {
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         wireMockServer.stop();
-    }
-
-    @Given("Company profile stubbed with charges present for {string}")
-    public void company_profile_exists_with_charges(String companyNumber) {
-        this.companyNumber = companyNumber;
-        configureWiremock();
-        setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-charges-links.json", this.companyNumber));
     }
 
     private void configureWiremock() {

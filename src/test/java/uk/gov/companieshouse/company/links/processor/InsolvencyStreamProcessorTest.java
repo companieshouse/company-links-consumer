@@ -11,9 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -65,7 +62,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.patchCompanyProfile(any(), any(), any())).thenReturn(new ApiResponse<Void>(200, null, null));
 
 
-        insolvencyProcessor.process(mockResourceChangedMessage);
+        insolvencyProcessor.processDelta(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
         verify(logger, times(6)).trace(anyString());
@@ -97,7 +94,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
-        insolvencyProcessor.process(mockResourceChangedMessage);
+        insolvencyProcessor.processDelta(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
         verify(logger, times(4)).trace(anyString());
@@ -114,6 +111,33 @@ class InsolvencyStreamProcessorTest {
     }
 
     @Test
+    @DisplayName("Successfully processes a kafka message containing a ResourceChangedData with deleted event payload, insolvency links removed")
+    void successfullyProcessResourceChangedDataWithDeletedEventPayloadInsolvencyLinksRemoved() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessageWithDeletedEvent();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, createCompanyProfileWithoutInsolvencyLinks());
+
+        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+
+        insolvencyProcessor.processDelete(mockResourceChangedMessage);
+
+        verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
+        verify(logger, times(4)).trace(anyString());
+        verify(logger, atLeastOnce()).trace(
+                contains("Resource changed message for deleted event of kind company-insolvency"));
+        verify(logger, atLeastOnce()).trace((
+                String.format("Retrieved company profile for company number %s: %s",
+                        MOCK_COMPANY_NUMBER, companyProfileApiResponse.getData())));
+        verify(logger, atLeastOnce()).trace((
+                String.format("Company profile with company number %s,"
+                        + " does not contain insolvency links, will not perform patch",
+                        MOCK_COMPANY_NUMBER)
+                ));
+    }
+
+    @Test
     @DisplayName("GET company profile returns BAD REQUEST, non retryable error")
     void getCompanyProfileReturnsBadRequest_then_nonRetryableError() throws IOException {
         Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
@@ -124,7 +148,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -149,7 +173,7 @@ class InsolvencyStreamProcessorTest {
                 .setHeader(KafkaHeaders.RECEIVED_TOPIC, "test")
                 .build();
 
-        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -163,7 +187,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -177,7 +201,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -197,7 +221,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -217,7 +241,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     @Test
@@ -237,7 +261,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.process(mockResourceChangedMessage));
+        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
     }
 
     private Message<ResourceChangedData> createResourceChangedMessage() throws IOException {
@@ -261,6 +285,29 @@ class InsolvencyStreamProcessorTest {
                 .build();
     }
 
+    private Message<ResourceChangedData> createResourceChangedMessageWithDeletedEvent() throws IOException {
+        InputStreamReader exampleInsolvencyJsonPayload = new InputStreamReader(
+                Objects.requireNonNull(ClassLoader.getSystemClassLoader()
+                        .getResourceAsStream("insolvency-record.json")));
+        String insolvencyRecord = FileCopyUtils.copyToString(exampleInsolvencyJsonPayload);
+        EventRecord deletedEventRecord = new EventRecord();
+        deletedEventRecord.setType("deleted");
+
+        ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
+                .setContextId("context_id")
+                .setResourceId(MOCK_COMPANY_NUMBER)
+                .setResourceKind("company-insolvency")
+                .setResourceUri(String.format("/company/%s/insolvency", MOCK_COMPANY_NUMBER))
+                .setEvent(deletedEventRecord)
+                .setData(insolvencyRecord)
+                .build();
+
+        return MessageBuilder
+                .withPayload(resourceChangedData)
+                .setHeader(KafkaHeaders.RECEIVED_TOPIC, "test")
+                .build();
+    }
+
     private CompanyProfile createCompanyProfile() {
         Data companyProfileData = new Data();
         companyProfileData.setCompanyNumber(MOCK_COMPANY_NUMBER);
@@ -273,8 +320,20 @@ class InsolvencyStreamProcessorTest {
     private CompanyProfile createCompanyProfileWithInsolvencyLinks() {
         Data companyProfileData = new Data();
         companyProfileData.setCompanyNumber(MOCK_COMPANY_NUMBER);
+        companyProfileData.setHasInsolvencyHistory(true);
         Links links = new Links();
         links.setInsolvency(String.format("/company/%s/insolvency", MOCK_COMPANY_NUMBER));
+        companyProfileData.setLinks(links);
+
+        CompanyProfile companyProfile = new CompanyProfile();
+        companyProfile.setData(companyProfileData);
+        return companyProfile;
+    }
+
+    private CompanyProfile createCompanyProfileWithoutInsolvencyLinks() {
+        Data companyProfileData = new Data();
+        companyProfileData.setCompanyNumber(MOCK_COMPANY_NUMBER);
+        Links links = new Links();
         companyProfileData.setLinks(links);
 
         CompanyProfile companyProfile = new CompanyProfile();

@@ -35,4 +35,12 @@ import java.io.IOException;
 
         kafkaTemplate.send(mainTopic, resourceChanged);
     }
+
+    @Test
+    void testSendingKafkaMessageForDeletedEvent() throws IOException {
+        ResourceChangedData resourceChanged = testData.
+                getResourceChangedDataForDeletedEvent("insolvency-record.json");
+
+        kafkaTemplate.send(mainTopic, resourceChanged);
+    }
 }

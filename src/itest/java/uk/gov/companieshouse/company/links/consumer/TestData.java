@@ -12,6 +12,7 @@ import java.util.Objects;
 public class TestData {
 
     public static final String CHANGED = "changed";
+    public static final String DELETED = "deleted";
     public static final String CONTEXT_ID = "context_id";
     public static final String RESOURCE_ID = "11223344";
     public static final String RESOURCE_KIND_CHARGES = "company-charges";
@@ -22,6 +23,19 @@ public class TestData {
     public ResourceChangedData getResourceChangedData(String fileName) throws IOException {
         EventRecord event = EventRecord.newBuilder()
                 .setType(CHANGED)
+                .setPublishedAt("2022-02-22T10:51:30")
+                .setFieldsChanged(Arrays.asList("foo", "moo"))
+                .build();
+
+        String chargesData = getChargesData(fileName);
+
+        ResourceChangedData resourceChanged = getChargesData(event, chargesData);
+        return resourceChanged;
+    }
+
+    public ResourceChangedData getResourceChangedDataForDeletedEvent(String fileName) throws IOException {
+        EventRecord event = EventRecord.newBuilder()
+                .setType(DELETED)
                 .setPublishedAt("2022-02-22T10:51:30")
                 .setFieldsChanged(Arrays.asList("foo", "moo"))
                 .build();

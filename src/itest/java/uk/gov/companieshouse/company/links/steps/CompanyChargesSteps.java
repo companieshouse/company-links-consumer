@@ -109,7 +109,8 @@ public class CompanyChargesSteps {
 
         stubFor(
             patch(urlEqualTo("/company/" + this.companyNumber + "/links"))
-                .withRequestBody(containing("/company/" + this.companyNumber + "/charges"))
+                .withRequestBody(containing("\"charges\":\"/company/" +
+                    this.companyNumber + "/charges\""))
                 .willReturn(aResponse()
                     .withStatus(200)));
     }

@@ -45,16 +45,10 @@ public class CompanyProfileService extends BaseApiClientService {
 
         Map<String, Object> logMap = createLogMap(companyNumber, "GET", uri);
         logger.infoContext(contextId, String.format("GET %s", uri), logMap);
-
-//        return executeOp(contextId, "getCompanyProfileApi", uri,
-//            getApiClient(contextId)
-//                .privateCompanyResourceHandler()
-//                .getCompanyProfile(uri));
-        InternalApiClient api = getApiClient(contextId);
-        PrivateCompanyResourceHandler rh = api.privateCompanyResourceHandler();
-        PrivateCompanyProfileGet cpUri = rh.getCompanyProfile(uri);
-        ApiResponse<CompanyProfile> theProfile = executeOp(contextId, "getCompanyProfileApi", uri, cpUri);
-        return theProfile;
+        return executeOp(contextId, "getCompanyProfileApi", uri,
+            getApiClient(contextId)
+                .privateCompanyResourceHandler()
+                .getCompanyProfile(uri));
     }
 
     /**

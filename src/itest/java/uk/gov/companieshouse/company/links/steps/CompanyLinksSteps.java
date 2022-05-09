@@ -3,11 +3,9 @@ package uk.gov.companieshouse.company.links.steps;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -46,11 +44,6 @@ public class CompanyLinksSteps {
 
     @Autowired
     public KafkaConsumer<String, Object> kafkaConsumer;
-
-    @Given("Company links consumer api service is running")
-    public void company_links_consumer_api_service_is_running() {
-        assertThat(companyProfileService).isNotNull();
-    }
 
     @When("a message is published for companyNumber {string} to update links")
     public void a_message_is_published_for_company_number_to_update_links(String companyNumber) throws InterruptedException {
@@ -161,7 +154,7 @@ public class CompanyLinksSteps {
     }
 
     private void stubGetConsumerLinks(int statusCode) {
-        String response = loadFile("profile-with-links.json");
+        String response = loadFile("profile-with-insolvency-links.json");
         stubFor(
                 get(urlEqualTo("/company/" + this.companyNumber + "/links"))
                         .willReturn(aResponse()

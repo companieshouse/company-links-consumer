@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.company.CompanyProfile;
+import uk.gov.companieshouse.api.handler.company.PrivateCompanyResourceHandler;
+import uk.gov.companieshouse.api.handler.company.request.PrivateCompanyProfileGet;
 import uk.gov.companieshouse.api.http.ApiKeyHttpClient;
 import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
@@ -43,11 +45,10 @@ public class CompanyProfileService extends BaseApiClientService {
 
         Map<String, Object> logMap = createLogMap(companyNumber, "GET", uri);
         logger.infoContext(contextId, String.format("GET %s", uri), logMap);
-
         return executeOp(contextId, "getCompanyProfileApi", uri,
-                getApiClient(contextId)
-                        .privateCompanyResourceHandler()
-                        .getCompanyProfile(uri));
+            getApiClient(contextId)
+                .privateCompanyResourceHandler()
+                .getCompanyProfile(uri));
     }
 
     /**

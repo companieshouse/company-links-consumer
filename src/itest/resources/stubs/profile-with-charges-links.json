@@ -1,0 +1,34 @@
+{
+  "data":{
+    "accounts":null,
+    "annual_return":null,
+    "branch_company_details":null,
+    "can_file":null,
+    "company_name":null,
+    "company_number":"%s",
+    "company_status":null,
+    "company_status_detail":null,
+    "confirmation_statement":null,
+    "date_of_cessation":null,
+    "date_of_creation":null,
+    "etag":null,
+    "external_registration_number":null,
+    "foreign_company_details":null,
+    "has_been_liquidated":null,
+    "has_charges":null,
+    "has_insolvency_history":null,
+    "is_community_interest_company":null,
+    "jurisdiction":null,
+    "last_full_members_list_date":null,
+    "links": {
+      "charges" : "/company/%s/charges"
+    },
+    "previous_company_names":null,
+    "registered_office_address":null,
+    "registered_office_is_in_dispute":null,
+    "sic_codes":null,
+    "subtype":null,
+    "type":null,
+    "undeliverable_registered_office_address":null
+  }
+}

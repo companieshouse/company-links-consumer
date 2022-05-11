@@ -51,10 +51,17 @@ public class ChargesStreamConsumer {
                         @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
                         @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
                         @Header(KafkaHeaders.OFFSET) String offset) throws JsonProcessingException {
+        ResourceChangedData payload = resourceChangedMessage.getPayload();
         logger.info(
-                String.format("DSND-604: A new message read from stream-charges topic with "
-                                + "payload: %s", resourceChangedMessage.getPayload()));
-        chargesProcessor.process(resourceChangedMessage);
+            "A new message read from Stream-charges topic with payload: "
+                + payload);
+        if ((payload.getEvent() != null) && (payload.getEvent().getType()
+            .equalsIgnoreCase("deleted"))) {
+            chargesProcessor.processDelete(resourceChangedMessage);
+        }
+        else {
+            chargesProcessor.process(resourceChangedMessage);
+        }
     }
 
 }

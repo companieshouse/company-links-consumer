@@ -14,5 +14,6 @@ import uk.gov.companieshouse.company.links.config.AbstractIntegrationTest;
         },
         glue = {"uk.gov.companieshouse.company.links"})
 @CucumberContextConfiguration
-public class CucumberFeaturesRunnerITest extends AbstractIntegrationTest {
+public class
+CucumberFeaturesRunnerITest extends AbstractIntegrationTest {
 }

@@ -50,18 +50,24 @@ public class ChargesStreamConsumer {
     public void receive(Message<ResourceChangedData> resourceChangedMessage,
                         @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
                         @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
-                        @Header(KafkaHeaders.OFFSET) String offset) throws JsonProcessingException {
+                        @Header(KafkaHeaders.OFFSET) String offset) {
         ResourceChangedData payload = resourceChangedMessage.getPayload();
-        logger.info(
-            "A new message read from Stream-charges topic with payload: "
-                + payload);
-        if ((payload.getEvent() != null) && (payload.getEvent().getType()
-            .equalsIgnoreCase("deleted"))) {
-            chargesProcessor.processDelete(resourceChangedMessage);
+        logger.info("A new message read from stream-charges topic with payload: ",
+                payload);
+        try {
+            if ((payload.getEvent() != null) && (payload.getEvent().getType()
+                    .equalsIgnoreCase("deleted"))) {
+                chargesProcessor.processDelete(resourceChangedMessage);
+            }
+            else {
+                chargesProcessor.process(resourceChangedMessage);
+            }
+        } catch (Exception exception) {
+            logger.error(String.format("Exception occurred while processing the topic: %s "
+                    + "with message: %s", topic, resourceChangedMessage), exception);
+            throw exception;
         }
-        else {
-            chargesProcessor.process(resourceChangedMessage);
-        }
+
     }
 
 }

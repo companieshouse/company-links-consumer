@@ -1,7 +1,5 @@
 package uk.gov.companieshouse.company.links.processor;
 
-import static uk.gov.companieshouse.company.links.processor.ResponseHandler.handleResponse;
-
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
@@ -18,9 +16,8 @@ import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 @Component
-public class InsolvencyStreamProcessor {
+public class InsolvencyStreamProcessor extends StreamResponseProcessor {
 
-    private final Logger logger;
     private final CompanyProfileService companyProfileService;
 
     /**
@@ -30,8 +27,8 @@ public class InsolvencyStreamProcessor {
     public InsolvencyStreamProcessor(
                                      CompanyProfileService companyProfileService,
                                      Logger logger) {
+        super(logger);
         this.companyProfileService = companyProfileService;
-        this.logger = logger;
     }
 
     /**
@@ -56,7 +53,7 @@ public class InsolvencyStreamProcessor {
         logger.trace(String.format("Retrieved company profile for company number %s: %s",
                 companyNumber, response.getData()));
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "Response from GET call to company profile api", logMap, logger);
+                "Response from GET call to company profile api", logMap);
         var data = response.getData().getData();
         var links = data.getLinks();
 
@@ -79,7 +76,7 @@ public class InsolvencyStreamProcessor {
         logger.trace(String.format("Performing a PATCH with new company profile %s",
                 companyProfile));
         handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                "Response from PATCH call to company profile api", logMap, logger);
+                "Response from PATCH call to company profile api", logMap);
     }
 
     /**
@@ -104,7 +101,7 @@ public class InsolvencyStreamProcessor {
         logger.trace(String.format("Retrieved company profile for company number %s: %s",
                 companyNumber, response.getData()));
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "Response from GET call to company profile api", logMap, logger);
+                "Response from GET call to company profile api", logMap);
         var data = response.getData().getData();
         var links = data.getLinks();
 
@@ -137,8 +134,10 @@ public class InsolvencyStreamProcessor {
         logger.trace(String.format("Performing a PATCH with new company profile %s",
                 companyProfile));
         handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                "Response from PATCH call to company profile api", logMap, logger);
+                "Response from PATCH call to company profile api", logMap);
 
     }
+
+
 
 }

@@ -6,34 +6,37 @@ import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 
+public class StreamResponseProcessor {
 
-public final class ResponseHandler {
+    final Logger logger;
 
-    private ResponseHandler() {
+    public StreamResponseProcessor(Logger logger) {
+        this.logger = logger;
     }
+
 
     /**
      * Common response handler.
      */
-    public static void handleResponse(
+    void handleResponse(
             final HttpStatus httpStatus,
             final String logContext,
-            final String msg,
-            final Map<String, Object> logMap,
-            final Logger logger)
+            String message,
+            final Map<String, Object> logMap)
             throws NonRetryableErrorException, RetryableErrorException {
+
         logMap.put("status", httpStatus.toString());
+
         if (HttpStatus.BAD_REQUEST == httpStatus) {
             // 400 BAD REQUEST status is not retryable
-            throw new NonRetryableErrorException(String
-                    .format("Bad request %s", msg));
+            logger.errorContext(logContext, message, null, logMap);
+            throw new NonRetryableErrorException(message);
         } else if (!httpStatus.is2xxSuccessful()) {
             // any other client or server status is retryable
-            logger.errorContext(logContext, msg + ", retry", null, logMap);
-            throw new RetryableErrorException(String
-                    .format("Unsuccessful %s", msg));
+            logger.errorContext(logContext, message, null, logMap);
+            throw new RetryableErrorException(message);
         } else {
-            logger.trace(String.format("Successful %s", msg));
+            logger.trace("Got successful response");
         }
     }
 }

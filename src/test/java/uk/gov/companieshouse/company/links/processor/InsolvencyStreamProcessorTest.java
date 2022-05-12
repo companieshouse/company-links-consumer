@@ -65,21 +65,13 @@ class InsolvencyStreamProcessorTest {
         insolvencyProcessor.processDelta(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(6)).trace(anyString());
+        verify(logger, times(2)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message of kind company-insolvency"));
-        verify(logger, atLeastOnce()).trace((
-                String.format("Retrieved company profile for company number %s: %s",
-                        MOCK_COMPANY_NUMBER, createCompanyProfile())));
-
         verify(logger, atLeastOnce()).trace((
                 String.format("Current company profile with company number %s," +
                         " does not contain an insolvency link, attaching an insolvency link", MOCK_COMPANY_NUMBER
                 )));
-        verify(logger, atLeastOnce()).trace((
-                String.format("Performing a PATCH with new company profile %s",
-                        createCompanyProfileWithInsolvencyLinks())
-                ));
     }
 
 
@@ -97,12 +89,9 @@ class InsolvencyStreamProcessorTest {
         insolvencyProcessor.processDelta(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(4)).trace(anyString());
+        verify(logger, times(2)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message of kind company-insolvency"));
-        verify(logger, atLeastOnce()).trace((
-                String.format("Retrieved company profile for company number %s: %s",
-                        MOCK_COMPANY_NUMBER, companyProfileApiResponse.getData())));
         verify(logger, atLeastOnce()).trace((
                 String.format("Company profile with company number %s,"
                         + " already contains insolvency links, will not perform patch",
@@ -124,12 +113,9 @@ class InsolvencyStreamProcessorTest {
         insolvencyProcessor.processDelete(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(4)).trace(anyString());
+        verify(logger, times(2)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
                 contains("Resource changed message for deleted event of kind company-insolvency"));
-        verify(logger, atLeastOnce()).trace((
-                String.format("Retrieved company profile for company number %s: %s",
-                        MOCK_COMPANY_NUMBER, companyProfileApiResponse.getData())));
         verify(logger, atLeastOnce()).trace((
                 String.format("Company profile with company number %s,"
                         + " does not contain insolvency links, will not perform patch",

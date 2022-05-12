@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import uk.gov.companieshouse.api.InternalApiClient;
@@ -54,10 +55,13 @@ class CompanyProfileServiceTest {
     @Mock
     private PrivateCompanyProfilePatch privateCompanyProfilePatch;
 
+    @Mock
+    public CompanyProfileApiInvoker companyProfileApiInvoker;
+
     @BeforeEach
     void setup() {
         companyProfileService = spy(new CompanyProfileService(logger));
-        when(companyProfileService.getApiClient(MOCK_CONTEXT_ID)).thenReturn(apiClient);
+        when(companyProfileApiInvoker.getApiClient(MOCK_CONTEXT_ID)).thenReturn(apiClient);
         when(apiClient.privateCompanyResourceHandler()).thenReturn(companyResourceHandler);
     }
 

@@ -33,24 +33,23 @@ public class WiremockTestConfig {
     }
 
     public static void stop() {
+        wireMockServer.resetAll();
         wireMockServer.stop();
     }
 
-    public static void restart() {
-        stop();
-        start();
+    public static void resetAll() {
+        wireMockServer.resetAll();
     }
-
     public static void stubUpdateConsumerLinks(String companyNumber, boolean nullAttributeFlag) {
         if (nullAttributeFlag) {
-            stubUpdateConsumerLinks(companyNumber, "profile-with-null-attribute.json");
+            stubUpdateConsumerLinks(companyNumber, "profile-with-null-attribute");
         } else {
-            stubUpdateConsumerLinks(companyNumber, "profile-with-out-links.json");
+            stubUpdateConsumerLinks(companyNumber, "profile-with-out-links");
         }
     }
 
     public static void stubUpdateConsumerLinks(String companyNumber, String fileToLoad) {
-        String response = loadFile(fileToLoad);
+        String response = loadFile(fileToLoad + ".json");
 
         stubFor(
                 get(urlEqualTo("/company/" + companyNumber + "/links"))
@@ -64,13 +63,30 @@ public class WiremockTestConfig {
                         .withRequestBody(containing("/company/" + companyNumber + "/insolvency"))
                         .willReturn(aResponse()
                                 .withStatus(200)));
+
+    }
+
+    public static void setGetAndPatchStubsFor(String companyNumber, String fileToLoad){
+        String response = loadFile(fileToLoad + ".json");
+        stubFor(
+                get(urlEqualTo("/company/" + companyNumber + "/links"))
+                        .willReturn(aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(response)));
+
+        stubFor(
+                patch(urlEqualTo("/company/" + companyNumber + "/links"))
+                        .withRequestBody(containing("\"charges\":\"/company/" +
+                                companyNumber + "/charges\""))
+                        .willReturn(aResponse()
+                                .withStatus(200)));
     }
 
     public static void stubGetConsumerLinksWithProfileLinks(String companyNumber, int statusCode) {
-        stubGetConsumerLinks(companyNumber, statusCode, "profile-with-links");
+        stubGetConsumerLinks(companyNumber, statusCode, "profile-with-charges-links");
     }
     public static void stubGetConsumerLinks(String companyNumber, int statusCode, String fileToLoad) {
-        //String response = loadFile("profile-with-links.json");
         String response = loadFile(fileToLoad+".json");
         stubFor(
                 get(urlEqualTo("/company/" + companyNumber + "/links"))

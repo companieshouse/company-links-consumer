@@ -1,6 +1,5 @@
 package uk.gov.companieshouse.company.links.consumer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,8 +57,7 @@ public class ChargesStreamConsumer {
             if ((payload.getEvent() != null) && (payload.getEvent().getType()
                     .equalsIgnoreCase("deleted"))) {
                 chargesProcessor.processDelete(resourceChangedMessage);
-            }
-            else {
+            } else {
                 chargesProcessor.process(resourceChangedMessage);
             }
         } catch (Exception exception) {

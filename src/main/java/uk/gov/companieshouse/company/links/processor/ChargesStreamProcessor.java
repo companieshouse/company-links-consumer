@@ -40,49 +40,50 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
     /**
      * Process a ResourceChangedData message for delete.
      */
-    public void processDelete(Message<ResourceChangedData> resourceChangedMessage)
-        throws JsonProcessingException {
+    public void processDelete(Message<ResourceChangedData> resourceChangedMessage) {
         MessageHeaders headers = resourceChangedMessage.getHeaders();
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
         final Map<String, Object> logMap = new HashMap<>();
 
         // the resource_id field returned represents the charges record's company number
-        final String companyNumber = extractCompanyNumber(payload.getResourceUri());
-        if (StringUtils.isEmpty(companyNumber)) {
-            logger.error("Company number is empty or null");
-            throw new NonRetryableErrorException("Company number is empty or null");
-        }
+        final Optional<String> companyNumberOptional =
+                extractCompanyNumber(payload.getResourceUri());
+        companyNumberOptional.orElseThrow(
+                () -> new NonRetryableErrorException("Unable to extract company number due to "
+                        + "invalid resource uri in the message")
+        );
+        companyNumberOptional.ifPresent(companyNumber -> {
+            logger.trace(String.format("Resource changed message for delete event of kind %s "
+                    + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
 
-        logger.trace(String.format("Resource changed message for delete event of kind %s "
-            + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
+            final ApiResponse<CompanyProfile> response =
+                    getCompanyProfileApi(logContext, logMap, companyNumber);
 
-        final ApiResponse<CompanyProfile> response =
-            getCompanyProfileApi(logContext, logMap, companyNumber);
+            var data = response.getData().getData();
+            var links = data.getLinks();
 
-        var data = response.getData().getData();
-        var links = data.getLinks();
+            if (links != null && links.getCharges() == null) {
+                logger.trace(String.format("Company profile with company number %s,"
+                                + " does not contain chagres links, will not perform patch",
+                        companyNumber));
+                return;
+            }
 
-        if (links != null && links.getCharges() == null) {
-            logger.trace(String.format("Company profile with company number %s,"
-                    + " does not contain chagres links, will not perform patch",
-                companyNumber));
-            return;
-        }
+            links.setCharges(null);
+            CompanyProfile companyProfile = new CompanyProfile();
+            companyProfile.setData(data);
 
-        links.setCharges(null);
-        CompanyProfile companyProfile = new CompanyProfile();
-        companyProfile.setData(data);
+            final ApiResponse<Void> patchResponse =
+                    companyProfileService.patchCompanyProfile(
+                            logContext, companyNumber, companyProfile
+                    );
 
-        final ApiResponse<Void> patchResponse =
-            companyProfileService.patchCompanyProfile(
-                logContext, companyNumber, companyProfile
-            );
-
-        logger.trace(String.format("Performing a PATCH with new company profile %s",
-            companyProfile));
-        handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-            "Response from PATCH call to company profile api", logMap, logger);
+            logger.trace(String.format("Performing a PATCH with new company profile %s",
+                    companyProfile));
+            handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
+                    "Response from PATCH call to company profile api", logMap);
+        });
     }
 
     /**

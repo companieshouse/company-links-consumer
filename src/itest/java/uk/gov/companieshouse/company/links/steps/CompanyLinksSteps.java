@@ -15,6 +15,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
@@ -27,6 +28,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class CompanyLinksSteps {
 
     public static final String RETRY_TOPIC_ATTEMPTS = "retry_topic-attempts";
+
+    @Value("${company-links.consumer.insolvency.topic}")
+    private String insolvancyTopic;
+
+    @Value("${company-links.consumer.charges.topic}")
+    private String chargesTopic;
 
     private String companyNumber;
 
@@ -52,7 +59,6 @@ public class CompanyLinksSteps {
 
     @Given("Company links consumer api service is running")
     public void company_links_consumer_api_service_is_running() {
-        WiremockTestConfig.resetAll();
         assertThat(companyProfileService).isNotNull();
     }
 
@@ -60,10 +66,24 @@ public class CompanyLinksSteps {
     public void a_message_is_published_to_topic_for_company_number_to_update_links(String topicName, String companyNumber)
             throws InterruptedException {
         this.companyNumber = companyNumber;
+        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,false);
         kafkaTemplate.send(topicName, createMessage(this.companyNumber, topicName));
+
         CountDownLatch countDownLatch = new CountDownLatch(1);
         countDownLatch.await(5, TimeUnit.SECONDS);
     }
+
+    @When("a message is published to {string} topic for companyNumber {string} to update links with a null attribute")
+    public void a_message_is_published_to_topic_for_company_number_to_update_links_with_a_null_attribute(String topicName, String companyNumber)
+            throws InterruptedException {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,true);
+        kafkaTemplate.send(topicName, createMessage(this.companyNumber, topicName));
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        countDownLatch.await(5, TimeUnit.SECONDS);
+    }
+
 
     @When("a message is published to {string} topic for companyNumber {string} to check for links with status code {string}")
     public void a_message_is_published_to_topic_for_company_number_to_check_for_links_with_status_code(String topicName, String companyNumber, String statusCode)
@@ -88,17 +108,7 @@ public class CompanyLinksSteps {
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links"))
                 .withRequestBody(containing("/company/" + this.companyNumber + "/insolvency")));
-    }
 
-    @Then("The message is successfully consumed and company-profile-api PATCH endpoint is invoked with charges link payload")
-    public void patchEndpointIsCalled(){
-        verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
-        verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
-    }
-
-    @Then("The message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked")
-    public void patchEdpointNotCalled(){
-        the_company_links_consumer_should_send_a_get_request_to_the_company_profile_api();
     }
 
     @When("a non-avro message is published to {string} topic and failed to process")
@@ -138,19 +148,6 @@ public class CompanyLinksSteps {
 
         assertThat(retryList.size()).isEqualTo(Integer.parseInt(retryAttempts));
 
-    }
-
-    @Given("Company profile returns response {string} for company number {string}")
-    public void company_profile_exists_without_charges(String responsePayload, String companyNumber) {
-        this.companyNumber = companyNumber;
-        WiremockTestConfig.setGetAndPatchStubsFor(companyNumber, responsePayload );
-    }
-
-    @When("A valid avro message is sent to the Kafka topic {string}")
-    public void send_kafka_message(String topicName) throws InterruptedException {
-        kafkaTemplate.send(topicName, createMessage(companyNumber, topicName));
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
     }
 
 

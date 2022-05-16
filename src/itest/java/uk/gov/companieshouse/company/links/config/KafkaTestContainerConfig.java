@@ -1,6 +1,5 @@
 package uk.gov.companieshouse.company.links.config;
 
-import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -8,7 +7,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
@@ -18,13 +16,11 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
-import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 import uk.gov.companieshouse.company.links.exception.RetryableTopicErrorInterceptor;
 import uk.gov.companieshouse.company.links.serialization.ResourceChangedDataDeserializer;
 import uk.gov.companieshouse.company.links.serialization.ResourceChangedDataSerializer;
-import uk.gov.companieshouse.kafka.producer.CHKafkaProducer;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 import java.util.HashMap;
@@ -115,7 +111,8 @@ public class KafkaTestContainerConfig {
         props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
         KafkaConsumer<String, Object> consumer = new KafkaConsumer<>(props);
         consumer.subscribe(List.of("stream-company-insolvency-company-links-consumer-invalid",
-                "stream-company-insolvency-company-links-consumer-error"));
+                "stream-company-insolvency-company-links-consumer-error","stream-company-charges-company-links-consumer-invalid",
+                "stream-company-charges-company-links-consumer-error"));
 
         return consumer;
     }

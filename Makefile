@@ -97,8 +97,9 @@ docker/kafka-create-topics:
 	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-insolvency-retry
 	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-insolvency-error
 	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-charges
-    @kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-charges-retry
-    @kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-charges-error
+	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-charges-retry
+	@kafka-topics --create   --bootstrap-server localhost:29092   --replication-factor 1 --partitions 1   --topic stream-charges-error
+
 	@printf "\nKafka Topics:\n\n"
 	@kafka-topics --list --bootstrap-server localhost:29092
 

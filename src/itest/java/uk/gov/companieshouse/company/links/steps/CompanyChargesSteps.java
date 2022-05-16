@@ -1,7 +1,6 @@
 package uk.gov.companieshouse.company.links.steps;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.configureFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
@@ -10,14 +9,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertFalse;
-import static junit.framework.TestCase.assertTrue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.companieshouse.company.links.consumer.TestData.RESOURCE_KIND_CHARGES;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
+import io.cucumber.java.After;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -33,19 +29,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.util.ResourceUtils;
+import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 public class CompanyChargesSteps {
 
-    @Value("${wiremock.server.port}")
-    private String port;
-
     @Value("${company-links.consumer.insolvency.topic}")
     private String topic;
-
-    private static WireMockServer wireMockServer;
 
     private String companyNumber;
 
@@ -58,17 +50,25 @@ public class CompanyChargesSteps {
     @Autowired
     public KafkaConsumer<String, Object> kafkaConsumer;
 
+    @Before
+    public static void before_each() {
+        WiremockTestConfig.setupWiremock();
+    }
+
+    @After
+    public static void after_each() {
+        WiremockTestConfig.stop();
+    }
+
     @Given("Company profile stubbed with zero charges links for {string}")
     public void company_profile_exists_without_charges(String companyNumber) {
         this.companyNumber = companyNumber;
-        configureWiremock();
         setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-out-charges.json", companyNumber));
      }
 
     @Given("Company profile stubbed with charges present for {string}")
     public void company_profile_exists_with_charges(String companyNumber) {
         this.companyNumber = companyNumber;
-        configureWiremock();
         setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-charges-links.json", this.companyNumber));
     }
 
@@ -83,20 +83,14 @@ public class CompanyChargesSteps {
     public void patchEdpointNotCalled(){
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
-        wireMockServer.stop();
+        WiremockTestConfig.stop();
     }
 
     @Then("The message is successfully consumed and company-profile-api PATCH endpoint is invoked with charges link payload")
     public void patchEdpointIsCalled(){
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
-        wireMockServer.stop();
-    }
-
-    private void configureWiremock() {
-        wireMockServer = new WireMockServer(Integer.parseInt(port));
-        wireMockServer.start();
-        configureFor("localhost", Integer.parseInt(port));
+        WiremockTestConfig.stop();
     }
 
     private void setGetAndPatchStubsFor(String response){

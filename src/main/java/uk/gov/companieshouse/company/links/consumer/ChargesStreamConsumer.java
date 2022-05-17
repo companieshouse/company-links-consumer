@@ -54,7 +54,15 @@ public class ChargesStreamConsumer {
         logger.info(
                 String.format("DSND-604: A new message read from stream-charges topic with "
                                 + "payload: %s", resourceChangedMessage.getPayload()));
-        chargesProcessor.process(resourceChangedMessage);
+
+        ;
+        final boolean deleteEventType = "deleted".equals(resourceChangedMessage.getPayload().getEvent().getType());
+        if (deleteEventType){
+            chargesProcessor.processDelete(resourceChangedMessage);
+        }
+        else {
+            chargesProcessor.process(resourceChangedMessage);
+        }
     }
 
 }

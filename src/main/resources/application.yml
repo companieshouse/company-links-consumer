@@ -13,6 +13,8 @@ logger:
 api:
   endpoint: ${COMPANY_PROFILE_API_URL:localhost}
   company-profile-api-key: ${COMPANY_PROFILE_API_KEY:localhost}
+  charges-data-api-url: ${CHARGES_DATA_API_URL:localhost}
+  charges-data-api-key: ${CHARGES_DATA_API_KEY:localhost}
 
 company-links:
   consumer:

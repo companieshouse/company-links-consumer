@@ -7,17 +7,19 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Component;
+import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
+import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.service.ChargesService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -29,15 +31,86 @@ public class ChargesStreamProcessor {
     public static final String EXTRACT_COMPANY_NUMBER_PATTERN = "(?<=company/)(.*?)(?=/charges)";
     private final Logger logger;
     private final CompanyProfileService companyProfileService;
+    private final ChargesService chargesService;
 
     /**
      * Construct an Charges stream processor.
      */
     @Autowired
     public ChargesStreamProcessor(CompanyProfileService companyProfileService,
+                                  ChargesService chargesService,
                                   Logger logger) {
         this.companyProfileService = companyProfileService;
+        this.chargesService = chargesService;
         this.logger = logger;
+    }
+
+    /**
+     * Process a ResourceChangedData message for delete.
+     */
+    public void processDelete(Message<ResourceChangedData> resourceChangedMessage)
+        throws JsonProcessingException {
+        MessageHeaders headers = resourceChangedMessage.getHeaders();
+        final ResourceChangedData payload = resourceChangedMessage.getPayload();
+        final String logContext = payload.getContextId();
+        final Map<String, Object> logMap = new HashMap<>();
+
+        // the resource_id field returned represents the charges record's company number
+        final String companyNumber = extractCompanyNumber(payload.getResourceUri());
+        if (StringUtils.isEmpty(companyNumber)) {
+            logger.error("Company number is empty or null");
+            throw new NonRetryableErrorException("Company number is empty or null");
+        }
+
+        logger.trace(String.format("Resource changed message for delete event of kind %s "
+                + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
+
+
+
+        final ApiResponse<CompanyProfile> response =
+                getCompanyProfileApi(logContext, logMap, companyNumber);
+
+        var data = response.getData().getData();
+        var links = data.getLinks();
+
+        // Do we have links and is there a charges link? If the link does not exist
+        // then there is nothing to delete.
+        if (links == null || links.getCharges() == null) {
+            logger.trace(String.format("Company profile with company number %s,"
+                    + " does not contain charges links, will not perform delete",
+                    companyNumber));
+            return;
+        }
+
+        // invoke charges-data-api GET all charges endpoint to fetch remaining
+        // number of charges for a given company number
+        ApiResponse<ChargesApi> charges = chargesService.getCharges(
+                logContext, companyNumber);
+
+        // if remaining number of charges is 0 in above GET call,
+        // remove the link from the company profile object and invoke existing
+        // PATCH (company/<number>/links) endpoint on company_profile_api to update the entity
+        if (charges.getData().getTotalCount() == 0) {
+            links.setCharges(null);
+            CompanyProfile companyProfile = new CompanyProfile();
+            companyProfile.setData(data);
+
+            final ApiResponse<Void> patchResponse = companyProfileService
+                    .patchCompanyProfile(logContext, companyNumber, companyProfile);
+
+            logger.trace(String.format(
+                    "Performing a PATCH on company profile %s to remove charges link",
+                    companyProfile));
+
+            handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
+                    "Response from PATCH call to company profile api", logMap, logger);
+        } else {
+            //if remaining number of charges is 1 or greater than 1 in above GET call,
+            // do nothing, end of processing. i.e. No PATCH invocation
+            logger.trace(String.format(
+                    "Nothing to PATCH on company number %s, charges link not removed",
+                    companyNumber));
+        }
     }
 
     /**

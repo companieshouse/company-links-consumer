@@ -56,11 +56,11 @@ public class ChargesStreamConsumer {
                                 + "payload: %s", resourceChangedMessage.getPayload()));
 
         ;
-        final boolean deleteEventType = "deleted".equals(resourceChangedMessage.getPayload().getEvent().getType());
-        if (deleteEventType){
+        final boolean deleteEventType = "deleted".equals(resourceChangedMessage.getPayload()
+                .getEvent().getType());
+        if (deleteEventType) {
             chargesProcessor.processDelete(resourceChangedMessage);
-        }
-        else {
+        } else {
             chargesProcessor.process(resourceChangedMessage);
         }
     }

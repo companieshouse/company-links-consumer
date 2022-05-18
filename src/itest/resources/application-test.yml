@@ -33,6 +33,8 @@ logger:
 api:
   endpoint: ${COMPANY_PROFILE_API_URL:http://localhost:8888}
   company-profile-api-key: ${COMPANY_PROFILE_API_KEY:MGQ1MGNlYmFkYzkxZTM2MzlkNGVmMzg4ZjgxMmEz}
+  charges-data-api-url: ${CHARGES_DATA_API_URL:localhost}
+  charges-data-api-key: ${CHARGES_DATA_API_KEY:localhost}
 
 wiremock:
   server:

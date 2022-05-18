@@ -18,7 +18,7 @@ import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.delta.PrivateDeltaResourceHandler;
-import uk.gov.companieshouse.api.handler.delta.charges.request.PrivateChargesGet;
+import uk.gov.companieshouse.api.handler.delta.charges.request.PrivateChargesGetAll;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
@@ -46,7 +46,7 @@ class ChargesServiceTest {
     private PrivateDeltaResourceHandler deltaResourceHandler;
 
     @Mock
-    private PrivateChargesGet privateChargesGet;
+    private PrivateChargesGetAll privateChargesGetAll;
 
     @BeforeEach
     void setup() {
@@ -61,8 +61,9 @@ class ChargesServiceTest {
         final ApiResponse<ChargesApi> expected = new ApiResponse<>(
                 HttpStatus.OK.value(), Collections.emptyMap(), chargesApi);
 
-        when(deltaResourceHandler.getCharges(MOCK_COMPANY_LINKS_URI)).thenReturn(privateChargesGet);
-        when(privateChargesGet.execute()).thenReturn(expected);
+        when(deltaResourceHandler.getCharges(MOCK_COMPANY_LINKS_URI)).thenReturn(
+            privateChargesGetAll);
+        when(privateChargesGetAll.execute()).thenReturn(expected);
 
         final ApiResponse<ChargesApi> response = chargesService.getCharges(
                 MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER);
@@ -73,8 +74,9 @@ class ChargesServiceTest {
     @Test
     @DisplayName("Given a bad URI when retrieving charges, return 404 not found")
     void getChargesBadUri() throws ApiErrorResponseException, URIValidationException {
-        when(deltaResourceHandler.getCharges(MOCK_COMPANY_LINKS_URI)).thenReturn(privateChargesGet);
-        when(privateChargesGet.execute()).thenThrow(new URIValidationException("expected"));
+        when(deltaResourceHandler.getCharges(MOCK_COMPANY_LINKS_URI)).thenReturn(
+            privateChargesGetAll);
+        when(privateChargesGetAll.execute()).thenThrow(new URIValidationException("expected"));
 
         assertThrows(
                 RetryableErrorException.class,
@@ -90,8 +92,9 @@ class ChargesServiceTest {
                 HttpStatus.NOT_FOUND.value(), HttpStatus.NOT_FOUND.getReasonPhrase(), new
                 HttpHeaders()).build();
 
-        when(deltaResourceHandler.getCharges(MOCK_COMPANY_LINKS_URI)).thenReturn(privateChargesGet);
-        when(privateChargesGet.execute()).thenThrow(
+        when(deltaResourceHandler.getCharges(MOCK_COMPANY_LINKS_URI)).thenReturn(
+            privateChargesGetAll);
+        when(privateChargesGetAll.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
         assertThrows(
@@ -109,8 +112,9 @@ class ChargesServiceTest {
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
                 new HttpHeaders()).build();
 
-        when(deltaResourceHandler.getCharges(MOCK_COMPANY_LINKS_URI)).thenReturn(privateChargesGet);
-        when(privateChargesGet.execute()).thenThrow(
+        when(deltaResourceHandler.getCharges(MOCK_COMPANY_LINKS_URI)).thenReturn(
+            privateChargesGetAll);
+        when(privateChargesGetAll.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
         assertThrows(

@@ -16,7 +16,7 @@ import uk.gov.companieshouse.logging.Logger;
 @Service
 public class ChargesService extends BaseApiClientService {
 
-    @Value("${charges-data-api-key}")
+    @Value("${api.charges-data-api-key}")
     private String chargesApiKey;
 
     @Value("${api.charges-data-api-url}")

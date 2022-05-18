@@ -1,7 +1,5 @@
 package uk.gov.companieshouse.company.links.processor;
 
-import static uk.gov.companieshouse.company.links.processor.ResponseHandler.handleResponse;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,9 +22,8 @@ import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
-
 @Component
-public class ChargesStreamProcessor {
+public class ChargesStreamProcessor extends StreamResponseProcessor {
 
     public static final String EXTRACT_COMPANY_NUMBER_PATTERN = "(?<=company/)(.*?)(?=/charges)";
     private final Logger logger;
@@ -40,6 +37,7 @@ public class ChargesStreamProcessor {
     public ChargesStreamProcessor(CompanyProfileService companyProfileService,
                                   ChargesService chargesService,
                                   Logger logger) {
+        super(logger);
         this.companyProfileService = companyProfileService;
         this.chargesService = chargesService;
         this.logger = logger;
@@ -48,9 +46,7 @@ public class ChargesStreamProcessor {
     /**
      * Process a ResourceChangedData message for delete.
      */
-    public void processDelete(Message<ResourceChangedData> resourceChangedMessage)
-        throws JsonProcessingException {
-        MessageHeaders headers = resourceChangedMessage.getHeaders();
+    public void processDelete(Message<ResourceChangedData> resourceChangedMessage) {
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
         final Map<String, Object> logMap = new HashMap<>();
@@ -64,8 +60,6 @@ public class ChargesStreamProcessor {
 
         logger.trace(String.format("Resource changed message for delete event of kind %s "
                 + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
-
-
 
         final ApiResponse<CompanyProfile> response =
                 getCompanyProfileApi(logContext, logMap, companyNumber);
@@ -103,7 +97,7 @@ public class ChargesStreamProcessor {
                     companyProfile));
 
             handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                    "Response from PATCH call to company profile api", logMap, logger);
+                    "Response from PATCH call to company profile api", logMap);
         } else {
             //if remaining number of charges is 1 or greater than 1 in above GET call,
             // do nothing, end of processing. i.e. No PATCH invocation
@@ -137,7 +131,7 @@ public class ChargesStreamProcessor {
                     payload, headers);
             if (patchResponse != null) {
                 handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                        "Response from PATCH call to company profile api", logMap, logger);
+                        "Response from PATCH call to company profile api", logMap);
             }
         }
     }
@@ -157,14 +151,12 @@ public class ChargesStreamProcessor {
 
         return updateCompanyProfileWithCharges(logContext, companyNumber, data,
                 payload, headers);
-
     }
 
     ApiResponse<Void> updateCompanyProfileWithCharges(String logContext,
                                          String companyNumber, Data data,
                                          ResourceChangedData payload,
-                                         MessageHeaders headers)
-            throws JsonProcessingException {
+                                         MessageHeaders headers) {
         logger.trace(String.format("Current company profile with company number %s,"
                         + " does not contain charges link, attaching charges link",
                 companyNumber));
@@ -205,7 +197,7 @@ public class ChargesStreamProcessor {
         logger.trace(String.format("Retrieved company profile for company number %s: %s",
                 companyNumber, response.getData()));
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "Response from GET call to company profile api", logMap, logger);
+                "Response from GET call to company profile api", logMap);
         return response;
     }
 

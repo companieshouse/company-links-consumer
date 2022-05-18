@@ -31,3 +31,15 @@ company-links:
       topic: ${COMPANY_LINKS_CONSUMER_CHARGES_TOPIC:stream-company-charges}
       attempts: ${COMPANY_LINKS_CONSUMER_CHARGES_ATTEMPTS:4}
       backoff-delay: ${COMPANY_LINKS_CONSUMER_CHARGES_BACKOFF_DELAY:100}
+
+management:
+  endpoints:
+    enabled-by-default: false
+    web:
+      base-path: /company-links-consumer
+      path-mapping:
+        health: healthcheck
+  endpoint:
+    health:
+      show-details: never
+      enabled: true

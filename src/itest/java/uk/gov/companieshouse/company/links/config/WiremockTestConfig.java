@@ -74,8 +74,20 @@ public class WiremockTestConfig {
     public static void stubGetConsumerLinksWithProfileLinks(String companyNumber, int statusCode) {
         stubGetConsumerLinks(companyNumber, statusCode, "profile-with-insolvency-links");
     }
+
     public static void stubGetConsumerLinks(String companyNumber, int statusCode, String fileToLoad) {
         String response = loadFile(fileToLoad+".json");
+        stubFor(
+                get(urlEqualTo("/company/" + companyNumber + "/links"))
+                        .willReturn(aResponse()
+                                .withStatus(statusCode)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(response)));
+    }
+
+    public static void stubGetCompanyInsolvencyWithoutLinks(String companyNumber, int statusCode) {
+        String response = loadFile("profile-with-out-links.json");
+
         stubFor(
                 get(urlEqualTo("/company/" + companyNumber + "/links"))
                         .willReturn(aResponse()

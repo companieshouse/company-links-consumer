@@ -1,5 +1,8 @@
 package uk.gov.companieshouse.company.links.processor;
 
+import java.io.InputStreamReader;
+import java.util.Objects;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,16 +15,23 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.springframework.http.HttpStatus;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.util.FileCopyUtils;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.CompanyProfile;
+import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.consumer.ChargesStreamConsumer;
+import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.service.ChargesService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
+import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 import java.io.IOException;
@@ -31,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -355,8 +366,13 @@ class ChargesStreamConsumerTest {
     @ParameterizedTest(name = "{index} ==> {2}: is {0} valid? {1}")
     @MethodSource("testExtractCompanyNumberFromResourceUri")
     public void urlPatternTest(String input, String expected) {
-        String companyNumber = chargesStreamProcessor.extractCompanyNumber(input);
-        assertEquals(expected, companyNumber);
+        Optional<String> companyNumberOptional = chargesStreamProcessor.extractCompanyNumber(input);
+        companyNumberOptional.ifPresent(companyNumber -> assertEquals(expected, companyNumber));
+        if (expected == null) {
+            assertFalse(companyNumberOptional.isPresent());
+        } else {
+            assertEquals(expected, companyNumberOptional.get());
+        }
     }
 
     @Test
@@ -365,14 +381,106 @@ class ChargesStreamConsumerTest {
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData
                 .createResourceChangedMessageWithInValidResourceUri();
+        assertThrows(NonRetryableErrorException.class, () -> chargesStreamProcessor.process(mockResourceChangedMessage));
 
-        chargesStreamProcessor.process(mockResourceChangedMessage);
+        verify(companyProfileService, times(0)).getCompanyProfile(eq(TestData.CONTEXT_ID), eq(TestData.MOCK_COMPANY_NUMBER));
 
-        verify(companyProfileService, times(0))
-            .getCompanyProfile(eq(TestData.CONTEXT_ID), eq(TestData.MOCK_COMPANY_NUMBER));
-
-        verify(companyProfileService, times(0))
-            .patchCompanyProfile(eq(TestData.CONTEXT_ID), eq(TestData.MOCK_COMPANY_NUMBER),
+        verify(companyProfileService, times(0)).patchCompanyProfile(eq(TestData.CONTEXT_ID), eq(TestData.MOCK_COMPANY_NUMBER),
                 any(CompanyProfile.class));
     }
+
+    private Message<ResourceChangedData> createResourceChangedMessageWithDeletedChargesEvent() throws IOException {
+        InputStreamReader exampleInsolvencyJsonPayload = new InputStreamReader(
+            Objects.requireNonNull(ClassLoader.getSystemClassLoader()
+                .getResourceAsStream("charges-record.json")));
+        String insolvencyRecord = FileCopyUtils.copyToString(exampleInsolvencyJsonPayload);
+        EventRecord deletedEventRecord = new EventRecord();
+        deletedEventRecord.setType("deleted");
+
+        ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
+            .setContextId("context_id")
+            .setResourceId(TestData.MOCK_COMPANY_NUMBER)
+            .setResourceKind("company-charges")
+            .setResourceUri(String.format("/company/%s/charges", TestData.MOCK_COMPANY_NUMBER))
+            .setEvent(deletedEventRecord)
+            .setData(insolvencyRecord)
+            .build();
+
+        return MessageBuilder
+            .withPayload(resourceChangedData)
+            .setHeader(KafkaHeaders.RECEIVED_TOPIC, "test")
+            .build();
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when CompanyProfile service is unavailable")
+    void throwRetryableErrorExceptionWhenCompanyProfileServiceIsUnavailable() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessageWithValidResourceUri();
+
+        CompanyProfile companyProfileWithLinks = testData.createCompanyProfileWithChargesLinks();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.SERVICE_UNAVAILABLE.value(), null, companyProfileWithLinks);
+
+        when(companyProfileService.getCompanyProfile(TestData.CONTEXT_ID, TestData.MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+
+        assertThrows(RetryableErrorException.class, () -> chargesStreamProcessor.process(mockResourceChangedMessage));
+
+        verify(companyProfileService).getCompanyProfile(eq(TestData.CONTEXT_ID), eq(TestData.MOCK_COMPANY_NUMBER));
+        verify(companyProfileService, times(0)).patchCompanyProfile(eq(TestData.CONTEXT_ID), eq(TestData.MOCK_COMPANY_NUMBER),
+                any(CompanyProfile.class));
+
+        verifyNoMoreInteractions(companyProfileService);
+    }
+
+    @Test
+    @DisplayName("throws NonRetryableErrorException when patch CompanyProfile returns Bad Request")
+    void throwNonRetryableErrorExceptionWhenPatchCompanyProfileReturnsBadRequest() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessageWithValidResourceUri();
+
+        CompanyProfile companyProfileWithLinks = testData.createCompanyProfile();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, companyProfileWithLinks);
+
+        when(companyProfileService.getCompanyProfile(TestData.CONTEXT_ID, TestData.MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+        when(companyProfileService.patchCompanyProfile(any(), any(), any()))
+                .thenReturn(new ApiResponse<>(
+                        HttpStatus.BAD_REQUEST.value(), null, null));
+
+        assertThrows(NonRetryableErrorException.class, () -> chargesStreamProcessor.process(mockResourceChangedMessage));
+
+        verify(companyProfileService).getCompanyProfile(eq(TestData.CONTEXT_ID), eq(TestData.MOCK_COMPANY_NUMBER));
+        verify(companyProfileService, times(1)).patchCompanyProfile(eq(TestData.CONTEXT_ID), eq(TestData.MOCK_COMPANY_NUMBER),
+                any(CompanyProfile.class));
+
+        verifyNoMoreInteractions(companyProfileService);
+    }
+
+
+    private CompanyProfile createCompanyProfileWithoutChargesLinks() {
+        Data companyProfileData = new Data();
+        companyProfileData.setCompanyNumber(TestData.MOCK_COMPANY_NUMBER);
+        Links links = new Links();
+        companyProfileData.setLinks(links);
+
+        CompanyProfile companyProfile = new CompanyProfile();
+        companyProfile.setData(companyProfileData);
+        return companyProfile;
+    }
+
+    private CompanyProfile createCompanyProfileWithChargesLinks() {
+        Data companyProfileData = new Data();
+        companyProfileData.setCompanyNumber(TestData.MOCK_COMPANY_NUMBER);
+        Links links = new Links();
+        links.setCharges("/company/"+TestData.MOCK_COMPANY_NUMBER+"/charges");
+        companyProfileData.setLinks(links);
+
+        CompanyProfile companyProfile = new CompanyProfile();
+        companyProfile.setData(companyProfileData);
+        return companyProfile;
+    }
+
 }

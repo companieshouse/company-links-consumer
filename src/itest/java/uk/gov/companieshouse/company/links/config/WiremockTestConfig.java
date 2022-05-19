@@ -5,11 +5,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.configureFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.patch;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
-
 import com.github.tomakehurst.wiremock.WireMockServer;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -72,22 +69,30 @@ public class WiremockTestConfig {
     }
 
     public static void stubGetConsumerLinksWithProfileLinks(String companyNumber, int statusCode) {
-        stubGetConsumerLinks(companyNumber, statusCode, "profile-with-insolvency-links");
+        stubGetCompanyProfile(companyNumber, statusCode, "profile-with-insolvency-links");
     }
 
-    public static void stubGetConsumerLinks(String companyNumber, int statusCode, String fileToLoad) {
-        String response = loadFile(fileToLoad+".json");
+    public static void stubPatchCompanyProfile(String companyNumber, int statusCode) {
         stubFor(
-                get(urlEqualTo("/company/" + companyNumber + "/links"))
+                patch(urlEqualTo("/company/" + companyNumber + "/links"))
+                        .withRequestBody(containing("/company/" + companyNumber + "/insolvency"))
                         .willReturn(aResponse()
-                                .withStatus(statusCode)
-                                .withHeader("Content-Type", "application/json")
-                                .withBody(response)));
+                                .withStatus(statusCode)));
     }
 
-    public static void stubGetCompanyInsolvencyWithoutLinks(String companyNumber, int statusCode) {
-        String response = loadFile("profile-with-out-links.json");
+    public static void stubCompanyMetrics(String companyNumber, int statusCode) {
+        stubFor(
+                patch(urlEqualTo("/company/" + companyNumber + "/metrics"))
+                        .withRequestBody(containing("/company/" + companyNumber + "/metrics"))
+                        .willReturn(aResponse()
+                                .withStatus(statusCode)));
+    }
 
+    public static void stubGetCompanyProfile(String companyNumber, int statusCode, String fileToLoad) {
+        String response = "";
+        if (fileToLoad != null && !fileToLoad.isEmpty()) {
+            response = loadFile(fileToLoad+".json");
+        }
         stubFor(
                 get(urlEqualTo("/company/" + companyNumber + "/links"))
                         .willReturn(aResponse()

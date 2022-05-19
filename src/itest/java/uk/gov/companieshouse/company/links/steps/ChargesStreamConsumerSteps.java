@@ -20,7 +20,6 @@ import io.cucumber.java.en.When;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
@@ -34,7 +33,7 @@ import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
-public class CompanyChargesSteps {
+public class ChargesStreamConsumerSteps {
 
     @Value("${company-links.consumer.insolvency.topic}")
     private String topic;
@@ -80,7 +79,7 @@ public class CompanyChargesSteps {
     }
 
     @Then("The message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked")
-    public void patchEdpointNotCalled(){
+    public void patchEndpointNotCalled(){
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         WiremockTestConfig.stop();

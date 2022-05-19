@@ -8,7 +8,7 @@ import uk.gov.companieshouse.company.links.config.AbstractIntegrationTest;
 
 @RunWith(Cucumber.class)
 @CucumberOptions(
-        features = "src/itest/resources/features",
+        features = "src/itest/resources/features/company-links-charges-error-retry.feature",
         plugin = {"pretty",
                 "json:target/cucumber-report.json"
         },

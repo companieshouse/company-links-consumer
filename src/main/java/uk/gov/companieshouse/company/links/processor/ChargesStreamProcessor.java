@@ -11,37 +11,42 @@ import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Component;
+import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.service.ChargesService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
-
 
 @Component
 public class ChargesStreamProcessor extends StreamResponseProcessor {
 
     public static final String EXTRACT_COMPANY_NUMBER_PATTERN = "(?<=company/)(.*?)(?=/charges)";
+    private final Logger logger;
     private final CompanyProfileService companyProfileService;
+    private final ChargesService chargesService;
 
     /**
      * Construct an Charges stream processor.
      */
     @Autowired
     public ChargesStreamProcessor(CompanyProfileService companyProfileService,
+                                  ChargesService chargesService,
                                   Logger logger) {
         super(logger);
         this.companyProfileService = companyProfileService;
+        this.chargesService = chargesService;
+        this.logger = logger;
     }
 
     /**
      * Process a ResourceChangedData message for delete.
      */
     public void processDelete(Message<ResourceChangedData> resourceChangedMessage) {
-        MessageHeaders headers = resourceChangedMessage.getHeaders();
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
         final Map<String, Object> logMap = new HashMap<>();
@@ -63,26 +68,38 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
             var data = response.getData().getData();
             var links = data.getLinks();
 
-            if (links != null && links.getCharges() == null) {
+            if (links == null || links.getCharges() == null) {
                 logger.trace(String.format("Company profile with company number %s,"
-                                + " does not contain chagres links, will not perform patch",
+                        + " does not contain charges links, will not perform delete",
                         companyNumber));
                 return;
             }
 
-            links.setCharges(null);
-            CompanyProfile companyProfile = new CompanyProfile();
-            companyProfile.setData(data);
+            ApiResponse<ChargesApi> chargesResponse = chargesService.getCharges(
+                    logContext, companyNumber);
 
-            final ApiResponse<Void> patchResponse =
-                    companyProfileService.patchCompanyProfile(
-                            logContext, companyNumber, companyProfile
-                    );
+            handleResponse(HttpStatus.valueOf(chargesResponse.getStatusCode()), logContext,
+                    "Response from GET call to charges api", logMap);
 
-            logger.trace(String.format("Performing a PATCH with new company profile %s",
-                    companyProfile));
-            handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                    "Response from PATCH call to company profile api", logMap);
+            if (chargesResponse.getData().getTotalCount() == 0) {
+                links.setCharges(null);
+                CompanyProfile companyProfile = new CompanyProfile();
+                companyProfile.setData(data);
+
+                final ApiResponse<Void> patchResponse = companyProfileService
+                        .patchCompanyProfile(logContext, companyNumber, companyProfile);
+
+                logger.trace(String.format(
+                        "Performing a PATCH on company profile %s to remove charges link",
+                        companyProfile));
+
+                handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
+                        "Response from PATCH call to company profile api", logMap);
+            } else {
+                logger.trace(String.format(
+                        "Nothing to PATCH on company number %s, charges link not removed",
+                        companyNumber));
+            }
         });
     }
 
@@ -127,15 +144,11 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
                                                    ResourceChangedData payload,
                                                    MessageHeaders headers) {
         var data = response.getData().getData();
-
         if (doesCompanyProfileHaveCharges(companyNumber, data)) {
-            //do nothing
             return null;
         }
-
         return updateCompanyProfileWithCharges(logContext, companyNumber, data,
                 payload, headers);
-
     }
 
     ApiResponse<Void> updateCompanyProfileWithCharges(String logContext,
@@ -144,7 +157,7 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
                                                       MessageHeaders headers) {
         logger.trace(String.format("Current company profile with company number %s,"
                         + " does not contain charges link, attaching charges link",
-                companyNumber));
+                        companyNumber));
 
         Links links = data.getLinks() == null ? new Links() : data.getLinks();
 
@@ -187,7 +200,6 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
     }
 
     Optional<String> extractCompanyNumber(String resourceUri) {
-
         if (StringUtils.isNotBlank(resourceUri)) {
             //matches all characters between company/ and /
             Pattern companyNo = Pattern.compile(EXTRACT_COMPANY_NUMBER_PATTERN);
@@ -201,4 +213,3 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         return Optional.empty();
     }
 }
-

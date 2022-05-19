@@ -20,18 +20,22 @@ public class TestData {
     public static final String TOPIC = "test";
     public static final String PARTITION = "partition_1";
     public static final String OFFSET = "offset_1";
-    public static final String MOCK_COMPANY_NUMBER = "03105860";
     public static final String CONTEXT_ID = "context_id";
-    public static final String COMPANY_CHARGES_LINK = "/company/%s/charges";
-    public static final String INVALID_COMPANY_CHARGES_LINK = "/company/%s/metrics";
+    public static final String MOCK_COMPANY_NUMBER = "03105860";
+    public static final String COMPANY_CHARGES_LINK = String.format("/company/%s/charges", MOCK_COMPANY_NUMBER);
+    public static final String INVALID_COMPANY_CHARGES_LINK = String.format("/company/%s/metrics", MOCK_COMPANY_NUMBER);
     public static final String RESOURCE_ID = "11223344";
 
+    public Message<ResourceChangedData> createResourceChangedMessageWithDelete() throws IOException {
+        return createResourceChangedDeleteMessage(COMPANY_CHARGES_LINK);
+    }
+
     public Message<ResourceChangedData> createResourceChangedMessageWithValidResourceUri() throws IOException {
-        return createResourceChangedMessage(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER));
+        return createResourceChangedMessage(COMPANY_CHARGES_LINK);
     }
 
     public Message<ResourceChangedData> createResourceChangedMessageWithInValidResourceUri() throws IOException {
-        return createResourceChangedMessage(String.format(INVALID_COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER));
+        return createResourceChangedMessage(INVALID_COMPANY_CHARGES_LINK);
     }
 
     public Message<ResourceChangedData> createResourceChangedMessage(String resourceUri) throws IOException {
@@ -57,6 +61,29 @@ public class TestData {
                 .build();
     }
 
+    public Message<ResourceChangedData> createResourceChangedDeleteMessage(String resourceUri) throws IOException {
+        InputStreamReader exampleChargesJsonPayload = new InputStreamReader(
+            Objects.requireNonNull(ClassLoader.getSystemClassLoader()
+                .getResourceAsStream("charges-record.json")));
+        String chargesRecord = FileCopyUtils.copyToString(exampleChargesJsonPayload);
+
+        ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
+            .setContextId(CONTEXT_ID)
+            .setResourceId(RESOURCE_ID)
+            .setResourceKind(RESOURCE_KIND)
+            .setResourceUri(resourceUri)
+            .setEvent(new EventRecord(null, "deleted", null))
+            .setData(chargesRecord)
+            .build();
+
+        return MessageBuilder
+            .withPayload(resourceChangedData)
+            .setHeader(KafkaHeaders.RECEIVED_TOPIC, TOPIC)
+            .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, PARTITION)
+            .setHeader(KafkaHeaders.OFFSET, OFFSET)
+            .build();
+    }
+
     public CompanyProfile createCompanyProfile() {
         Data companyProfileData = new Data();
         companyProfileData.setCompanyNumber(MOCK_COMPANY_NUMBER);
@@ -67,7 +94,6 @@ public class TestData {
     }
 
     public CompanyProfile createCompanyProfileWithChargesLinks() {
-
         CompanyProfile companyProfile = createCompanyProfile();
         updateWithLinks(companyProfile);
         return companyProfile;
@@ -75,7 +101,7 @@ public class TestData {
 
     private void updateWithLinks(CompanyProfile companyProfile) {
         Links links = new Links();
-        links.setCharges(String.format(COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER));
+        links.setCharges(COMPANY_CHARGES_LINK);
         companyProfile.getData().setLinks(links);
     }
 

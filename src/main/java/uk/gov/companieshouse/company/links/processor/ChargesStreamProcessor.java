@@ -1,6 +1,5 @@
 package uk.gov.companieshouse.company.links.processor;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -69,8 +68,6 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
             var data = response.getData().getData();
             var links = data.getLinks();
 
-            // Do we have links and is there a charges link? If the link does not exist
-            // then there is nothing to delete.
             if (links == null || links.getCharges() == null) {
                 logger.trace(String.format("Company profile with company number %s,"
                         + " does not contain charges links, will not perform delete",
@@ -78,15 +75,13 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
                 return;
             }
 
-            // invoke charges-data-api GET all charges endpoint to fetch remaining
-            // number of charges for a given company number
-            ApiResponse<ChargesApi> charges = chargesService.getCharges(
+            ApiResponse<ChargesApi> chargesResponse = chargesService.getCharges(
                     logContext, companyNumber);
 
-            // if remaining number of charges is 0 in above GET call,
-            // remove the link from the company profile object and invoke existing
-            // PATCH (company/<number>/links) endpoint on company_profile_api to update the entity
-            if (charges.getData().getTotalCount() == 0) {
+            handleResponse(HttpStatus.valueOf(chargesResponse.getStatusCode()), logContext,
+                    "Response from GET call to charges api", logMap);
+
+            if (chargesResponse.getData().getTotalCount() == 0) {
                 links.setCharges(null);
                 CompanyProfile companyProfile = new CompanyProfile();
                 companyProfile.setData(data);
@@ -101,8 +96,6 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
                 handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
                         "Response from PATCH call to company profile api", logMap);
             } else {
-                //if remaining number of charges is 1 or greater than 1 in above GET call,
-                // do nothing, end of processing. i.e. No PATCH invocation
                 logger.trace(String.format(
                         "Nothing to PATCH on company number %s, charges link not removed",
                         companyNumber));

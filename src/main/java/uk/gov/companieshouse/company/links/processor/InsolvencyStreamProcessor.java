@@ -42,25 +42,26 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
         // the resource_id field returned represents the insolvency record's company number
         final String companyNumber = payload.getResourceId();
         if (StringUtils.isEmpty(companyNumber)) {
-            logger.error("Company number is empty or null");
-            throw new NonRetryableErrorException("Company number is empty or null");
+            throw new NonRetryableErrorException(String.format(
+                    "Company number is empty or null in message with contextId %s", logContext));
         }
-        logger.trace(String.format("Resource changed message for deleted event of kind %s "
-                + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
+
+        logger.trace(String.format("Resource changed message with contextId %s for deleted event "
+                        + "of kind %s for company number %s retrieved",
+                logContext, payload.getResourceKind(), companyNumber));
 
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
-        logger.trace(String.format("Retrieved company profile for company number %s: %s",
-                companyNumber, response.getData()));
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "Response from GET call to company profile api", logMap);
+                "GET company-profile-api", companyNumber, logMap);
+
         var data = response.getData().getData();
         var links = data.getLinks();
 
         if (links != null && links.getInsolvency() == null) {
             logger.trace(String.format("Company profile with company number %s,"
-                            + " does not contain insolvency links, will not perform patch",
-                    companyNumber));
+                    + " does not contain insolvency links, will not perform patch"
+                    + " for contextId %s", companyNumber, logContext));
             return;
         }
 
@@ -68,15 +69,14 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
         CompanyProfile companyProfile = new CompanyProfile();
         companyProfile.setData(data);
 
+        logger.trace(String.format("Performing a PATCH with "
+                + "company number %s for contextId %s", companyNumber, logContext));
         final ApiResponse<Void> patchResponse =
                 companyProfileService.patchCompanyProfile(
                         logContext, companyNumber, companyProfile
                 );
-
-        logger.trace(String.format("Performing a PATCH with new company profile %s",
-                companyProfile));
         handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                "Response from PATCH call to company profile api", logMap);
+                "PATCH company-profile-api", companyNumber, logMap);
     }
 
     /**
@@ -90,31 +90,31 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
         // the resource_id field returned represents the insolvency record's company number
         final String companyNumber = payload.getResourceId();
         if (StringUtils.isEmpty(companyNumber)) {
-            logger.error("Company number is empty or null");
-            throw new NonRetryableErrorException("Company number is empty or null");
+            throw new NonRetryableErrorException(String.format(
+                    "Company number is empty or null in message with contextId %s", logContext));
         }
-        logger.trace(String.format("Resource changed message of kind %s "
-                + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
+
+        logger.trace(String.format("Resource changed message with contextId %s of kind %s "
+                        + "for company number %s retrieved",
+                logContext, payload.getResourceKind(), companyNumber));
 
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
-        logger.trace(String.format("Retrieved company profile for company number %s: %s",
-                companyNumber, response.getData()));
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "Response from GET call to company profile api", logMap);
+                "GET company-profile-api", companyNumber, logMap);
+
         var data = response.getData().getData();
         var links = data.getLinks();
 
         if (links != null && links.getInsolvency() != null) {
             logger.trace(String.format("Company profile with company number %s,"
-                    + " already contains insolvency links, will not perform patch",
-                    companyNumber));
+                    + " contains insolvency links, will not perform PATCH"
+                    + " for contextId %s", companyNumber, logContext));
             return;
         }
 
-        logger.trace(String.format("Current company profile with company number %s,"
-                + " does not contain an insolvency link, attaching an insolvency link",
-                companyNumber));
+        logger.trace(String.format("Performing a PATCH with "
+                + "company number %s for contextId %s", companyNumber, logContext));
 
         if (links == null) {
             links = new Links();
@@ -123,6 +123,7 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
         links.setInsolvency(String.format("/company/%s/insolvency", companyNumber));
         data.setLinks(links);
         data.setHasInsolvencyHistory(true);
+
         var companyProfile = new CompanyProfile();
         companyProfile.setData(data);
 
@@ -130,12 +131,8 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
                 companyProfileService.patchCompanyProfile(
                         logContext, companyNumber, companyProfile
                 );
-
-        logger.trace(String.format("Performing a PATCH with new company profile %s",
-                companyProfile));
         handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                "Response from PATCH call to company profile api", logMap);
-
+                "PATCH company-profile-api", companyNumber, logMap);
     }
 
 

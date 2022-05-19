@@ -3,6 +3,7 @@ package uk.gov.companieshouse.company.links.processor;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static uk.gov.companieshouse.company.links.processor.TestData.CONTEXT_ID;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -34,7 +35,6 @@ class InsolvencyStreamProcessorTest {
     private static final String MOCK_COMPANY_NUMBER = "02588581";
     private InsolvencyStreamProcessor insolvencyProcessor;
 
-
     @Mock
     private CompanyProfileService companyProfileService;
 
@@ -56,7 +56,7 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyProfile());
 
-        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
         when(companyProfileService.patchCompanyProfile(any(), any(), any())).thenReturn(new ApiResponse<Void>(200, null, null));
@@ -64,22 +64,20 @@ class InsolvencyStreamProcessorTest {
 
         insolvencyProcessor.processDelta(mockResourceChangedMessage);
 
-        verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(6)).trace(anyString());
+        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
+        verify(logger, times(2)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message of kind company-insolvency"));
-        verify(logger, atLeastOnce()).trace((
-                String.format("Retrieved company profile for company number %s: %s",
-                        MOCK_COMPANY_NUMBER, createCompanyProfile())));
+                contains("Resource changed message with contextId context_id of kind company-insolvency"));
+        verify(logger, atLeastOnce()).trace(String.format(
+                "Performing a PATCH with company number %s for contextId %s",
+                MOCK_COMPANY_NUMBER, CONTEXT_ID));
 
-        verify(logger, atLeastOnce()).trace((
-                String.format("Current company profile with company number %s," +
-                        " does not contain an insolvency link, attaching an insolvency link", MOCK_COMPANY_NUMBER
-                )));
-        verify(logger, atLeastOnce()).trace((
-                String.format("Performing a PATCH with new company profile %s",
-                        createCompanyProfileWithInsolvencyLinks())
-                ));
+        verify(logger, times(2)).info(anyString());
+        verify(logger, atLeastOnce()).info("Successfully invoked GET company-profile-api endpoint" +
+                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
+
+        verify(logger, atLeastOnce()).info("Successfully invoked PATCH company-profile-api endpoint" +
+                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
     }
 
 
@@ -91,23 +89,24 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyProfileWithInsolvencyLinks());
 
-        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
         insolvencyProcessor.processDelta(mockResourceChangedMessage);
 
-        verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(4)).trace(anyString());
+        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
+        verify(logger, times(2)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message of kind company-insolvency"));
-        verify(logger, atLeastOnce()).trace((
-                String.format("Retrieved company profile for company number %s: %s",
-                        MOCK_COMPANY_NUMBER, companyProfileApiResponse.getData())));
-        verify(logger, atLeastOnce()).trace((
+                contains("Resource changed message with contextId context_id of kind company-insolvency"));
+        verify(logger, atLeastOnce()).trace(contains(
                 String.format("Company profile with company number %s,"
-                        + " already contains insolvency links, will not perform patch",
+                        + " contains insolvency links, will not perform PATCH",
                         MOCK_COMPANY_NUMBER)
                 ));
+
+        verify(logger, times(1)).info(anyString());
+        verify(logger, atLeastOnce()).info("Successfully invoked GET company-profile-api endpoint" +
+                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
     }
 
     @Test
@@ -118,23 +117,24 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyProfileWithoutInsolvencyLinks());
 
-        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
         insolvencyProcessor.processDelete(mockResourceChangedMessage);
 
-        verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
-        verify(logger, times(4)).trace(anyString());
+        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
+        verify(logger, times(2)).trace(anyString());
         verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message for deleted event of kind company-insolvency"));
+                contains("Resource changed message with contextId context_id for deleted event of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace((
-                String.format("Retrieved company profile for company number %s: %s",
-                        MOCK_COMPANY_NUMBER, companyProfileApiResponse.getData())));
-        verify(logger, atLeastOnce()).trace((
-                String.format("Company profile with company number %s,"
-                        + " does not contain insolvency links, will not perform patch",
+                String.format("Company profile with company number %s, does not contain insolvency links," +
+                                " will not perform patch for contextId context_id",
                         MOCK_COMPANY_NUMBER)
                 ));
+        verify(logger, times(1)).info(anyString());
+        verify(logger, atLeastOnce()).info("Successfully invoked GET company-profile-api endpoint" +
+                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
+
     }
 
     @Test
@@ -145,10 +145,13 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.BAD_REQUEST.value(), null, createCompanyProfileWithInsolvencyLinks());
 
-        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
         assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
+        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
+                eq("Response from GET company-profile-api"), eq(null), any());
     }
 
     @Test
@@ -160,7 +163,7 @@ class InsolvencyStreamProcessorTest {
         String insolvencyRecord = FileCopyUtils.copyToString(exampleInsolvencyJsonPayload);
 
         ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
-                .setContextId("context_id")
+                .setContextId(CONTEXT_ID)
                 .setResourceId("")
                 .setResourceKind("company-insolvency")
                 .setResourceUri(String.format("/company/%s/insolvency", MOCK_COMPANY_NUMBER))
@@ -184,10 +187,13 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.UNAUTHORIZED.value(), null, createCompanyProfileWithInsolvencyLinks());
 
-        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
         assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
+        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
+                eq("Response from GET company-profile-api"), eq(null), any());
     }
 
     @Test
@@ -198,10 +204,13 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(), null, createCompanyProfileWithInsolvencyLinks());
 
-        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
         assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
+        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
+                eq("Response from GET company-profile-api"), eq(null), any());
     }
 
     @Test
@@ -212,16 +221,19 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyProfile> companyProfileGetApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyProfile());
 
-        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileGetApiResponse);
 
         final ApiResponse<Void> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.BAD_REQUEST.value(), null);
 
-        when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
+        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any()))
                 .thenReturn(companyProfileApiResponse);
 
         assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
+        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
+                eq("Response from PATCH company-profile-api"), eq(null), any());
     }
 
     @Test
@@ -232,16 +244,19 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyProfile> companyProfileGetApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyProfile());
 
-        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileGetApiResponse);
 
         final ApiResponse<Void> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.UNAUTHORIZED.value(), null);
 
-        when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
+        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any()))
                 .thenReturn(companyProfileApiResponse);
 
         assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
+        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
+                eq("Response from PATCH company-profile-api"), eq(null), any());
     }
 
     @Test
@@ -252,16 +267,19 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyProfile> companyProfileGetApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyProfile());
 
-        when(companyProfileService.getCompanyProfile("context_id", MOCK_COMPANY_NUMBER))
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileGetApiResponse);
 
         final ApiResponse<Void> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(), null);
 
-        when(companyProfileService.patchCompanyProfile(eq("context_id"), eq(MOCK_COMPANY_NUMBER), any()))
+        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any()))
                 .thenReturn(companyProfileApiResponse);
 
         assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
+        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
+                eq("Response from PATCH company-profile-api"), eq(null), any());
     }
 
     private Message<ResourceChangedData> createResourceChangedMessage() throws IOException {
@@ -271,7 +289,7 @@ class InsolvencyStreamProcessorTest {
         String insolvencyRecord = FileCopyUtils.copyToString(exampleInsolvencyJsonPayload);
 
         ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
-                .setContextId("context_id")
+                .setContextId(CONTEXT_ID)
                 .setResourceId(MOCK_COMPANY_NUMBER)
                 .setResourceKind("company-insolvency")
                 .setResourceUri(String.format("/company/%s/insolvency", MOCK_COMPANY_NUMBER))
@@ -294,7 +312,7 @@ class InsolvencyStreamProcessorTest {
         deletedEventRecord.setType("deleted");
 
         ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
-                .setContextId("context_id")
+                .setContextId(CONTEXT_ID)
                 .setResourceId(MOCK_COMPANY_NUMBER)
                 .setResourceKind("company-insolvency")
                 .setResourceUri(String.format("/company/%s/insolvency", MOCK_COMPANY_NUMBER))

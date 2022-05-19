@@ -1,6 +1,5 @@
 package uk.gov.companieshouse.company.links.consumer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,20 +49,28 @@ public class ChargesStreamConsumer {
     public void receive(Message<ResourceChangedData> resourceChangedMessage,
                         @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
                         @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
-                        @Header(KafkaHeaders.OFFSET) String offset) throws JsonProcessingException {
-        logger.info(
-                String.format("DSND-604: A new message read from stream-charges topic with "
-                                + "payload: %s", resourceChangedMessage.getPayload()));
+                        @Header(KafkaHeaders.OFFSET) String offset) {
+        ResourceChangedData payload = resourceChangedMessage.getPayload();
+        String logContext = payload.getContextId();
 
-        ;
-        final boolean deleteEventType = "deleted"
-                .equalsIgnoreCase(resourceChangedMessage.getPayload()
-                .getEvent().getType());
-        if (deleteEventType) {
-            chargesProcessor.processDelete(resourceChangedMessage);
-        } else {
-            chargesProcessor.process(resourceChangedMessage);
+        logger.info(String.format("A new message successfully picked up "
+                + "from %s topic with contextId: %s", topic, logContext));
+        try {
+            final boolean deleteEventType = "deleted"
+                    .equalsIgnoreCase(payload.getEvent().getType());
+
+            if (deleteEventType) {
+                chargesProcessor.processDelete(resourceChangedMessage);
+            } else {
+                chargesProcessor.process(resourceChangedMessage);
+            }
+        } catch (Exception exception) {
+            logger.error(String.format("Exception occurred while processing the topic %s "
+                            + "with contextId %s, exception thrown is %s",
+                    topic, logContext, exception));
+            throw exception;
         }
+
     }
 
 }

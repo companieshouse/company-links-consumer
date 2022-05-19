@@ -1,14 +1,10 @@
 package uk.gov.companieshouse.company.links.service;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.company.CompanyProfile;
-import uk.gov.companieshouse.api.handler.company.PrivateCompanyResourceHandler;
-import uk.gov.companieshouse.api.handler.company.request.PrivateCompanyProfileGet;
 import uk.gov.companieshouse.api.http.ApiKeyHttpClient;
 import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
@@ -41,10 +37,10 @@ public class CompanyProfileService extends BaseApiClientService {
      */
     public ApiResponse<CompanyProfile> getCompanyProfile(String contextId, String companyNumber)
             throws RetryableErrorException {
-        String uri = String.format("/company/%s/links", companyNumber);
+        logger.trace(String.format("Call to GET company profile with contextId %s "
+                        + "and company number %s", contextId, companyNumber));
 
-        Map<String, Object> logMap = createLogMap(companyNumber, "GET", uri);
-        logger.infoContext(contextId, String.format("GET %s", uri), logMap);
+        String uri = String.format("/company/%s/links", companyNumber);
         return executeOp(contextId, "getCompanyProfileApi", uri,
             getApiClient(contextId)
                 .privateCompanyResourceHandler()
@@ -75,22 +71,13 @@ public class CompanyProfileService extends BaseApiClientService {
      */
     public ApiResponse<Void> patchCompanyProfile(String contextId, String companyNumber,
                                                  CompanyProfile companyProfile) {
+        logger.trace(String.format("Call to PATCH company profile with contextId %s "
+                + "and company number %s", contextId, companyNumber));
+
         String uri = String.format("/company/%s/links", companyNumber);
-
-        Map<String, Object> logMap = createLogMap(companyNumber, "PATCH", uri);
-        logger.infoContext(contextId, String.format("PATCH %s", uri), logMap);
-
         return executeOp(contextId, "patchCompanyProfileApi", uri,
                 getApiClient(contextId)
                         .privateCompanyResourceHandler()
                         .patchCompanyProfile(uri, companyProfile));
-    }
-
-    private Map<String, Object> createLogMap(String companyNumber, String method, String path) {
-        final Map<String, Object> logMap = new HashMap<>();
-        logMap.put("company_number", companyNumber);
-        logMap.put("method", method);
-        logMap.put("path", path);
-        return logMap;
     }
 }

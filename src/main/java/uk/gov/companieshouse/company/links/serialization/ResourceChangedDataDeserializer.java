@@ -12,7 +12,6 @@ import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
-//Confirmed that charges and insolvency will have same avro schema
 @Component
 public class ResourceChangedDataDeserializer implements Deserializer<ResourceChangedData> {
 

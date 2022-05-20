@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.consumer;
 
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
@@ -10,11 +11,11 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
-
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.processor.InsolvencyStreamProcessor;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.logging.LoggerFactory;
+import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 
@@ -51,21 +52,23 @@ public class InsolvencyStreamConsumer {
                         @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
                         @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
                         @Header(KafkaHeaders.OFFSET) String offset) {
+        ResourceChangedData payload = resourceChangedMessage.getPayload();
+        String logContext = payload.getContextId();
+        logger.info(String.format("A new message successfully picked up "
+                        + "from %s topic with contextId: %s", topic, logContext));
         try {
-            ResourceChangedData payload = resourceChangedMessage.getPayload();
-            logger.info(
-                    "A new message read from Stream-insolvency topic with payload: "
-                            + payload);
-            if ((payload.getEvent() != null) && (payload.getEvent().getType()
-                            .equalsIgnoreCase("deleted"))) {
+            final boolean deleteEventType = "deleted"
+                    .equalsIgnoreCase(payload.getEvent().getType());
+
+            if (deleteEventType) {
                 insolvencyProcessor.processDelete(resourceChangedMessage);
             } else {
                 insolvencyProcessor.processDelta(resourceChangedMessage);
             }
         } catch (Exception exception) {
             logger.error(String.format("Exception occurred while processing the topic %s "
-                    + "with message %s, exception thrown is %s",
-                    topic, resourceChangedMessage, exception));
+                            + "with contextId %s, exception thrown is %s",
+                    topic, logContext, exception));
             throw exception;
         }
     }

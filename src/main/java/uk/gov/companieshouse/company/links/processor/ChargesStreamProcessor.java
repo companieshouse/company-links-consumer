@@ -9,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.CompanyProfile;
@@ -22,11 +21,11 @@ import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
+
 @Component
 public class ChargesStreamProcessor extends StreamResponseProcessor {
 
     public static final String EXTRACT_COMPANY_NUMBER_PATTERN = "(?<=company/)(.*?)(?=/charges)";
-    private final Logger logger;
     private final CompanyProfileService companyProfileService;
     private final ChargesService chargesService;
 
@@ -40,7 +39,6 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         super(logger);
         this.companyProfileService = companyProfileService;
         this.chargesService = chargesService;
-        this.logger = logger;
     }
 
     /**
@@ -49,115 +47,105 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
     public void processDelete(Message<ResourceChangedData> resourceChangedMessage) {
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
+        final String resourceUri = payload.getResourceUri();
         final Map<String, Object> logMap = new HashMap<>();
 
-        // the resource_id field returned represents the charges record's company number
-        final Optional<String> companyNumberOptional =
-                extractCompanyNumber(payload.getResourceUri());
-        companyNumberOptional.orElseThrow(
-                () -> new NonRetryableErrorException("Unable to extract company number due to "
-                        + "invalid resource uri in the message")
-        );
-        companyNumberOptional.ifPresent(companyNumber -> {
-            logger.trace(String.format("Resource changed message for delete event of kind %s "
-                    + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
+        final Optional<String> companyNumberOptional = extractCompanyNumber(resourceUri);
+        var companyNumber = companyNumberOptional.orElseThrow(
+                () -> new NonRetryableErrorException(String.format(
+                        "Unable to extract company number due to "
+                                + "invalid resource uri %s in message with contextId %s",
+                        resourceUri, logContext)));
 
-            final ApiResponse<CompanyProfile> response =
-                    getCompanyProfileApi(logContext, logMap, companyNumber);
+        logger.trace(String.format("Resource changed message for deleted event of kind %s "
+                        + "for company number %s with contextId %s retrieved",
+                payload.getResourceKind(), companyNumber, logContext));
 
-            var data = response.getData().getData();
-            var links = data.getLinks();
+        final ApiResponse<CompanyProfile> response =
+                companyProfileService.getCompanyProfile(logContext, companyNumber);
+        handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
+                "GET company-profile-api", companyNumber, logMap);
 
-            if (links == null || links.getCharges() == null) {
-                logger.trace(String.format("Company profile with company number %s,"
-                        + " does not contain charges links, will not perform delete",
-                        companyNumber));
-                return;
-            }
+        var data = response.getData().getData();
+        var links = data.getLinks();
 
-            ApiResponse<ChargesApi> chargesResponse = chargesService.getCharges(
-                    logContext, companyNumber);
+        if (links == null || links.getCharges() == null) {
+            logger.trace(String.format("Company profile with company number %s,"
+                    + " does not contain charges links, will not perform DELETE"
+                    + " for contextId %s", companyNumber, logContext));
+            return;
+        }
 
-            handleResponse(HttpStatus.valueOf(chargesResponse.getStatusCode()), logContext,
-                    "Response from GET call to charges api", logMap);
+        ApiResponse<ChargesApi> chargesResponse = chargesService.getCharges(
+                logContext, companyNumber);
 
-            if (chargesResponse.getData().getTotalCount() == 0) {
-                links.setCharges(null);
-                CompanyProfile companyProfile = new CompanyProfile();
-                companyProfile.setData(data);
+        handleResponse(HttpStatus.valueOf(chargesResponse.getStatusCode()), logContext,
+                "GET charges-data-api", companyNumber, logMap);
 
-                final ApiResponse<Void> patchResponse = companyProfileService
-                        .patchCompanyProfile(logContext, companyNumber, companyProfile);
+        if (chargesResponse.getData().getTotalCount() == 0) {
+            links.setCharges(null);
+            CompanyProfile companyProfile = new CompanyProfile();
+            companyProfile.setData(data);
 
-                logger.trace(String.format(
-                        "Performing a PATCH on company profile %s to remove charges link",
-                        companyProfile));
+            logger.trace(String.format("Performing a PATCH with "
+                    + "company number %s for contextId %s", companyNumber, logContext));
+            final ApiResponse<Void> patchResponse =
+                    companyProfileService.patchCompanyProfile(
+                            logContext, companyNumber, companyProfile
+                    );
 
-                handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                        "Response from PATCH call to company profile api", logMap);
-            } else {
-                logger.trace(String.format(
-                        "Nothing to PATCH on company number %s, charges link not removed",
-                        companyNumber));
-            }
-        });
+            handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
+                    "PATCH company-profile-api", companyNumber, logMap);
+        } else {
+            logger.trace(String.format(
+                    "Nothing to PATCH with company number %s for contextId %s,"
+                            + " charges link not removed",
+                    companyNumber, logContext));
+        }
     }
 
     /**
      * Process a ResourceChangedData message.
      */
     public void process(Message<ResourceChangedData> resourceChangedMessage) {
-        MessageHeaders headers = resourceChangedMessage.getHeaders();
-
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
+        final String resourceUri = payload.getResourceUri();
         final Map<String, Object> logMap = new HashMap<>();
 
-        // the resource_id field returned represents the charges record's company number
-        final Optional<String> companyNumberOptional =
-                extractCompanyNumber(payload.getResourceUri());
-        companyNumberOptional.orElseThrow(
-                () -> new NonRetryableErrorException("Unable to extract company number due to "
-                        + "invalid resource uri in the message")
-        );
+        final Optional<String> companyNumberOptional = extractCompanyNumber(resourceUri);
+        var companyNumber = companyNumberOptional.orElseThrow(
+                () -> new NonRetryableErrorException(String.format(
+                        "Unable to extract company number due to "
+                                + "invalid resource uri %s in message with contextId %s",
+                        resourceUri, logContext)));
 
-        companyNumberOptional.ifPresent(companyNumber -> {
-            logger.trace(String.format("Resource changed message of kind %s "
-                    + "for company number %s retrieved", payload.getResourceKind(), companyNumber));
+        logger.trace(String.format("Resource changed message for event of kind %s "
+                        + "for company number %s with contextId %s retrieved",
+                payload.getResourceKind(), companyNumber, logContext));
 
-            final ApiResponse<CompanyProfile> response =
-                    getCompanyProfileApi(logContext, logMap, companyNumber);
+        final ApiResponse<CompanyProfile> response =
+                companyProfileService.getCompanyProfile(logContext, companyNumber);
+        handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
+                "GET company-profile-api", companyNumber, logMap);
 
-            ApiResponse<Void> patchResponse = processCompanyProfileUpdates(logContext,
-                    companyNumber, response,
-                    payload, headers);
-            if (patchResponse != null) {
-                handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                        "Response from PATCH call to company profile api", logMap);
-            }
-        });
-    }
-
-    ApiResponse<Void> processCompanyProfileUpdates(String logContext,
-                                                   String companyNumber,
-                                                   ApiResponse<CompanyProfile> response,
-                                                   ResourceChangedData payload,
-                                                   MessageHeaders headers) {
         var data = response.getData().getData();
-        if (doesCompanyProfileHaveCharges(companyNumber, data)) {
-            return null;
+
+        // if no charges then update company profile
+        if (!doesCompanyProfileHaveCharges(logContext, companyNumber, data.getLinks())) {
+            var patchResponse = updateCompanyProfileWithCharges(
+                    logContext, companyNumber, data);
+            handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
+                    "PATCH company-profile-api", companyNumber, logMap);
         }
-        return updateCompanyProfileWithCharges(logContext, companyNumber, data,
-                payload, headers);
     }
 
     ApiResponse<Void> updateCompanyProfileWithCharges(String logContext,
-                                                      String companyNumber, Data data,
-                                                      ResourceChangedData payload,
-                                                      MessageHeaders headers) {
-        logger.trace(String.format("Current company profile with company number %s,"
-                        + " does not contain charges link, attaching charges link",
-                        companyNumber));
+                                                      String companyNumber,
+                                                      Data data) {
+        logger.trace(String.format("Message with contextId %s and company number %s -"
+                        + "company profile does not contain charges link, attaching charges link",
+                logContext, companyNumber));
 
         Links links = data.getLinks() == null ? new Links() : data.getLinks();
 
@@ -165,38 +153,20 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         data.setLinks(links);
         var companyProfile = new CompanyProfile();
         companyProfile.setData(data);
-        final ApiResponse<Void> patchResponse =
-                companyProfileService.patchCompanyProfile(
+
+        return companyProfileService.patchCompanyProfile(
                         logContext, companyNumber, companyProfile
                 );
-
-        logger.trace(String.format("Performing a PATCH with new company profile %s",
-                companyProfile));
-        return patchResponse;
     }
 
-    boolean doesCompanyProfileHaveCharges(String companyNumber, Data data) {
-
-        Links links = data.getLinks();
-        if (links != null && links.getCharges() != null) {
-            logger.trace(String.format("Company profile with company number %s,"
-                            + " already contains charges links, will not perform patch",
-                    companyNumber));
-            return true;
+    boolean doesCompanyProfileHaveCharges(String logContext, String companyNumber, Links links) {
+        boolean hasCharges = (links != null && links.getCharges() != null);
+        if (hasCharges) {
+            logger.trace(String.format("Message with contextId %s and company number %s -"
+                            + "company profile contains charges links, will not perform patch",
+                    logContext, companyNumber));
         }
-        return false;
-    }
-
-    ApiResponse<CompanyProfile> getCompanyProfileApi(String logContext,
-                                                     Map<String, Object> logMap,
-                                                     String companyNumber) {
-        final ApiResponse<CompanyProfile> response =
-                companyProfileService.getCompanyProfile(logContext, companyNumber);
-        logger.trace(String.format("Retrieved company profile for company number %s: %s",
-                companyNumber, response.getData()));
-        handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "Response from GET call to company profile api", logMap);
-        return response;
+        return hasCharges;
     }
 
     Optional<String> extractCompanyNumber(String resourceUri) {

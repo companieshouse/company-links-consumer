@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.steps;
 
+import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;

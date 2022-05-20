@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.steps;
 
+import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -18,7 +19,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
@@ -29,15 +29,9 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class CompanyLinksSteps {
+public class InsolvencyStreamConsumerSteps {
 
     public static final String RETRY_TOPIC_ATTEMPTS = "retry_topic-attempts";
-
-    @Value("${company-links.consumer.insolvency.topic}")
-    private String insolvancyTopic;
-
-    @Value("${company-links.consumer.charges.topic}")
-    private String chargesTopic;
 
     private String companyNumber;
 
@@ -72,29 +66,18 @@ public class CompanyLinksSteps {
     public void a_message_is_published_to_topic_for_company_number_to_update_links(String topicName, String companyNumber)
             throws InterruptedException {
         this.companyNumber = companyNumber;
-        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,false);
+        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,"profile-with-out-links.json");
         kafkaTemplate.send(topicName, createMessage(this.companyNumber, topicName));
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
         countDownLatch.await(5, TimeUnit.SECONDS);
     }
 
-/*    @Given("company insolvency links exist for companyNumber {string}")
-    public void company_insolvency_links_exist_for_company_number(String companyNumber) throws InterruptedException {
-        this.companyNumber = companyNumber;
-
-        WiremockTestConfig.stubUpdateConsumerLinks(false);
-        kafkaTemplate.send(topic, createMessage(this.companyNumber));
-
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
-    }*/
-
     @When("a message is published to {string} topic for companyNumber {string} to update links with a null attribute")
     public void a_message_is_published_to_topic_for_company_number_to_update_links_with_a_null_attribute(String topicName, String companyNumber)
             throws InterruptedException {
         this.companyNumber = companyNumber;
-        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,true);
+        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,"profile-with-null-attribute.json");
         kafkaTemplate.send(topicName, createMessage(this.companyNumber, topicName));
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -135,7 +118,7 @@ public class CompanyLinksSteps {
         this.companyNumber = companyNumber;
         removeAllMappings();
         this.uuid = UUID.randomUUID();
-        WiremockTestConfig.stubGetCompanyInsolvencyWithoutLinks(this.companyNumber, 200);
+        WiremockTestConfig.stubGetCompanyProfile(this.companyNumber, 200, "profile-with-out-links");
         stubFor(
                 patch(urlEqualTo("/company/" + this.companyNumber + "/links")).withId(this.uuid)
                         .withRequestBody(containing("00006400"))
@@ -216,9 +199,7 @@ public class CompanyLinksSteps {
     @Then("the message should be moved to topic {string}")
     public void the_message_should_be_moved_to_topic(String topic) {
         ConsumerRecord<String, Object> singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, topic);
-
         assertThat(singleRecord.value()).isNotNull();
-
     }
 
     @Then("the message should be moved to topic {string} after retry attempts of {string}")
@@ -230,9 +211,7 @@ public class CompanyLinksSteps {
         List<Header> retryList = StreamSupport.stream(singleRecord.headers().spliterator(), false)
                 .filter(header -> header.key().equalsIgnoreCase(RETRY_TOPIC_ATTEMPTS))
                 .collect(Collectors.toList());
-
         assertThat(retryList.size()).isEqualTo(Integer.parseInt(retryAttempts));
-
     }
 
 

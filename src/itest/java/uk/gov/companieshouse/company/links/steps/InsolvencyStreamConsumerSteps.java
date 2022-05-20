@@ -65,7 +65,7 @@ public class InsolvencyStreamConsumerSteps {
     public void a_message_is_published_to_topic_for_company_number_to_update_links(String topicName, String companyNumber)
             throws InterruptedException {
         this.companyNumber = companyNumber;
-        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,false);
+        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,"profile-with-out-links.json");
         kafkaTemplate.send(topicName, createMessage(this.companyNumber, topicName));
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -76,7 +76,7 @@ public class InsolvencyStreamConsumerSteps {
     public void a_message_is_published_to_topic_for_company_number_to_update_links_with_a_null_attribute(String topicName, String companyNumber)
             throws InterruptedException {
         this.companyNumber = companyNumber;
-        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,true);
+        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,"profile-with-null-attribute.json");
         kafkaTemplate.send(topicName, createMessage(this.companyNumber, topicName));
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -117,7 +117,7 @@ public class InsolvencyStreamConsumerSteps {
         this.companyNumber = companyNumber;
         removeAllMappings();
         this.uuid = UUID.randomUUID();
-        WiremockTestConfig.stubGetCompanyProfile(this.companyNumber, 200, "");
+        WiremockTestConfig.stubGetCompanyProfile(this.companyNumber, 200, "profile-with-out-links");
         stubFor(
                 patch(urlEqualTo("/company/" + this.companyNumber + "/links")).withId(this.uuid)
                         .withRequestBody(containing("00006400"))

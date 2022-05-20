@@ -43,14 +43,6 @@ public class WiremockTestConfig {
         start();
     }
 
-    public static void stubUpdateConsumerLinks(String companyNumber, boolean nullAttributeFlag) {
-        if (nullAttributeFlag) {
-            stubUpdateConsumerLinks(companyNumber, "profile-with-null-attribute.json");
-        } else {
-            stubUpdateConsumerLinks(companyNumber, "profile-with-out-links.json");
-        }
-    }
-
     public static void stubUpdateConsumerLinks(String companyNumber, String fileToLoad) {
         String response = loadFile(fileToLoad);
 

@@ -75,7 +75,6 @@ public class ChargesStreamRetryStepDefs {
     @Then("Metrics Data API endpoint is never invoked")
     public void metrics_data_api_endpoint_is_never_invoked() {
         verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/metrics")));
-        WiremockTestConfig.stop();
     }
 
     @When("A valid message in avro format message with an invalid url format is sent in resource_uri attribute to the Kafka topic {string}")
@@ -133,11 +132,6 @@ public class ChargesStreamRetryStepDefs {
                 .filter(header -> header.key().equalsIgnoreCase(RETRY_TOPIC_ATTEMPTS))
                 .collect(Collectors.toList());
         assertThat(retryList.size()).isEqualTo(Integer.parseInt(numberOfAttempts.toString()));
-    }
-
-    @Then("On retry exhaustion the message is finally sent into {string} topic")
-    public void on_retry_exhaustion_the_message_is_finally_sent_into_topic(String topicName) {
-        WiremockTestConfig.stop();
     }
 
     private ResourceChangedData createChargesMessage(String companyNumber, String resourceUri) {

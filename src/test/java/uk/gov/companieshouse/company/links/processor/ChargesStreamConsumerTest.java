@@ -3,6 +3,7 @@ package uk.gov.companieshouse.company.links.processor;
 import java.io.InputStreamReader;
 import java.util.Objects;
 import java.util.Optional;
+import javax.validation.Valid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -433,7 +434,10 @@ class ChargesStreamConsumerTest {
         verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
                 any(CompanyProfile.class));
         assertEquals(1, argument.getAllValues().size());
-        Links links = argument.getValue().getData().getLinks();
+
+        Data data = argument.getValue().getData();
+        assertTrue(data.getHasCharges());
+        Links links = data.getLinks();
         assertNotNull(links);
         assertEquals(String.format(TestData.COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER), links.getCharges());
         verifyNoMoreInteractions(companyProfileService);

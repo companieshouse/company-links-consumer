@@ -151,6 +151,7 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
 
         links.setCharges(String.format("/company/%s/charges", companyNumber));
         data.setLinks(links);
+        data.setHasCharges(true);
         var companyProfile = new CompanyProfile();
         companyProfile.setData(data);
 

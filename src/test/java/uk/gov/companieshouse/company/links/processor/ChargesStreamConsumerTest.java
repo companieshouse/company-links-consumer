@@ -3,6 +3,8 @@ package uk.gov.companieshouse.company.links.processor;
 import java.io.InputStreamReader;
 import java.util.Objects;
 import java.util.Optional;
+import javax.validation.Valid;
+import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -107,17 +109,6 @@ class ChargesStreamConsumerTest {
         verify(companyProfileService, never()).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
                 any(CompanyProfile.class));
         verifyNoMoreInteractions(companyProfileService);
-
-        verify(logger, times(2)).trace(anyString());
-        verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message for deleted event of kind company-charges for company number"));
-        verify(logger, atLeastOnce()).trace(String.format("Company profile with company number %s," +
-                        " does not contain charges links, will not perform DELETE for contextId %s",
-                MOCK_COMPANY_NUMBER, CONTEXT_ID));
-
-        verify(logger, times(1)).info(anyString());
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked GET company-profile-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
     }
 
     @Test
@@ -156,23 +147,11 @@ class ChargesStreamConsumerTest {
             any(CompanyProfile.class));
         // here we should check that the profile has been correctly updated for the call
         assertEquals(1, argument.getAllValues().size()); // should have only captured 1 argument
-        assertNotNull(argument.getValue().getData().getLinks()); // we have links
-        assertNull(argument.getValue().getData().getLinks().getCharges()); // and the charges link is as expected
+        Data data = argument.getValue().getData();
+        assertNotNull(data.getLinks()); // we have links
+        assertNull(data.getLinks().getCharges()); // and the charges link is as expected
+        assertFalse(data.getHasCharges());
         verifyNoMoreInteractions(companyProfileService);
-
-        verify(logger, times(2)).trace(anyString());
-        verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message for deleted event of kind company-charges for company number"));
-        verify(logger, atLeastOnce()).trace(String.format("Performing a PATCH with company number %s" +
-                " for contextId %s", MOCK_COMPANY_NUMBER, CONTEXT_ID));
-
-        verify(logger, times(3)).info(anyString());
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked GET company-profile-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked GET charges-data-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked PATCH company-profile-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
     }
 
     @Test
@@ -185,8 +164,6 @@ class ChargesStreamConsumerTest {
 
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
             HttpStatus.OK.value(), null, companyProfile);
-        final ApiResponse<CompanyProfile> updatedCompanyProfileApiResponse = new ApiResponse<>(
-            HttpStatus.OK.value(), null, null);
 
         final ChargesApi hasCharges = new ChargesApi();
         hasCharges.setTotalCount(1);
@@ -206,18 +183,6 @@ class ChargesStreamConsumerTest {
         verify(companyProfileService, never()).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
             any(CompanyProfile.class));
         verifyNoMoreInteractions(companyProfileService);
-
-        verify(logger, times(2)).trace(anyString());
-        verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message for deleted event of kind company-charges for company number"));
-        verify(logger, atLeastOnce()).trace(String.format("Nothing to PATCH with company number %s for contextId %s,"
-                        + " charges link not removed", MOCK_COMPANY_NUMBER, CONTEXT_ID));
-
-        verify(logger, times(2)).info(anyString());
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked GET company-profile-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked GET charges-data-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
     }
 
     /*
@@ -258,19 +223,6 @@ class ChargesStreamConsumerTest {
         String links = argument.getValue().getData().getLinks().getCharges();
         assertEquals(TestData.COMPANY_CHARGES_LINK, links); // and the charges link is as expected
         verifyNoMoreInteractions(companyProfileService);
-
-        verify(logger, times(2)).trace(anyString());
-        verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message for event of kind company-charges for company number"));
-        verify(logger, atLeastOnce()).trace(String.format("Message with contextId %s and company number %s -company profile" +
-                        " does not contain charges link, attaching charges link",
-                CONTEXT_ID, MOCK_COMPANY_NUMBER));
-
-        verify(logger, times(2)).info(anyString());
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked GET company-profile-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked PATCH company-profile-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
     }
 
     @Test
@@ -304,17 +256,6 @@ class ChargesStreamConsumerTest {
                 any(CompanyProfile.class));
 
         verifyNoMoreInteractions(companyProfileService);
-
-        verify(logger, times(2)).trace(anyString());
-        verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message for event of kind company-charges for company number"));
-        verify(logger, atLeastOnce()).trace(String.format("Message with contextId %s and company number %s -" +
-                        "company profile contains charges links, will not perform patch",
-                CONTEXT_ID, MOCK_COMPANY_NUMBER));
-
-        verify(logger, times(1)).info(anyString());
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked GET company-profile-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
     }
 
     @Test
@@ -362,19 +303,6 @@ class ChargesStreamConsumerTest {
         String charges = links.getCharges();
         assertEquals(String.format(TestData.COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER), charges);
         verifyNoMoreInteractions(companyProfileService);
-
-        verify(logger, times(2)).trace(anyString());
-        verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message for event of kind company-charges for company number"));
-        verify(logger, atLeastOnce()).trace(String.format("Message with contextId %s and company number %s -company profile" +
-                        " does not contain charges link, attaching charges link",
-                CONTEXT_ID, MOCK_COMPANY_NUMBER));
-
-        verify(logger, times(2)).info(anyString());
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked GET company-profile-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked PATCH company-profile-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
     }
 
     @Test
@@ -397,17 +325,6 @@ class ChargesStreamConsumerTest {
                 patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
                 any(CompanyProfile.class));
         verifyNoMoreInteractions(companyProfileService);
-
-        verify(logger, times(2)).trace(anyString());
-        verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message for event of kind company-charges for company number"));
-        verify(logger, atLeastOnce()).trace(String.format("Message with contextId %s and company number %s -" +
-                        "company profile contains charges links, will not perform patch",
-                CONTEXT_ID, MOCK_COMPANY_NUMBER));
-
-        verify(logger, times(1)).info(anyString());
-        verify(logger, atLeastOnce()).info(String.format("Successfully invoked GET company-profile-api endpoint for " +
-                "message with contextId %s and company number %s", CONTEXT_ID, MOCK_COMPANY_NUMBER));
     }
 
     @Test
@@ -433,7 +350,10 @@ class ChargesStreamConsumerTest {
         verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
                 any(CompanyProfile.class));
         assertEquals(1, argument.getAllValues().size());
-        Links links = argument.getValue().getData().getLinks();
+
+        Data data = argument.getValue().getData();
+        assertTrue(data.getHasCharges());
+        Links links = data.getLinks();
         assertNotNull(links);
         assertEquals(String.format(TestData.COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER), links.getCharges());
         verifyNoMoreInteractions(companyProfileService);
@@ -474,6 +394,7 @@ class ChargesStreamConsumerTest {
         verify(companyProfileService, times(0)).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
                 any(CompanyProfile.class));
     }
+
 
     private Message<ResourceChangedData> createResourceChangedMessageWithDeletedChargesEvent() throws IOException {
         InputStreamReader exampleInsolvencyJsonPayload = new InputStreamReader(
@@ -518,16 +439,6 @@ class ChargesStreamConsumerTest {
                 any(CompanyProfile.class));
 
         verifyNoMoreInteractions(companyProfileService);
-
-        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
-        verify(companyProfileService, times(0)).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
-                any(CompanyProfile.class));
-
-        verifyNoMoreInteractions(companyProfileService);
-
-        verify(logger, times(1)).errorContext(any(), any(), any(), any());
-        verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
-                eq("Response from GET company-profile-api"), eq(null), any());
     }
 
     @Test
@@ -553,16 +464,6 @@ class ChargesStreamConsumerTest {
                 any(CompanyProfile.class));
 
         verifyNoMoreInteractions(companyProfileService);
-
-        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
-        verify(companyProfileService, times(1)).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
-                any(CompanyProfile.class));
-
-        verifyNoMoreInteractions(companyProfileService);
-
-        verify(logger, times(1)).errorContext(any(), any(), any(), any());
-        verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
-                eq("Response from PATCH company-profile-api"), eq(null), any());
     }
 
 

@@ -10,8 +10,13 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static uk.gov.companieshouse.company.links.consumer.TestData.RESOURCE_KIND_CHARGES;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
@@ -20,6 +25,7 @@ import io.cucumber.java.en.When;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
@@ -32,6 +38,7 @@ import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
+import uk.gov.companieshouse.api.company.Data;
 
 public class ChargesStreamConsumerSteps {
 
@@ -51,7 +58,6 @@ public class ChargesStreamConsumerSteps {
 
     @Given("Company profile stubbed with zero charges links for {string}")
     public void company_profile_exists_without_charges(String companyNumber) {
-        WiremockTestConfig.setupWiremock();
         this.companyNumber = companyNumber;
         setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-out-charges.json", companyNumber));
      }
@@ -76,9 +82,15 @@ public class ChargesStreamConsumerSteps {
     }
 
     @Then("The message is successfully consumed and company-profile-api PATCH endpoint is invoked with charges link payload")
-    public void patchEdpointIsCalled(){
+    public void patchEdpointIsCalled() throws JsonProcessingException {
+        List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
+        assertEquals(2, events.size());
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+
+        String requestBody = new String(events.get(0).getRequest().getBody());
+        assertTrue(requestBody.contains("company_number\":\""+companyNumber));
+        assertTrue(requestBody.contains("has_charges\":true"));
     }
 
     private void setGetAndPatchStubsFor(String response){

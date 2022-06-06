@@ -31,7 +31,7 @@ public class WiremockTestConfig {
         }
     }
 
-    public static  List<ServeEvent> getEvents() {
+    public static List<ServeEvent> getWiremockEvents(){
         return wireMockServer.getAllServeEvents();
     }
 

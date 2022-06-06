@@ -53,6 +53,7 @@ public class InsolvencyStreamConsumerSteps {
     public void company_links_consumer_api_service_is_running() {
         WiremockTestConfig.setupWiremock();
         assertThat(companyProfileService).isNotNull();
+        WiremockTestConfig.setupWiremock();
     }
 
     @When("a message is published to {string} topic for companyNumber {string} to update links")

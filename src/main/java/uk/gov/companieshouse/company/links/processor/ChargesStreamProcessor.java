@@ -84,6 +84,7 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
 
         if (chargesResponse.getData().getTotalCount() == 0) {
             links.setCharges(null);
+            data.setHasCharges(false);
             CompanyProfile companyProfile = new CompanyProfile();
             companyProfile.setData(data);
 

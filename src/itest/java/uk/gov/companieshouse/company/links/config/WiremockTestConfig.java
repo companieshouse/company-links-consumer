@@ -85,6 +85,14 @@ public class WiremockTestConfig {
                                 .withBody(response)));
     }
 
+    public static void stubGetInsolvency(String companyNumber, int statusCode) {
+        stubFor(
+                get(urlEqualTo("/company/" + companyNumber + "/insolvency"))
+                        .withRequestBody(containing("/company/" + companyNumber + "/insolvency"))
+                        .willReturn(aResponse()
+                                .withStatus(statusCode)));
+    }
+
     public static String loadFile(String fileName) {
         try {
             return FileUtils.readFileToString(ResourceUtils.getFile("classpath:stubs/"+fileName), StandardCharsets.UTF_8);

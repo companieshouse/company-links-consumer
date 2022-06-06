@@ -90,10 +90,10 @@ class CompanyProfileServiceTest {
     }
 
     @Test
-    @DisplayName("Given a company number with no matching company profile, return 404 not found")
+    @DisplayName("Given a company number with no matching company profile, return 410 Gone")
     void getCompanyProfileNotFound() throws ApiErrorResponseException, URIValidationException {
         final HttpResponseException httpResponseException = new HttpResponseException.Builder(
-                HttpStatus.NOT_FOUND.value(), HttpStatus.NOT_FOUND.getReasonPhrase(), new
+                HttpStatus.GONE.value(), HttpStatus.GONE.getReasonPhrase(), new
                 HttpHeaders()).build();
 
         when(companyResourceHandler.getCompanyProfile(MOCK_COMPANY_LINKS_URI)).thenReturn(privateCompanyProfileGet);

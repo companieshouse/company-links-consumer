@@ -24,13 +24,14 @@ Feature: Process company links information for error scenarios
 
     Given Company links consumer api service is running
     When a message is published to "stream-company-insolvency" topic for companyNumber "<companyNumber>" to check for links with status code "<statusCode>"
+    When calling GET insolvency-data-api with companyNumber "<companyNumber>" returns status code "<insolvencyStatusCode>"
     Then the message should be moved to topic "<topicName>" after retry attempts of "<retryAttempts>"
 
     Examples:
-      | companyNumber | statusCode | topicName                                                | retryAttempts |
-      | 00006400      | 400        | stream-company-insolvency-company-links-consumer-invalid | 0             |
-      | 00006400      | 503        | stream-company-insolvency-company-links-consumer-error   | 4             |
-      | 00006400      | 404        | stream-company-insolvency-company-links-consumer-error   | 4             |
+      | companyNumber | statusCode | insolvencyStatusCode | topicName                                                | retryAttempts |
+      | 00006400      | 400        | 200                  | stream-company-insolvency-company-links-consumer-invalid | 0             |
+      | 00006400      | 503        | 200                  | stream-company-insolvency-company-links-consumer-error   | 4             |
+      | 00006400      | 404        | 200                  | stream-company-insolvency-company-links-consumer-error   | 4             |
 
 
   Scenario Outline: Handle 2xx error from downstream call with the response throwing NPE

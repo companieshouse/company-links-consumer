@@ -75,6 +75,15 @@ public class InsolvencyStreamConsumerSteps {
         countDownLatch.await(5, TimeUnit.SECONDS);
     }
 
+    @When("calling GET insolvency-data-api with companyNumber {string} returns status code {string}")
+    public void call_to_insolvency_data_api_with_company_number_returns_status_code(String companyNumber, String statusCode)
+            throws InterruptedException {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode));
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        countDownLatch.await(5, TimeUnit.SECONDS);
+    }
 
     @When("a message is published to {string} topic for companyNumber {string} to check for links with status code {string}")
     public void a_message_is_published_to_topic_for_company_number_to_check_for_links_with_status_code(String topicName, String companyNumber, String statusCode)

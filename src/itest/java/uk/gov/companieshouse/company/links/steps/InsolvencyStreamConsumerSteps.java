@@ -19,6 +19,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
@@ -46,19 +48,10 @@ public class InsolvencyStreamConsumerSteps {
     @Autowired
     public KafkaConsumer<String, Object> kafkaConsumer;
 
-    @Before
-    public static void before_each() {
-        WiremockTestConfig.setupWiremock();
-    }
-
-    @After
-    public static void after_each() {
-        WiremockTestConfig.stop();
-    }
-
 
     @Given("Company links consumer api service is running")
     public void company_links_consumer_api_service_is_running() {
+        WiremockTestConfig.setupWiremock();
         assertThat(companyProfileService).isNotNull();
     }
 

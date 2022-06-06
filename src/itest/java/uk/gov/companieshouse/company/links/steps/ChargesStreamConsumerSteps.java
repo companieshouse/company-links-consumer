@@ -49,18 +49,9 @@ public class ChargesStreamConsumerSteps {
     @Autowired
     public KafkaConsumer<String, Object> kafkaConsumer;
 
-    @Before
-    public static void before_each() {
-        WiremockTestConfig.setupWiremock();
-    }
-
-    @After
-    public static void after_each() {
-        WiremockTestConfig.stop();
-    }
-
     @Given("Company profile stubbed with zero charges links for {string}")
     public void company_profile_exists_without_charges(String companyNumber) {
+        WiremockTestConfig.setupWiremock();
         this.companyNumber = companyNumber;
         setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-out-charges.json", companyNumber));
      }
@@ -82,14 +73,12 @@ public class ChargesStreamConsumerSteps {
     public void patchEndpointNotCalled(){
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
-        WiremockTestConfig.stop();
     }
 
     @Then("The message is successfully consumed and company-profile-api PATCH endpoint is invoked with charges link payload")
     public void patchEdpointIsCalled(){
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
-        WiremockTestConfig.stop();
     }
 
     private void setGetAndPatchStubsFor(String response){

@@ -8,8 +8,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.patch;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.springframework.util.ResourceUtils;
 
@@ -22,25 +24,15 @@ public class WiremockTestConfig {
     public static void setupWiremock() {
         if (wireMockServer == null) {
             wireMockServer = new WireMockServer(Integer.parseInt(port));
-            start();
+            wireMockServer.start();
             configureFor("localhost", Integer.parseInt(port));
         } else {
-            restart();
+            wireMockServer.resetAll();
         }
     }
 
-    public static void start() {
-        wireMockServer.start();
-    }
-
-    public static void stop() {
-        wireMockServer.resetAll();
-        wireMockServer.stop();
-    }
-
-    public static void restart() {
-        stop();
-        start();
+    public static  List<ServeEvent> getEvents() {
+        return wireMockServer.getAllServeEvents();
     }
 
     public static void stubUpdateConsumerLinks(String companyNumber, String fileToLoad) {

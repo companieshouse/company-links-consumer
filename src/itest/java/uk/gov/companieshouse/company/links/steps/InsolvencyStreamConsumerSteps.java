@@ -46,20 +46,11 @@ public class InsolvencyStreamConsumerSteps {
     @Autowired
     public KafkaConsumer<String, Object> kafkaConsumer;
 
-    @Before
-    public static void before_each() {
-        WiremockTestConfig.setupWiremock();
-    }
-
-    @After
-    public static void after_each() {
-        WiremockTestConfig.stop();
-    }
-
 
     @Given("Company links consumer api service is running")
     public void company_links_consumer_api_service_is_running() {
         assertThat(companyProfileService).isNotNull();
+        WiremockTestConfig.setupWiremock();
     }
 
     @When("a message is published to {string} topic for companyNumber {string} to update links")

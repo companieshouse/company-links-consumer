@@ -12,6 +12,7 @@ import com.github.tomakehurst.wiremock.admin.model.ServeEventQuery;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -24,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
+import uk.gov.companieshouse.company.links.service.CompanyInsolvencyService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -43,6 +45,9 @@ public class InsolvencyStreamConsumerSteps {
     private CompanyProfileService companyProfileService;
 
     @Autowired
+    private CompanyInsolvencyService companyInsolvencyService;
+
+    @Autowired
     public KafkaTemplate<String, Object> kafkaTemplate;
 
     @Autowired
@@ -56,11 +61,18 @@ public class InsolvencyStreamConsumerSteps {
         WiremockTestConfig.setupWiremock();
     }
 
+    @And("Company insolvency api service is running")
+    public void company_insolvency_api_service_is_running() {
+        assertThat(companyInsolvencyService).isNotNull();
+        WiremockTestConfig.setupWiremock();
+    }
+
     @When("a message is published to {string} topic for companyNumber {string} to update links")
     public void a_message_is_published_to_topic_for_company_number_to_update_links(String topicName, String companyNumber)
             throws InterruptedException {
         this.companyNumber = companyNumber;
         WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,"profile-with-out-links.json");
+        WiremockTestConfig.stubGetInsolvency(companyNumber, 200, "insolvency_output");
         kafkaTemplate.send(topicName, createMessage(this.companyNumber, topicName));
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -86,6 +98,25 @@ public class InsolvencyStreamConsumerSteps {
         WiremockTestConfig.stubGetConsumerLinksWithProfileLinks(companyNumber, Integer.parseInt(statusCode));
 
         kafkaTemplate.send(topicName, createMessage(companyNumber, topicName));
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        countDownLatch.await(5, TimeUnit.SECONDS);
+    }
+
+    @When("calling GET insolvency-data-api with companyNumber {string} returns status code {string} and insolvency is gone")
+    public void call_to_insolvency_data_api_with_company_number_returns_status_code(String companyNumber, String statusCode)
+            throws InterruptedException {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode), "");
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        countDownLatch.await(5, TimeUnit.SECONDS);
+    }
+
+    @When("calling GET insolvency-data-api with companyNumber {string} returns status code \"200\"")
+    public void call_to_insolvency_data_api_with_company_number_returns_status_code_200(String companyNumber)
+            throws InterruptedException {
+        this.companyNumber = companyNumber;
+
         CountDownLatch countDownLatch = new CountDownLatch(1);
         countDownLatch.await(5, TimeUnit.SECONDS);
     }
@@ -156,11 +187,13 @@ public class InsolvencyStreamConsumerSteps {
     public void verify_the_patch_endpoint_is_never_invoked_to_delete_company_links() {
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+        verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/insolvency")));
     }
 
     @Then("the Company Links Consumer should send a GET request to the Company Profile API")
     public void the_company_links_consumer_should_send_a_get_request_to_the_company_profile_api() {
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+        verify(0, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/insolvency")));
         verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
 
     }
@@ -168,6 +201,7 @@ public class InsolvencyStreamConsumerSteps {
     @Then("the Company Links Consumer should send a PATCH request to the Company Profile API")
     public void the_company_links_consumer_should_send_a_patch_request_to_the_company_profile_api() {
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+        verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/insolvency")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links"))
                 .withRequestBody(containing("/company/" + this.companyNumber + "/insolvency")));
 

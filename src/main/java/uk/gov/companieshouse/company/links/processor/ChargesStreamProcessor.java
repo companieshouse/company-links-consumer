@@ -18,6 +18,7 @@ import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.service.ChargesService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
+import uk.gov.companieshouse.company.links.type.ApiType;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
@@ -64,7 +65,7 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "GET company-profile-api", companyNumber, logMap);
+                "GET", ApiType.COMPANY_PROFILE, companyNumber, logMap);
 
         var data = response.getData().getData();
         var links = data.getLinks();
@@ -80,7 +81,7 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
                 logContext, companyNumber);
 
         handleResponse(HttpStatus.valueOf(chargesResponse.getStatusCode()), logContext,
-                "GET charges-data-api", companyNumber, logMap);
+                "GET", ApiType.CHARGES, companyNumber, logMap);
 
         if (chargesResponse.getData().getTotalCount() == 0) {
             links.setCharges(null);
@@ -90,13 +91,11 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
 
             logger.trace(String.format("Performing a PATCH with "
                     + "company number %s for contextId %s", companyNumber, logContext));
-            final ApiResponse<Void> patchResponse =
-                    companyProfileService.patchCompanyProfile(
-                            logContext, companyNumber, companyProfile
-                    );
+            final ApiResponse<Void> patchResponse = companyProfileService.patchCompanyProfile(
+                            logContext, companyNumber, companyProfile);
 
             handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                    "PATCH company-profile-api", companyNumber, logMap);
+                    "PATCH", ApiType.COMPANY_PROFILE, companyNumber, logMap);
         } else {
             logger.trace(String.format(
                     "Nothing to PATCH with company number %s for contextId %s,"
@@ -128,7 +127,7 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "GET company-profile-api", companyNumber, logMap);
+                "GET", ApiType.COMPANY_PROFILE, companyNumber, logMap);
 
         var data = response.getData().getData();
 
@@ -137,7 +136,7 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
             var patchResponse = updateCompanyProfileWithCharges(
                     logContext, companyNumber, data);
             handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                    "PATCH company-profile-api", companyNumber, logMap);
+                    "PATCH", ApiType.COMPANY_PROFILE, companyNumber, logMap);
         }
     }
 

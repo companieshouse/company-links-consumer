@@ -1,23 +1,25 @@
 package uk.gov.companieshouse.company.links.service;
 
+import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.company.CompanyProfile;
-import uk.gov.companieshouse.api.http.ApiKeyHttpClient;
-import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.type.ApiType;
 import uk.gov.companieshouse.logging.Logger;
 
 @Service
 public class CompanyProfileService extends BaseApiClientService {
 
-    @Value("${api.company-profile-api-key}")
+    private Supplier<InternalApiClient> internalApiClientSupplier;
+
+    @Value("${api.api-key}")
     private String companyProfileApiKey;
 
-    @Value("${api.endpoint}")
+    @Value("${api.api-url}")
     private String companyProfileApiUrl;
 
     /**
@@ -25,8 +27,10 @@ public class CompanyProfileService extends BaseApiClientService {
      * @param logger the CH logger
      */
     @Autowired
-    public CompanyProfileService(Logger logger) {
+    public CompanyProfileService(Logger logger,
+                                 Supplier<InternalApiClient> internalApiClientSupplier) {
         super(logger);
+        this.internalApiClientSupplier = internalApiClientSupplier;
     }
 
     /**
@@ -41,25 +45,14 @@ public class CompanyProfileService extends BaseApiClientService {
                         + "and company number %s", contextId, companyNumber));
 
         String uri = String.format("/company/%s/links", companyNumber);
-        return executeOp(contextId, "getCompanyProfileApi", uri,
-            getApiClient(contextId)
-                .privateCompanyResourceHandler()
-                .getCompanyProfile(uri));
-    }
 
-    /**
-     * Get an internal api client instance.
-     */
-    public InternalApiClient getApiClient(String contextId) {
-        InternalApiClient apiClient = new InternalApiClient(getHttpClient(contextId));
-        apiClient.setBasePath(companyProfileApiUrl);
-        return apiClient;
-    }
+        InternalApiClient internalApiClient = internalApiClientSupplier.get();
+        internalApiClient.getHttpClient().setRequestId(contextId);
 
-    private HttpClient getHttpClient(String contextId) {
-        ApiKeyHttpClient httpClient = new ApiKeyHttpClient(companyProfileApiKey);
-        httpClient.setRequestId(contextId);
-        return httpClient;
+        return executeOp(contextId, "GET", ApiType.COMPANY_PROFILE, uri,
+                internalApiClient
+                        .privateCompanyResourceHandler()
+                        .getCompanyProfile(uri));
     }
 
     /**
@@ -75,8 +68,12 @@ public class CompanyProfileService extends BaseApiClientService {
                 + "and company number %s", contextId, companyNumber));
 
         String uri = String.format("/company/%s/links", companyNumber);
-        return executeOp(contextId, "patchCompanyProfileApi", uri,
-                getApiClient(contextId)
+
+        InternalApiClient internalApiClient = internalApiClientSupplier.get();
+        internalApiClient.getHttpClient().setRequestId(contextId);
+
+        return executeOp(contextId, "PATCH", ApiType.COMPANY_PROFILE, uri,
+                internalApiClient
                         .privateCompanyResourceHandler()
                         .patchCompanyProfile(uri, companyProfile));
     }

@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import java.util.Collections;
+import java.util.function.Supplier;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,7 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
@@ -23,6 +24,7 @@ import uk.gov.companieshouse.api.handler.company.PrivateCompanyResourceHandler;
 import uk.gov.companieshouse.api.handler.company.request.PrivateCompanyProfileGet;
 import uk.gov.companieshouse.api.handler.company.request.PrivateCompanyProfilePatch;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
+import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
@@ -43,7 +45,13 @@ class CompanyProfileServiceTest {
     private Logger logger;
 
     @Mock
-    private InternalApiClient apiClient;
+    private Supplier<InternalApiClient> internalApiClientSupplier;
+
+    @Mock
+    private InternalApiClient internalApiClient;
+
+    @Mock
+    HttpClient httpClient;
 
     @Mock
     private PrivateCompanyResourceHandler companyResourceHandler;
@@ -56,9 +64,10 @@ class CompanyProfileServiceTest {
 
     @BeforeEach
     void setup() {
-        companyProfileService = spy(new CompanyProfileService(logger));
-        when(companyProfileService.getApiClient(MOCK_CONTEXT_ID)).thenReturn(apiClient);
-        when(apiClient.privateCompanyResourceHandler()).thenReturn(companyResourceHandler);
+        companyProfileService = spy(new CompanyProfileService(logger, internalApiClientSupplier));
+        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
+        when(internalApiClient.getHttpClient()).thenReturn(httpClient);
+        when(internalApiClient.privateCompanyResourceHandler()).thenReturn(companyResourceHandler);
     }
 
     @Test
@@ -100,10 +109,10 @@ class CompanyProfileServiceTest {
         when(privateCompanyProfileGet.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
-        assertThrows(
-                RetryableErrorException.class,
-                () -> companyProfileService.getCompanyProfile(MOCK_CONTEXT_ID,
-                        MOCK_COMPANY_NUMBER));
+        ApiResponse<CompanyProfile>  response = companyProfileService.getCompanyProfile(MOCK_CONTEXT_ID,
+                MOCK_COMPANY_NUMBER);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND.value());
     }
 
     @Test
@@ -119,11 +128,10 @@ class CompanyProfileServiceTest {
         when(privateCompanyProfileGet.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
-        assertThrows(
-                RetryableErrorException.class,
-                () -> companyProfileService.getCompanyProfile(MOCK_CONTEXT_ID,
-                        MOCK_COMPANY_NUMBER));
+        ApiResponse<CompanyProfile>  response = companyProfileService.getCompanyProfile(MOCK_CONTEXT_ID,
+                MOCK_COMPANY_NUMBER);
 
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
     }
 
     @Test

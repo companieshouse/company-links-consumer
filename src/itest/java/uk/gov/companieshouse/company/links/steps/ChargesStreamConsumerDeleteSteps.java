@@ -11,27 +11,31 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static uk.gov.companieshouse.company.links.consumer.TestData.DELETED;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static uk.gov.companieshouse.company.links.consumer.TestData.EVENT_TYPE_DELETE;
 import static uk.gov.companieshouse.company.links.consumer.TestData.RESOURCE_KIND_CHARGES;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
-import io.cucumber.java.After;
-import io.cucumber.java.Before;
-import io.cucumber.java.en.Given;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.util.ResourceUtils;
 import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
@@ -51,12 +55,50 @@ public class ChargesStreamConsumerDeleteSteps {
     @Autowired
     public KafkaConsumer<String, Object> kafkaConsumer;
 
-    @Given ("Company profile stubbed with charges links for {string}")
-    public void stubforCompanyNumber(String companyNumber){
+    @And("stubbed set with {string} and {string} for {string}")
+    public void stubforCompanyNumberUsingResonseFiles(String linksResponseFile, String chargesResponse, String companyNumber){
         this.companyNumber = companyNumber;
         setGetAndPatchStubsFor(
-                loadFileForCoNumber("profile-with-charges-links.json", this.companyNumber),
-                loadFileForCoNumber("charges-absent-output.json", this.companyNumber));
+            loadFileForCoNumber(linksResponseFile, this.companyNumber),
+            loadFileForCoNumber(chargesResponse, this.companyNumber));
+    }
+
+    @And("stubbed set with {string} for {string} and getCharges give {int}")
+    public void stubforCompanyProfileNumberUsingResonse(String linksResponseFile, String companyNumber, int chargesResponce){
+        this.companyNumber = companyNumber;
+        setGetStubsForWithChargesResponse(
+            loadFileForCoNumber(linksResponseFile, this.companyNumber),chargesResponce);
+    }
+
+    @And("stubbed set with {string} and {string} for {string} but patch enpoint give {int}")
+    public void stubforCompanyNumberUsingResonseFiles(String linksResponseFile, String chargesResponse, String companyNumber, int patchResponse){
+        this.companyNumber = companyNumber;
+        setGetStubsForWithPatchResonseResponse(
+            loadFileForCoNumber(linksResponseFile, companyNumber), loadFileForCoNumber(chargesResponse, companyNumber), patchResponse);
+    }
+
+    private void setGetStubsForWithPatchResonseResponse(String linksResponse, String chargesResponse, int patchResponse){
+        stubFor(
+            get(urlEqualTo("/company/" + companyNumber + "/links"))
+                .willReturn(aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(linksResponse)));
+
+        stubFor(
+            get(urlEqualTo("/company/" + companyNumber + "/charges"))
+                .willReturn(aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(chargesResponse)));
+
+
+        stubFor(
+            patch(urlEqualTo("/company/" + companyNumber + "/links"))
+                .withRequestBody(containing("\"company_number\":\"" +
+                    companyNumber + "\""))
+                .willReturn(aResponse()
+                    .withStatus(patchResponse)));
     }
 
     private String loadFileForCoNumber(String fileName, String companyNumber) {
@@ -68,6 +110,20 @@ public class ChargesStreamConsumerDeleteSteps {
         }
     }
 
+    private void setGetStubsForWithChargesResponse(String linksResponse, int chargesResponse){
+        stubFor(
+            get(urlEqualTo("/company/" + companyNumber + "/links"))
+                .willReturn(aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(linksResponse)));
+
+        stubFor(
+            get(urlEqualTo("/company/" + companyNumber + "/charges"))
+                .willReturn(aResponse()
+                    .withStatus(chargesResponse)));
+    }
+
     private void setGetAndPatchStubsFor(String linksResponse, String chargesResponse){
         stubFor(
             get(urlEqualTo("/company/" + companyNumber + "/links"))
@@ -76,18 +132,18 @@ public class ChargesStreamConsumerDeleteSteps {
                     .withHeader("Content-Type", "application/json")
                     .withBody(linksResponse)));
 
-//        stubFor(
-//            get(urlEqualTo("/company/" + companyNumber + "/charges"))
-//                .willReturn(aResponse()
-//                    .withStatus(200)
-//                    .withHeader("Content-Type", "application/json")
-//                    .withBody(chargesResponse)));
+        stubFor(
+            get(urlEqualTo("/company/" + companyNumber + "/charges"))
+                .willReturn(aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(chargesResponse)));
 
 
         stubFor(
             patch(urlEqualTo("/company/" + companyNumber + "/links"))
-                .withRequestBody(containing("\"charges\":\"/company/" +
-                    this.companyNumber + "/charges\""))
+                .withRequestBody(containing("\"company_number\":\"" +
+                    companyNumber + "\""))
                 .willReturn(aResponse()
                     .withStatus(200)));
     }
@@ -98,7 +154,6 @@ public class ChargesStreamConsumerDeleteSteps {
         kafkaTemplate.send(topicName, createChargeDeleteMessage(companyNumber));
         CountDownLatch countDownLatch = new CountDownLatch(1);
         countDownLatch.await(5, TimeUnit.SECONDS);
-
     }
 
     private ResourceChangedData createChargeDeleteMessage(String companyNumber) {
@@ -123,11 +178,50 @@ public class ChargesStreamConsumerDeleteSteps {
     }
 
     @Then ("The message is successfully consumed and company-profile-api PATCH endpoint is invoked removing charges link")
-    public void messageSuccessfullyConsumedCompanyProfilePatchInvokedRemovingChargesLink(){
-        List<ServeEvent> events = WiremockTestConfig.getEvents();
-        assertEquals(2, events.size());
-        verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
-        verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+    @SuppressWarnings("unchecked")
+    public void messageSuccessfullyConsumedCompanyProfilePatchInvokedRemovingChargesLink()
+        throws JsonProcessingException {
+        List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
+        assertEquals(3, events.size());
+        verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));
+        verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/charges")));
+        verify(1, patchRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));
+        Optional<ServeEvent> patch = events.stream()
+            .filter(a -> "PATCH".equals(a.getRequest().getMethod().value())).findFirst();
+        assertTrue(patch.isPresent());
+        String body = new String(patch.get().getRequest().getBody());
+        assertTrue(body.contains("\"has_charges\":false"));
+        ObjectMapper mapper = new ObjectMapper();
+        HashMap<String, HashMap<String, Object>> map = mapper.readValue(body, HashMap.class);//
+        HashMap<String, Object> data = map.get("data");
+        assertFalse((Boolean)data.get("has_charges"));
+        HashMap<String, Object> links = (HashMap<String, Object>)data.get("links");
+        assertNull(links.get("charges"));
     }
 
+    @Then ("The message is successfully consumed and company-profile-api PATCH endpoint is not invoked")
+    public void messageSuccessfullyConsumedCompanyProfilePatchNotInvoked() {
+        verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));
+        verify(0, patchRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));
+     }
+
+
+    @Then ("The message fails to process and retrys {int} times bvefore being sent to the {string}")
+    public void messageIsRetriedBeforeBeingSentToTopic(int retries, String errorTopic) {
+        ConsumerRecord<String, Object>
+            singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, errorTopic);
+
+        assertThat(singleRecord.value()).isNotNull();
+        // verify first attempt + number of retries
+        verify(retries + 1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));
+    }
+
+    @Then ("The message fails to process and sent to the {string}")
+    public void messageIsRetriedBeforeBeingSentToTopic(String invalidTopic) {
+        ConsumerRecord<String, Object>
+            singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, invalidTopic);
+
+        assertThat(singleRecord.value()).isNotNull();
+        verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));
+    }
 }

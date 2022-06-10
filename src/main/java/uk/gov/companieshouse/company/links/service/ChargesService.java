@@ -43,18 +43,11 @@ public class ChargesService extends BaseApiClientService {
 
         Map<String, Object> logMap = createLogMap(companyNumber, "GET", uri);
         logger.infoContext(contextId, String.format("GET %s", uri), logMap);
-        ApiResponse<ChargesApi> result = null;
-        try {
-            result = executeOp(contextId, "getCharges", uri,
-                getApiClient(contextId)
-                    .privateDeltaChargeResourceHandler()
-                    .getCharges(uri));
-        } catch (Exception ex) {
-            String message = ex.getMessage();
-            logger.info(message);
-            throw ex;
-        }
-        return result;
+
+        return executeOp(contextId, "getCharges", uri,
+            getApiClient(contextId)
+                .privateDeltaChargeResourceHandler()
+                .getCharges(uri));
     }
 
     /**

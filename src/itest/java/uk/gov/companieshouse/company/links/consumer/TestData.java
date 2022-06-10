@@ -19,6 +19,7 @@ public class TestData {
     public static final String RESOURCE_KIND_INSOLVENCY = "company-insolvency";
     public static final String CHARGES_RESOURCE_URI = "/company/12345678/charges";
     public static final String INSOLVENCY_RESOURCE_URI = "/company/12345678/insolvency";
+    public static final String EVENT_TYPE_DELETE = "deleted";
 
     public ResourceChangedData getResourceChangedData(String fileName) throws IOException {
         EventRecord event = EventRecord.newBuilder()

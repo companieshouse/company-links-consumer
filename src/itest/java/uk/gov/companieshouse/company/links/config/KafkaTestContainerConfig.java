@@ -111,7 +111,8 @@ public class KafkaTestContainerConfig {
         props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
         KafkaConsumer<String, Object> consumer = new KafkaConsumer<>(props);
         consumer.subscribe(List.of("stream-company-insolvency-company-links-consumer-invalid",
-                "stream-company-insolvency-company-links-consumer-error","stream-company-charges-company-links-consumer-invalid",
+                "stream-company-insolvency-company-links-consumer-error",
+                "stream-company-charges-company-links-consumer-invalid",
                 "stream-company-charges-company-links-consumer-error"));
 
         return consumer;

@@ -1,0 +1,36 @@
+{
+  "etag": null,
+  "total_count": 1,
+  "items": [
+    {
+      "etag": "511db80f474c632e1f33ec0422e18e0a4d20c298",
+      "id": "AbRiNTU3NjNjZWI1Y2YxMzkzYWY3MzQ0YzVlOTg4ZGVhZTBkYWI4Ng==",
+      "classification": {
+        "type": "charge-description",
+        "description": "Legal mortgage"
+      },
+      "chargeNumber": 17,
+      "status": "outstanding",
+      "deliveredOn": {
+        "year": 2008,
+        "month": 5,
+        "day": 13
+      },
+      "createdOn": {
+        "year": 2008,
+        "month": 5,
+        "day": 7
+      },
+      "particulars": {
+        "containsFloatingCharge": false,
+        "containsFixedCharge": false,
+        "floatingChargeCoversAll": false,
+        "containsNegativePledge": false,
+        "chargorActingAsBareTrustee": false
+      },
+      "links": {
+        "charges": "company/%s/charges"
+      }
+    }
+  ]
+}

@@ -52,9 +52,10 @@ public class ChargesStreamConsumer {
                         @Header(KafkaHeaders.OFFSET) String offset) {
         ResourceChangedData payload = resourceChangedMessage.getPayload();
         String logContext = payload.getContextId();
+        logger.info(String.format("A new message successfully picked up from topic: %s, "
+                        + "partition: %s and offset: %s with contextId: %s",
+                topic, partition, offset, logContext));
 
-        logger.info(String.format("A new message successfully picked up "
-                + "from %s topic with contextId: %s", topic, logContext));
         try {
             final boolean deleteEventType = "deleted"
                     .equalsIgnoreCase(payload.getEvent().getType());
@@ -65,9 +66,8 @@ public class ChargesStreamConsumer {
                 chargesProcessor.process(resourceChangedMessage);
             }
         } catch (Exception exception) {
-            logger.error(String.format("Exception occurred while processing the topic %s "
-                            + "with contextId %s, exception thrown is %s",
-                    topic, logContext, exception));
+            logger.error(String.format("Exception occurred while processing the topic: %s "
+                            + "with contextId: %s", topic, logContext), exception);
             throw exception;
         }
 

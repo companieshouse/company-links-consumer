@@ -63,6 +63,8 @@ class InsolvencyStreamProcessorTest {
 
 
         insolvencyProcessor.processDelta(mockResourceChangedMessage);
+
+        verify(companyProfileService).getCompanyProfile("context_id", MOCK_COMPANY_NUMBER);
     }
 
 

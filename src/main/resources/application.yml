@@ -1,7 +1,11 @@
----
+server:
+  port: 8081
+
 spring:
   kafka:
     bootstrap-servers: ${STREAMING_KAFKA_BROKER_URL:localhost:29092}
+    listener:
+      concurrency: ${COMPANY_LINKS_LISTENER_CONCURRENCY:1}
 
 springfox:
   documentation:

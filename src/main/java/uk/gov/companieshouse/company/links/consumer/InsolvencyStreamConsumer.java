@@ -1,6 +1,5 @@
 package uk.gov.companieshouse.company.links.consumer;
 
-import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
@@ -15,7 +14,6 @@ import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.processor.InsolvencyStreamProcessor;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.logging.LoggerFactory;
-import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 
@@ -54,8 +52,10 @@ public class InsolvencyStreamConsumer {
                         @Header(KafkaHeaders.OFFSET) String offset) {
         ResourceChangedData payload = resourceChangedMessage.getPayload();
         String logContext = payload.getContextId();
-        logger.info(String.format("A new message successfully picked up "
-                        + "from %s topic with contextId: %s", topic, logContext));
+        logger.info(String.format("A new message successfully picked up from topic: %s, "
+                        + "partition: %s and offset: %s with contextId: %s",
+                topic, partition, offset, logContext));
+
         try {
             final boolean deleteEventType = "deleted"
                     .equalsIgnoreCase(payload.getEvent().getType());
@@ -66,9 +66,8 @@ public class InsolvencyStreamConsumer {
                 insolvencyProcessor.processDelta(resourceChangedMessage);
             }
         } catch (Exception exception) {
-            logger.error(String.format("Exception occurred while processing the topic %s "
-                            + "with contextId %s, exception thrown is %s",
-                    topic, logContext, exception));
+            logger.error(String.format("Exception occurred while processing the topic: %s "
+                    + "with contextId: %s", topic, logContext), exception);
             throw exception;
         }
     }

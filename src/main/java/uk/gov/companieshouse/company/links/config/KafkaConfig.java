@@ -30,21 +30,23 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 @Profile("!test")
 public class KafkaConfig {
 
-
     private final ResourceChangedDataDeserializer resourceChangedDataDeserializer;
     private final ResourceChangedDataSerializer resourceChangedDataSerializer;
 
     private final String bootstrapServers;
+    private final Integer listenerConcurrency;
 
     /**
      * Constructor.
      */
     public KafkaConfig(ResourceChangedDataDeserializer resourceChangedDataDeserializer,
                        ResourceChangedDataSerializer resourceChangedDataSerializer,
-                       @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers) {
+                       @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
+                       @Value("${spring.kafka.listener.concurrency}") Integer listenerConcurrency) {
         this.resourceChangedDataDeserializer = resourceChangedDataDeserializer;
         this.resourceChangedDataSerializer = resourceChangedDataSerializer;
         this.bootstrapServers = bootstrapServers;
+        this.listenerConcurrency = listenerConcurrency;
     }
 
     /**
@@ -68,10 +70,9 @@ public class KafkaConfig {
                 ResourceChangedDataDeserializer.class);
         props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
                 RetryableTopicErrorInterceptor.class.getName());
-        DefaultKafkaProducerFactory<String, Object> factory = new DefaultKafkaProducerFactory<>(
-                props, new StringSerializer(), resourceChangedDataSerializer);
 
-        return factory;
+        return new DefaultKafkaProducerFactory<>(
+                props, new StringSerializer(), resourceChangedDataSerializer);
     }
 
     @Bean
@@ -88,6 +89,7 @@ public class KafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, ResourceChangedData> factory
                 = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(kafkaConsumerFactory());
+        factory.setConcurrency(listenerConcurrency);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
 
         return factory;

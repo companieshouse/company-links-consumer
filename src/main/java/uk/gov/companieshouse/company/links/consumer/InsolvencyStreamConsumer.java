@@ -1,5 +1,10 @@
 package uk.gov.companieshouse.company.links.consumer;
 
+import static java.lang.String.format;
+
+import java.time.Duration;
+import java.time.Instant;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
@@ -50,11 +55,12 @@ public class InsolvencyStreamConsumer {
                         @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
                         @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
                         @Header(KafkaHeaders.OFFSET) String offset) {
+        Instant startTime = Instant.now();
         ResourceChangedData payload = resourceChangedMessage.getPayload();
-        String logContext = payload.getContextId();
+        String contextId = payload.getContextId();
         logger.info(String.format("A new message successfully picked up from topic: %s, "
                         + "partition: %s and offset: %s with contextId: %s",
-                topic, partition, offset, logContext));
+                topic, partition, offset, contextId));
 
         try {
             final boolean deleteEventType = "deleted"
@@ -62,12 +68,18 @@ public class InsolvencyStreamConsumer {
 
             if (deleteEventType) {
                 insolvencyProcessor.processDelete(resourceChangedMessage);
+                logger.info(format("Insolvency Links Delete message with contextId: %s is "
+                                + "successfully processed in %d milliseconds", contextId,
+                        Duration.between(startTime, Instant.now()).toMillis()));
             } else {
                 insolvencyProcessor.processDelta(resourceChangedMessage);
+                logger.info(format("Insolvency Links Delta message with contextId: %s is "
+                                + "successfully processed in %d milliseconds", contextId,
+                        Duration.between(startTime, Instant.now()).toMillis()));
             }
         } catch (Exception exception) {
             logger.error(String.format("Exception occurred while processing the topic: %s "
-                    + "with contextId: %s", topic, logContext), exception);
+                    + "with contextId: %s", topic, contextId), exception);
             throw exception;
         }
     }

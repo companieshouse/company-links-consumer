@@ -24,8 +24,7 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
      * Construct an insolvency stream processor.
      */
     @Autowired
-    public InsolvencyStreamProcessor(
-                                     CompanyProfileService companyProfileService,
+    public InsolvencyStreamProcessor(CompanyProfileService companyProfileService,
                                      Logger logger) {
         super(logger);
         this.companyProfileService = companyProfileService;

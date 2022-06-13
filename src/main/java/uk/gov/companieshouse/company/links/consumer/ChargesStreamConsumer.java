@@ -68,13 +68,13 @@ public class ChargesStreamConsumer {
 
             if (deleteEventType) {
                 chargesProcessor.processDelete(resourceChangedMessage);
-                logger.info(format("Charges Links Delete with contextId: %s is successfully "
-                                + "processed in %d milliseconds", contextId,
+                logger.info(format("Charges Links Delete message with contextId: %s is "
+                                + "successfully processed in %d milliseconds", contextId,
                         Duration.between(startTime, Instant.now()).toMillis()));
             } else {
                 chargesProcessor.process(resourceChangedMessage);
-                logger.info(format("Charges Links Delta with contextId: %s is successfully "
-                                + "processed in %d milliseconds", contextId,
+                logger.info(format("Charges Links Delta message with contextId: %s is "
+                                + "successfully processed in %d milliseconds", contextId,
                         Duration.between(startTime, Instant.now()).toMillis()));
             }
         } catch (Exception exception) {

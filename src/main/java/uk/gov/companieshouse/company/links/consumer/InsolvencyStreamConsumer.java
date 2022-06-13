@@ -68,13 +68,13 @@ public class InsolvencyStreamConsumer {
 
             if (deleteEventType) {
                 insolvencyProcessor.processDelete(resourceChangedMessage);
-                logger.info(format("Insolvency Links Delete with contextId: %s is successfully "
-                                + "processed in %d milliseconds", contextId,
+                logger.info(format("Insolvency Links Delete message with contextId: %s is "
+                                + "successfully processed in %d milliseconds", contextId,
                         Duration.between(startTime, Instant.now()).toMillis()));
             } else {
                 insolvencyProcessor.processDelta(resourceChangedMessage);
-                logger.info(format("Insolvency Links Delta with contextId: %s is successfully "
-                                + "processed in %d milliseconds", contextId,
+                logger.info(format("Insolvency Links Delta message with contextId: %s is "
+                                + "successfully processed in %d milliseconds", contextId,
                         Duration.between(startTime, Instant.now()).toMillis()));
             }
         } catch (Exception exception) {

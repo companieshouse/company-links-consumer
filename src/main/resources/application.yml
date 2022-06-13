@@ -15,8 +15,8 @@ logger:
   namespace: company-links-consumer
 
 api:
-  api-url: ${COMPANY_ERIC_API_URL:http://localhost:8888}
-  api-key: ${COMPANY_ERIC_API_KEY:localhost}
+  api-url: ${ERIC_API_URL:http://localhost:8888}
+  api-key: ${ERIC_API_KEY:localhost}
 
 company-links:
   consumer:

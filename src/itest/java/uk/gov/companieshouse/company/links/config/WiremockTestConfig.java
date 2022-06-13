@@ -1,12 +1,5 @@
 package uk.gov.companieshouse.company.links.config;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.configureFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.containing;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.patch;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import java.io.IOException;
@@ -14,6 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.springframework.util.ResourceUtils;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
 public class WiremockTestConfig {
 
@@ -64,12 +59,18 @@ public class WiremockTestConfig {
                                 .withStatus(statusCode)));
     }
 
-    public static void stubCompanyMetrics(String companyNumber, int statusCode) {
+    public static void stubGetInsolvency(String companyNumber, int statusCode, String fileToLoad) {
+        String stubInsolvencyResponse = "{}";
+        if (fileToLoad != null && !fileToLoad.isEmpty()) {
+            stubInsolvencyResponse = loadFile(fileToLoad+".json");
+        }
+
         stubFor(
-                patch(urlEqualTo("/company/" + companyNumber + "/metrics"))
-                        .withRequestBody(containing("/company/" + companyNumber + "/metrics"))
+                get(urlPathMatching("/company/" + companyNumber + "/insolvency"))
                         .willReturn(aResponse()
-                                .withStatus(statusCode)));
+                                .withHeader("Content-Type", "application/json")
+                                .withStatus(statusCode)
+                                .withBody(stubInsolvencyResponse)));
     }
 
     public static void stubGetCompanyProfile(String companyNumber, int statusCode, String fileToLoad) {

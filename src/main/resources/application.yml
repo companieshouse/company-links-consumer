@@ -15,10 +15,8 @@ logger:
   namespace: company-links-consumer
 
 api:
-  endpoint: ${COMPANY_PROFILE_API_URL:http://localhost:8888}
-  company-profile-api-key: ${COMPANY_PROFILE_API_KEY:localhost}
-  charges-data-api-url: ${CHARGES_DATA_API_URL:localhost}
-  charges-data-api-key: ${CHARGES_DATA_API_KEY:localhost}
+  api-url: ${COMPANY_ERIC_API_URL:http://localhost:8888}
+  api-key: ${COMPANY_ERIC_API_KEY:localhost}
 
 company-links:
   consumer:

@@ -1,0 +1,44 @@
+{
+  "id": "CH5324324",
+  "companyInsolvency": {
+    "etag": "etag",
+    "cases": [
+      {
+        "type": "compulsory-liquidation",
+        "dates": [
+          {
+            "type": "instrumented-on",
+            "date": "2022-01-01"
+          }
+        ],
+        "notes": [
+          "test"
+        ],
+        "practitioners": [
+          {
+            "name": "practitioner name",
+            "address": {
+              "address_line_1": "address1",
+              "address_line_2": "addressLine",
+              "locality": "locality",
+              "region": "region",
+              "postal_code": "AB1 9YZ",
+              "country": "UK"
+            },
+            "appointed_on": "2022-01-01",
+            "ceased_to_act_on": "2022-01-01",
+            "role": "receiver"
+          }
+        ],
+        "links": {
+          "charge": "charge"
+        },
+        "number": "3"
+      }
+    ],
+    "status": ["in-administration"]
+  },
+  "updatedAt": "2022-03-08T17:14:48.263Z",
+  "updatedBy": "someone",
+  "deltaAt": "2022-03-08T17:14:48.263Z"
+}

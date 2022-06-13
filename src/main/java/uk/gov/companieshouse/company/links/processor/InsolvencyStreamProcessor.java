@@ -9,9 +9,13 @@ import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Links;
+import uk.gov.companieshouse.api.insolvency.CompanyInsolvency;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.service.CompanyInsolvencyService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
+import uk.gov.companieshouse.company.links.type.ApiType;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
@@ -19,15 +23,18 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 public class InsolvencyStreamProcessor extends StreamResponseProcessor {
 
     private final CompanyProfileService companyProfileService;
+    private final CompanyInsolvencyService companyInsolvencyService;
 
     /**
      * Construct an insolvency stream processor.
      */
     @Autowired
-    public InsolvencyStreamProcessor(CompanyProfileService companyProfileService,
-                                     Logger logger) {
+    public InsolvencyStreamProcessor(
+            CompanyProfileService companyProfileService,
+            Logger logger, CompanyInsolvencyService companyInsolvencyService) {
         super(logger);
         this.companyProfileService = companyProfileService;
+        this.companyInsolvencyService = companyInsolvencyService;
     }
 
     /**
@@ -52,30 +59,38 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "GET company-profile-api", companyNumber, logMap);
+                "GET", ApiType.COMPANY_PROFILE, companyNumber, logMap);
 
         var data = response.getData().getData();
         var links = data.getLinks();
 
-        if (links != null && links.getInsolvency() == null) {
+        if (links == null || links.getInsolvency() == null) {
             logger.trace(String.format("Company profile with company number %s,"
                     + " does not contain insolvency links, will not perform patch"
                     + " for contextId %s", companyNumber, logContext));
             return;
         }
 
-        links.setInsolvency(null);
         CompanyProfile companyProfile = new CompanyProfile();
-        companyProfile.setData(data);
 
-        logger.trace(String.format("Performing a PATCH with "
-                + "company number %s for contextId %s", companyNumber, logContext));
-        final ApiResponse<Void> patchResponse =
-                companyProfileService.patchCompanyProfile(
-                        logContext, companyNumber, companyProfile
-                );
+        final ApiResponse<CompanyInsolvency> companyInsolvencyResponse = companyInsolvencyService
+                .getCompanyInsolvency(logContext, companyNumber);
+
+        if (companyInsolvencyResponse.getStatusCode() == HttpStatus.GONE.value()) {
+            links.setInsolvency(null);
+            data.setLinks(links);
+            companyProfile.setData(data);
+        } else {
+            String message = "Response from insolvency-data-api service, main delta is not "
+                    + "yet deleted, throwing retry-able exception to check again";
+            logger.errorContext(logContext, message, null, logMap);
+            throw new RetryableErrorException(message);
+        }
+
+        final ApiResponse<Void> patchResponse = companyProfileService.patchCompanyProfile(
+                        logContext, companyNumber, companyProfile);
         handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                "PATCH company-profile-api", companyNumber, logMap);
+                "PATCH", ApiType.COMPANY_PROFILE, companyNumber, logMap);
     }
 
     /**
@@ -100,38 +115,46 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "GET company-profile-api", companyNumber, logMap);
+                "GET", ApiType.COMPANY_PROFILE, companyNumber, logMap);
 
         var data = response.getData().getData();
         var links = data.getLinks();
 
-        if (links != null && links.getInsolvency() != null) {
+        if (links != null && !StringUtils.isBlank(links.getInsolvency())) {
             logger.trace(String.format("Company profile with company number %s,"
                     + " contains insolvency links, will not perform PATCH"
                     + " for contextId %s", companyNumber, logContext));
             return;
         }
 
-        logger.trace(String.format("Performing a PATCH with "
-                + "company number %s for contextId %s", companyNumber, logContext));
-
         if (links == null) {
             links = new Links();
         }
 
-        links.setInsolvency(String.format("/company/%s/insolvency", companyNumber));
+        final ApiResponse<CompanyInsolvency> companyInsolvencyResponse =
+                companyInsolvencyService.getCompanyInsolvency(logContext, companyNumber);
+
+        HttpStatus statusCode = HttpStatus.valueOf(companyInsolvencyResponse.getStatusCode());
+
+        if (statusCode.is2xxSuccessful()) {
+            links.setInsolvency(String.format("/company/%s/insolvency", companyNumber));
+        } else {
+            String message = "Response from companyInsolvencyService, main delta update not"
+                    + " yet completed, Re-Trying";
+            logger.errorContext(logContext, message, null, logMap);
+            throw new RetryableErrorException(message);
+        }
+
         data.setLinks(links);
         data.setHasInsolvencyHistory(true);
 
         var companyProfile = new CompanyProfile();
         companyProfile.setData(data);
 
-        final ApiResponse<Void> patchResponse =
-                companyProfileService.patchCompanyProfile(
-                        logContext, companyNumber, companyProfile
-                );
+        final ApiResponse<Void> patchResponse = companyProfileService.patchCompanyProfile(
+                        logContext, companyNumber, companyProfile);
         handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                "PATCH company-profile-api", companyNumber, logMap);
+                "PATCH", ApiType.COMPANY_PROFILE, companyNumber, logMap);
     }
 
 

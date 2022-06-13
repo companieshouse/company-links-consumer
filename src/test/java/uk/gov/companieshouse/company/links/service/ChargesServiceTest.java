@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import java.util.Collections;
+import java.util.function.Supplier;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,7 @@ import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.delta.PrivateDeltaResourceHandler;
 import uk.gov.companieshouse.api.handler.delta.charges.request.PrivateChargesGetAll;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
+import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
@@ -40,19 +43,26 @@ class ChargesServiceTest {
     private Logger logger;
 
     @Mock
-    private InternalApiClient apiClient;
-
-    @Mock
     private PrivateDeltaResourceHandler deltaResourceHandler;
 
     @Mock
     private PrivateChargesGetAll privateChargesGetAll;
 
+    @Mock
+    private Supplier<InternalApiClient> internalApiClientSupplier;
+
+    @Mock
+    private InternalApiClient internalApiClient;
+
+    @Mock
+    HttpClient httpClient;
+
     @BeforeEach
     void setup() {
-        chargesService = spy(new ChargesService(logger));
-        when(chargesService.getApiClient(MOCK_CONTEXT_ID)).thenReturn(apiClient);
-        when(apiClient.privateDeltaChargeResourceHandler()).thenReturn(deltaResourceHandler);
+        chargesService = spy(new ChargesService(logger, internalApiClientSupplier));
+        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
+        when(internalApiClient.getHttpClient()).thenReturn(httpClient);
+        when(internalApiClient.privateDeltaChargeResourceHandler()).thenReturn(deltaResourceHandler);
     }
 
     @Test
@@ -97,10 +107,10 @@ class ChargesServiceTest {
         when(privateChargesGetAll.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
-        assertThrows(
-                RetryableErrorException.class,
-                () -> chargesService.getCharges(MOCK_CONTEXT_ID,
-                        MOCK_COMPANY_NUMBER));
+        ApiResponse<ChargesApi>  response = chargesService.getCharges(MOCK_CONTEXT_ID,
+                MOCK_COMPANY_NUMBER);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND.value());
     }
 
     @Test
@@ -117,10 +127,9 @@ class ChargesServiceTest {
         when(privateChargesGetAll.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
-        assertThrows(
-                RetryableErrorException.class,
-                () -> chargesService.getCharges(MOCK_CONTEXT_ID,
-                        MOCK_COMPANY_NUMBER));
+        ApiResponse<ChargesApi>  response = chargesService.getCharges(MOCK_CONTEXT_ID,
+                MOCK_COMPANY_NUMBER);
 
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
     }
 }

@@ -79,8 +79,7 @@ public class ChargesStreamConsumer {
             }
         } catch (Exception exception) {
             logger.error(String.format("Exception occurred while processing the topic: %s "
-                            + "with contextId: %s, exception thrown: %s",
-                    topic, contextId, exception), exception);
+                            + "with contextId: %s", topic, contextId), exception);
             throw exception;
         }
     }

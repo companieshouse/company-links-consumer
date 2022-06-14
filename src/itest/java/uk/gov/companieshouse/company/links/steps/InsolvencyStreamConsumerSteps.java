@@ -79,6 +79,18 @@ public class InsolvencyStreamConsumerSteps {
         countDownLatch.await(5, TimeUnit.SECONDS);
     }
 
+    @When("a message is published to the {string} topic for companyNumber {string} to update links")
+    public void a_message_is_published_to_topic_for_company_number_to_update_links_410(String topicName, String companyNumber)
+            throws InterruptedException {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,"profile-with-out-links.json");
+        WiremockTestConfig.stubGetInsolvency(companyNumber, 410, null);
+        kafkaTemplate.send(topicName, createMessage(this.companyNumber, topicName));
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        countDownLatch.await(5, TimeUnit.SECONDS);
+    }
+
     @When("a message is published to {string} topic for companyNumber {string} to update links with a null attribute")
     public void a_message_is_published_to_topic_for_company_number_to_update_links_with_a_null_attribute(String topicName, String companyNumber)
             throws InterruptedException {
@@ -104,6 +116,16 @@ public class InsolvencyStreamConsumerSteps {
 
     @When("calling GET insolvency-data-api with companyNumber {string} returns status code {string} and insolvency is gone")
     public void call_to_insolvency_data_api_with_company_number_returns_status_code(String companyNumber, String statusCode)
+            throws InterruptedException {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode), "");
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        countDownLatch.await(5, TimeUnit.SECONDS);
+    }
+
+    @And("calling a GET insolvency-data-api with companyNumber {string} returns status code {string} and insolvency is gone")
+    public void call_to_insolvency_data_api_with_company_number_returns_status_code_And(String companyNumber, String statusCode)
             throws InterruptedException {
         this.companyNumber = companyNumber;
         WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode), "");

@@ -79,7 +79,8 @@ public class InsolvencyStreamConsumer {
             }
         } catch (Exception exception) {
             logger.error(String.format("Exception occurred while processing the topic: %s "
-                    + "with contextId: %s", topic, contextId), exception);
+                            + "with contextId: %s, exception thrown: %s",
+                    topic, contextId, exception), exception);
             throw exception;
         }
     }

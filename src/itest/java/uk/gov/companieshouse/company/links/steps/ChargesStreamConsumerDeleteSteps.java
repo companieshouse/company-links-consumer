@@ -14,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static uk.gov.companieshouse.company.links.consumer.TestData.EVENT_TYPE_DELETE;
-import static uk.gov.companieshouse.company.links.consumer.TestData.RESOURCE_KIND_CHARGES;
+import static uk.gov.companieshouse.company.links.data.TestData.EVENT_TYPE_DELETE;
+import static uk.gov.companieshouse.company.links.data.TestData.RESOURCE_KIND_CHARGES;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -38,16 +37,12 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.util.ResourceUtils;
 import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
-import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 public class ChargesStreamConsumerDeleteSteps {
 
     private String companyNumber;
-
-    @Autowired
-    private CompanyProfileService companyProfileService;
 
     @Autowired
     public KafkaTemplate<String, Object> kafkaTemplate;
@@ -152,8 +147,9 @@ public class ChargesStreamConsumerDeleteSteps {
     public void sendDeleteMessageForCompanyToTopic(String companyNumber, String topicName)
         throws InterruptedException {
         kafkaTemplate.send(topicName, createChargeDeleteMessage(companyNumber));
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        kafkaTemplate.flush();
+        
+        TimeUnit.SECONDS.sleep(1);
     }
 
     private ResourceChangedData createChargeDeleteMessage(String companyNumber) {
@@ -209,7 +205,7 @@ public class ChargesStreamConsumerDeleteSteps {
     @Then ("The message fails to process and retrys {int} times bvefore being sent to the {string}")
     public void messageIsRetriedBeforeBeingSentToTopic(int retries, String errorTopic) {
         ConsumerRecord<String, Object>
-            singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, errorTopic);
+            singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, errorTopic, 5000L);
 
         assertThat(singleRecord.value()).isNotNull();
         // verify first attempt + number of retries
@@ -219,7 +215,7 @@ public class ChargesStreamConsumerDeleteSteps {
     @Then ("The message fails to process and sent to the {string}")
     public void messageIsRetriedBeforeBeingSentToTopic(String invalidTopic) {
         ConsumerRecord<String, Object>
-            singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, invalidTopic);
+            singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, invalidTopic, 5000L);
 
         assertThat(singleRecord.value()).isNotNull();
         verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));

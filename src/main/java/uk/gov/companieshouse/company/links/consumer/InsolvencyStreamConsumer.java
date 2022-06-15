@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.processor.InsolvencyStreamProcessor;
 import uk.gov.companieshouse.logging.Logger;
-import uk.gov.companieshouse.logging.LoggerFactory;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 
@@ -26,11 +25,12 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 public class InsolvencyStreamConsumer {
 
     private final InsolvencyStreamProcessor insolvencyProcessor;
-    private static final Logger logger = LoggerFactory.getLogger("InsolvencyStreamConsumer");
+    private final Logger logger;
 
     @Autowired
-    public InsolvencyStreamConsumer(InsolvencyStreamProcessor insolvencyProcessor) {
+    public InsolvencyStreamConsumer(InsolvencyStreamProcessor insolvencyProcessor, Logger logger) {
         this.insolvencyProcessor = insolvencyProcessor;
+        this.logger = logger;
     }
 
     /**
@@ -78,9 +78,8 @@ public class InsolvencyStreamConsumer {
                         Duration.between(startTime, Instant.now()).toMillis()));
             }
         } catch (Exception exception) {
-            logger.error(String.format("Exception occurred while processing the topic: %s "
-                            + "with contextId: %s, exception thrown: %s",
-                    topic, contextId, exception), exception);
+            logger.errorContext(contextId, format("Exception occurred while processing "
+                    + "message on the topic: %s", topic), exception, null);
             throw exception;
         }
     }

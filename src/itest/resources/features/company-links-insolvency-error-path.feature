@@ -1,7 +1,6 @@
 Feature: Process company links information for error scenarios
 
   Scenario Outline: Consume invalid message
-
     Given Company links consumer api service is running
     And Company insolvency api service is running
     When a non-avro message is published to "stream-company-insolvency" topic and failed to process
@@ -12,7 +11,6 @@ Feature: Process company links information for error scenarios
       | stream-company-insolvency-company-links-consumer-invalid | 0             |
 
   Scenario Outline: Consume valid avro message with invalid json
-
     Given Company links consumer api service is running
     And Company insolvency api service is running
     When a valid message is published to "stream-company-insolvency" topic with invalid json
@@ -23,7 +21,6 @@ Feature: Process company links information for error scenarios
       | stream-company-insolvency-company-links-consumer-invalid | 0             |
 
   Scenario Outline: Handle 4xx,5xx error from downstream call
-
     Given Company links consumer api service is running
     And Company insolvency api service is running
     When a message is published to "stream-company-insolvency" topic for companyNumber "<companyNumber>" to check for links with status code "<statusCode>"
@@ -38,7 +35,6 @@ Feature: Process company links information for error scenarios
 
 
   Scenario Outline: Handle 2xx error from downstream call with the response throwing NPE
-
     Given Company links consumer api service is running
     And Company insolvency api service is running
     When a message is published to "stream-company-insolvency" topic for companyNumber "<companyNumber>" to update links with a null attribute
@@ -48,7 +44,6 @@ Feature: Process company links information for error scenarios
       | 00006401      | stream-company-insolvency-company-links-consumer-error | 4             |
 
   Scenario: Consume the message for company insolvency links - Update Flow
-
     Given Company links consumer api service is running
     And Company insolvency api service is running
     And calling a GET insolvency-data-api with companyNumber "00006400" returns status code "410" and insolvency is gone
@@ -56,7 +51,6 @@ Feature: Process company links information for error scenarios
     Then the message should be moved to topic "stream-company-insolvency-company-links-consumer-error" after retry attempts of "4"
 
   Scenario: Consume the message for company insolvency links - Delete Flow
-
     Given Company links consumer api service is running
     And Company insolvency api service is running
     And calling GET insolvency-data-api with companyNumber "00006400" returns status code "200"

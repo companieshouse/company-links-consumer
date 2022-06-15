@@ -7,13 +7,9 @@ import org.junit.runner.RunWith;
 import uk.gov.companieshouse.company.links.config.AbstractIntegrationTest;
 
 @RunWith(Cucumber.class)
-@CucumberOptions(
-        features = "src/itest/resources/features",
-        plugin = {"pretty",
-                "json:target/cucumber-report.json"
-        },
-        glue = {"uk.gov.companieshouse.company.links"})
+@CucumberOptions(features = "src/itest/resources/features",
+                plugin = {"pretty", "json:target/cucumber-report.json"},
+                glue = {"uk.gov.companieshouse.company.links"})
 @CucumberContextConfiguration
-public class
-CucumberFeaturesRunnerITest extends AbstractIntegrationTest {
+public class CucumberFeaturesRunnerITest extends AbstractIntegrationTest {
 }

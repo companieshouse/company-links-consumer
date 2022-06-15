@@ -12,13 +12,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static uk.gov.companieshouse.company.links.consumer.TestData.RESOURCE_KIND_CHARGES;
+import static uk.gov.companieshouse.company.links.data.TestData.RESOURCE_KIND_CHARGES;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
-import io.cucumber.java.After;
-import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -26,7 +23,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -38,7 +34,6 @@ import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
-import uk.gov.companieshouse.api.company.Data;
 
 public class ChargesStreamConsumerSteps {
 
@@ -71,8 +66,9 @@ public class ChargesStreamConsumerSteps {
     @When("A valid avro message is sent to the Kafka topic {string}")
     public void send_kafka_message(String topicName) throws InterruptedException {
         kafkaTemplate.send(topicName, createChargesMessage(companyNumber));
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        kafkaTemplate.flush();
+
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @Then("The message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked")

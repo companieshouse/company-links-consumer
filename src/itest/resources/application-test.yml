@@ -1,20 +1,18 @@
+server:
+  port: 8084
+
 spring:
   kafka:
     bootstrap-servers: localhost:9092
+    listener:
+      concurrency: 1
 
-insolvency:
-  stream:
-    topic:
-      main: {$STREAM_INSOLVENCY_TOPIC:stream-insolvency-topic} #TODO how to define the EV
-      retry: {$STREAM_INSOLVENCY_TOPIC_RETRY:stream-insolvency-topic-retry}
-      error: {$STREAM_INSOLVENCY_TOPIC_ERROR:stream-insolvency-topic-error}
+logger:
+  namespace: company-links-consumer
 
-charges:
-  stream:
-    topic:
-      main: {$STREAM_CHARGES_TOPIC:stream-charges-topic}
-      retry: {$STREAM_CHARGES_TOPIC_RETRY:stream-charges-topic-retry}
-      error: {$STREAM_CHARGES_TOPIC_ERROR:stream-charges-topic-error}
+api:
+  api-url: http://localhost:8888
+  api-key: MGQ1MGNlYmFkYzkxZTM2MzlkNGVmMzg4ZjgxMmEz
 
 company-links:
   consumer:
@@ -22,18 +20,16 @@ company-links:
       enable: true
       group-id: company-links-consumer
       topic: stream-company-insolvency
+      attempts: 4
+      backoff-delay: 10
+
     charges:
       enable: true
       group-id: company-links-consumer
       topic: stream-company-charges
-
-logger:
-  namespace: company-links-consumer
-
-api:
-  api-url: ${ERIC_API_URL:http://localhost:8888}
-  api-key: ${ERIC_API_KEY:MGQ1MGNlYmFkYzkxZTM2MzlkNGVmMzg4ZjgxMmEz}
+      attempts: 4
+      backoff-delay: 10
 
 wiremock:
   server:
-    port: 8888
+  port: 8888

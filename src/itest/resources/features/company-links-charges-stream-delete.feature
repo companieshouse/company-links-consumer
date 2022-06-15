@@ -2,7 +2,6 @@ Feature: Process company links charges stream delete scenarios
 
 
   Scenario Outline: Company profile exists with charges link but get charges returns empty list a kafka delete will patch the profile to remove the charges link
-
     Given Company links consumer api service is running
     And stubbed set with "<linksResponse>" and "<chargesResponse>" for "<companyNumber>"
     When A valid avro delete message for company number "<companyNumber>" is sent to the Kafka topic "<topicName>"
@@ -14,7 +13,6 @@ Feature: Process company links charges stream delete scenarios
 
 
   Scenario Outline: Company profile exists with out charges link and get charges returns empty list a kafka delete will not patch the profile
-
     Given Company links consumer api service is running
     And stubbed set with "<linksResponse>" and "<chargesResponse>" for "<companyNumber>"
     When A valid avro delete message for company number "<companyNumber>" is sent to the Kafka topic "<topicName>"
@@ -26,7 +24,6 @@ Feature: Process company links charges stream delete scenarios
 
 
   Scenario Outline: Company profile exists with charges link and get charges returns a list of links a kafka delete will not patch the profile
-
     Given Company links consumer api service is running
     And stubbed set with "<linksResponse>" and "<chargesResponse>" for "<companyNumber>"
     When A valid avro delete message for company number "<companyNumber>" is sent to the Kafka topic "<topicName>"
@@ -38,7 +35,6 @@ Feature: Process company links charges stream delete scenarios
 
 
   Scenario Outline: Company profile exists with charges link and get charges returns a 503 the kafka delete is retried 3 times then sent to error topic
-
     Given Company links consumer api service is running
     And stubbed set with "<linksResponse>" for "<companyNumber>" and getCharges give 503
     When A valid avro delete message for company number "<companyNumber>" is sent to the Kafka topic "<topicName>"
@@ -50,7 +46,6 @@ Feature: Process company links charges stream delete scenarios
 
 
   Scenario Outline: Company profile exists with charges link and get charges returns an empty list the kafka delete is processed and the patch returns 400
-
     Given Company links consumer api service is running
     And stubbed set with "<linksResponse>" and "<chargesResponse>" for "<companyNumber>" but patch enpoint give 400
     When A valid avro delete message for company number "<companyNumber>" is sent to the Kafka topic "<topicName>"

@@ -1,20 +1,14 @@
 package uk.gov.companieshouse.company.links.steps;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
@@ -27,10 +21,16 @@ import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+
 public class ChargesStreamRetryStepDefs {
 
-
     public static final String RETRY_TOPIC_ATTEMPTS = "retry_topic-attempts";
+
     @Autowired
     public KafkaTemplate<String, Object> kafkaTemplate;
     @Autowired
@@ -56,14 +56,14 @@ public class ChargesStreamRetryStepDefs {
     public void a_non_avro_format_random_message_is_sent_to_the_kafka_topic(String topicName)
             throws InterruptedException {
         kafkaTemplate.send(topicName, "invalid message");
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        kafkaTemplate.flush();
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @Then("The message is successfully consumed only once from the {string} topic")
     public void the_message_is_successfully_consumed_only_once_from_the_topic(String topicName) {
         assertThatThrownBy(() -> KafkaTestUtils.getSingleRecord(kafkaConsumer,
-                topicName)).hasStackTraceContaining("No records found for topic");
+                topicName, 5000L)).hasStackTraceContaining("No records found for topic");
     }
 
     @Then("Failed to process and immediately moved the message into {string} topic")
@@ -82,9 +82,8 @@ public class ChargesStreamRetryStepDefs {
             String topicName)
             throws InterruptedException {
         kafkaTemplate.send(topicName, createChargesMessage(this.companyNumber, ""));
-
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        kafkaTemplate.flush();
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @Given("Stubbed Company Profile API PATCH endpoint will return {int} bad request http response code")
@@ -109,8 +108,8 @@ public class ChargesStreamRetryStepDefs {
             throws InterruptedException {
         var resourceUri = "/company/" + companyNumber + "/charges";
         kafkaTemplate.send(topicName, createChargesMessage(this.companyNumber, resourceUri));
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        kafkaTemplate.flush();
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @Given("Stubbed Company Profile API GET endpoint is down")
@@ -119,12 +118,11 @@ public class ChargesStreamRetryStepDefs {
                 HttpStatus.SERVICE_UNAVAILABLE.value(), "");
     }
 
-
     @Then("The message should be retried with {int} attempts and on retry exhaustion the message is finally sent into {string} topic")
     public void failed_to_process_and_immediately_sent_the_the_message_into_topic_for_attempts(
             Integer numberOfAttempts, String topicName) {
         ConsumerRecord<String, Object>
-                singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, topicName);
+                singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, topicName, 5000L);
 
         assertThat(singleRecord.value()).isNotNull();
 

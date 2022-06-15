@@ -3,8 +3,7 @@ package uk.gov.companieshouse.company.links.processor;
 import java.io.InputStreamReader;
 import java.util.Objects;
 import java.util.Optional;
-import javax.validation.Valid;
-import org.junit.Ignore;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,9 +12,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.springframework.http.HttpStatus;
@@ -47,7 +44,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -83,7 +79,7 @@ class ChargesStreamConsumerTest {
                 chargesService,
                 logger));
         testData = new TestData();
-        chargesStreamConsumer = new ChargesStreamConsumer(chargesStreamProcessor);
+        chargesStreamConsumer = new ChargesStreamConsumer(chargesStreamProcessor, logger);
     }
 
     @Test

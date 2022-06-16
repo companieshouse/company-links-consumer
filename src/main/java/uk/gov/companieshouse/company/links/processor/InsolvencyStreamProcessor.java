@@ -58,7 +58,7 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
 
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
-        handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
+        handleDeleteResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                 "GET", ApiType.COMPANY_PROFILE, companyNumber, logMap);
 
         var data = response.getData().getData();

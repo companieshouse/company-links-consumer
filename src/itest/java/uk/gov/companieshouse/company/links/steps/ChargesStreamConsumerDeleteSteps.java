@@ -178,7 +178,6 @@ public class ChargesStreamConsumerDeleteSteps {
     public void messageSuccessfullyConsumedCompanyProfilePatchInvokedRemovingChargesLink()
         throws JsonProcessingException {
         List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
-        assertEquals(3, events.size());
         verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));
         verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/charges")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));

@@ -156,13 +156,6 @@ public class ChargesStreamRetryStepDefs {
         WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode), "");
     }
 
-//    @And("calling the GET insolvency-data-api with companyNumber {string} returns status code \"200\"")
-//    public void call_to_insolvency_data_api_with_company_number_returns_status_code_200(String companyNumber)
-//            throws InterruptedException {
-//        this.companyNumber = companyNumber;
-//        WiremockTestConfig.stubGetInsolvency(companyNumber, 200, "");
-//    }
-
     private ResourceChangedData createChargesMessage(String companyNumber, String resourceUri) {
         EventRecord event = EventRecord.newBuilder()
                 .setType("changed")

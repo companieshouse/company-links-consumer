@@ -115,17 +115,6 @@ public class ChargesStreamRetryStepDefs {
         TimeUnit.SECONDS.sleep(1);
     }
 
-    @When("a message is published to the {string} topic with companyNumber {string} to update links")
-    public void a_message_is_published_to_topic_for_company_number_to_update_links_410(String topicName, String companyNumber)
-            throws InterruptedException {
-        this.companyNumber = companyNumber;
-        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,"profile-with-out-links.json");
-        WiremockTestConfig.stubGetInsolvency(companyNumber, 410, null);
-        kafkaTemplate.send(topicName, createMessage(this.companyNumber, topicName));
-
-        TimeUnit.SECONDS.sleep(1);
-    }
-
     @When("a delete event is sent to {string} topic")
     public void a_delete_event_is_sent_topic(String topic) throws InterruptedException {
         this.uuid = UUID.randomUUID();
@@ -160,19 +149,19 @@ public class ChargesStreamRetryStepDefs {
         assertThat(retryList.size()).isEqualTo(Integer.parseInt(numberOfAttempts.toString()));
     }
 
-    @And("calling the GET insolvency-data-api with companyNumber {string} returns status code {string} and insolvency is gone")
+    @And("calling the GET insolvency-data-api with companyNumber {string} returns status code {string}")
     public void call_to_insolvency_data_api_with_company_number_returns_status_code_And(String companyNumber, String statusCode)
             throws InterruptedException {
         this.companyNumber = companyNumber;
         WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode), "");
     }
 
-    @When("calling the GET insolvency-data-api with companyNumber {string} returns status code \"200\"")
-    public void call_to_insolvency_data_api_with_company_number_returns_status_code_200(String companyNumber)
-            throws InterruptedException {
-        this.companyNumber = companyNumber;
-        WiremockTestConfig.stubGetInsolvency(companyNumber, 200, "");
-    }
+//    @And("calling the GET insolvency-data-api with companyNumber {string} returns status code \"200\"")
+//    public void call_to_insolvency_data_api_with_company_number_returns_status_code_200(String companyNumber)
+//            throws InterruptedException {
+//        this.companyNumber = companyNumber;
+//        WiremockTestConfig.stubGetInsolvency(companyNumber, 200, "");
+//    }
 
     private ResourceChangedData createChargesMessage(String companyNumber, String resourceUri) {
         EventRecord event = EventRecord.newBuilder()

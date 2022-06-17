@@ -69,9 +69,8 @@ Feature: Process company links information for charges error scenarios
 
   Scenario: Consume the message for company links charges - Update Flow
     Given Company Links Consumer component is successfully running
-    And calling the GET insolvency-data-api with companyNumber "00006400" returns status code "410" and insolvency is gone
-    When  A valid Avro message with valid json payload is sent to the Kafka topic "stream-company-charges" topic
-    When a message is published to the "stream-company-charges" topic with companyNumber "00006400" to update links
+    And calling the GET insolvency-data-api with companyNumber "00006400" returns status code "410"
+    When A valid Avro message with valid json payload is sent to the Kafka topic "stream-company-charges" topic
     Then The message should be retried with 4 attempts and on retry exhaustion the message is finally sent into "stream-company-charges-company-links-consumer-error" topic
 
   Scenario: Consume the message for company links charges - Delete Flow

@@ -80,6 +80,7 @@ public class ChargesStreamConsumerSteps {
     @Then("The message is successfully consumed and company-profile-api PATCH endpoint is invoked with charges link payload")
     public void patchEdpointIsCalled() throws JsonProcessingException {
         List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
+        assertEquals(2, events.size());
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
 

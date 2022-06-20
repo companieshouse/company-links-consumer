@@ -1,5 +1,10 @@
 package uk.gov.companieshouse.company.links.config;
 
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -19,15 +24,12 @@ import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
+import uk.gov.companieshouse.company.links.consumer.KafkaMessageConsumerAspect;
+import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
 import uk.gov.companieshouse.company.links.exception.RetryableTopicErrorInterceptor;
 import uk.gov.companieshouse.company.links.serialization.ResourceChangedDataDeserializer;
 import uk.gov.companieshouse.company.links.serialization.ResourceChangedDataSerializer;
 import uk.gov.companieshouse.stream.ResourceChangedData;
-
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import static java.time.temporal.ChronoUnit.SECONDS;
 
@@ -122,4 +124,13 @@ public class KafkaTestContainerConfig {
         return consumer;
     }
 
+    @Bean
+    public ResettableCountDownLatch resettableCountDownLatch() {
+        return new ResettableCountDownLatch();
+    }
+
+    @Bean
+    public KafkaMessageConsumerAspect kafkaMessageConsumerAspect() {
+        return new KafkaMessageConsumerAspect();
+    }
 }

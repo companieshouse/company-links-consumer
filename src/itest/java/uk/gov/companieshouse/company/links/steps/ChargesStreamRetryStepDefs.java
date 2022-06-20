@@ -19,12 +19,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
+import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.patch;
+import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
@@ -41,6 +47,8 @@ public class ChargesStreamRetryStepDefs {
     private String companyNumber = "00006400";
     @Autowired
     private CompanyProfileService companyProfileService;
+    @Autowired
+    private ResettableCountDownLatch resettableCountDownLatch;
 
     @Given("Company Links Consumer component is successfully running")
     public void company_links_consumer_component_is_successfully_running() {
@@ -60,7 +68,7 @@ public class ChargesStreamRetryStepDefs {
             throws InterruptedException {
         kafkaTemplate.send(topicName, "invalid message");
         kafkaTemplate.flush();
-        TimeUnit.SECONDS.sleep(1);
+        assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
     }
 
     @Then("The message is successfully consumed only once from the {string} topic")
@@ -86,7 +94,7 @@ public class ChargesStreamRetryStepDefs {
             throws InterruptedException {
         kafkaTemplate.send(topicName, createChargesMessage(this.companyNumber, ""));
         kafkaTemplate.flush();
-        TimeUnit.SECONDS.sleep(1);
+        assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
     }
 
     @Given("Stubbed Company Profile API PATCH endpoint will return {int} bad request http response code")
@@ -112,7 +120,7 @@ public class ChargesStreamRetryStepDefs {
         var resourceUri = "/company/" + companyNumber + "/charges";
         kafkaTemplate.send(topicName, createChargesMessage(this.companyNumber, resourceUri));
         kafkaTemplate.flush();
-        TimeUnit.SECONDS.sleep(1);
+        assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
     }
 
     @When("a delete event is sent to {string} topic")
@@ -126,7 +134,7 @@ public class ChargesStreamRetryStepDefs {
                                 .withStatus(200)));
 
         sendMessage(topic, deleteMessage(companyNumber));
-        TimeUnit.SECONDS.sleep(1);
+        assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
     }
 
     @Given("Stubbed Company Profile API GET endpoint is down")

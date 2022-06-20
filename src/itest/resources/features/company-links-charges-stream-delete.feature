@@ -49,6 +49,17 @@ Feature: Process company links charges stream delete scenarios
       | 00006400      | stream-company-charges | profile-with-charges-links.json | stream-company-charges-company-links-consumer-error |
 
 
+  Scenario Outline: Company profile exists with charges link and get charges returns a 404 the kafka delete is retried 3 times then sent to error topic
+
+    Given Company links consumer api service is running
+    And stubbed set with "<linksResponse>" for "<companyNumber>" and getCharges give 404
+    When A valid avro delete message for company number "<companyNumber>" is sent to the Kafka topic "<topicName>"
+    Then The message fails to process and retrys 3 times bvefore being sent to the "<errorTopic>"
+
+    Examples:
+      | companyNumber | topicName              | linksResponse                   | errorTopic                                          |
+      | 00006400      | stream-company-charges | profile-with-charges-links.json | stream-company-charges-company-links-consumer-error |
+
   Scenario Outline: Company profile exists with charges link and get charges returns an empty list the kafka delete is processed and the patch returns 400
 
     Given Company links consumer api service is running

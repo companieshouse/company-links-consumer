@@ -1,5 +1,28 @@
 package uk.gov.companieshouse.company.links.steps;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import org.apache.commons.io.FileUtils;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.util.ResourceUtils;
+import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
+import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
+import uk.gov.companieshouse.company.links.service.CompanyProfileService;
+import uk.gov.companieshouse.stream.EventRecord;
+import uk.gov.companieshouse.stream.ResourceChangedData;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -13,27 +36,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static uk.gov.companieshouse.company.links.data.TestData.RESOURCE_KIND_CHARGES;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
-import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.io.FileUtils;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.util.ResourceUtils;
-import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
-import uk.gov.companieshouse.company.links.service.CompanyProfileService;
-import uk.gov.companieshouse.stream.EventRecord;
-import uk.gov.companieshouse.stream.ResourceChangedData;
 
 public class ChargesStreamConsumerSteps {
 
@@ -50,6 +52,9 @@ public class ChargesStreamConsumerSteps {
 
     @Autowired
     public KafkaConsumer<String, Object> kafkaConsumer;
+
+    @Autowired
+    private ResettableCountDownLatch resettableCountDownLatch;
 
     @Given("Company profile stubbed with zero charges links for {string}")
     public void company_profile_exists_without_charges(String companyNumber) {
@@ -68,7 +73,7 @@ public class ChargesStreamConsumerSteps {
         kafkaTemplate.send(topicName, createChargesMessage(companyNumber));
         kafkaTemplate.flush();
 
-        TimeUnit.SECONDS.sleep(1);
+        assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
     }
 
     @Then("The message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked")

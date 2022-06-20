@@ -1,5 +1,31 @@
 package uk.gov.companieshouse.company.links.steps;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
+import io.cucumber.java.en.And;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import org.apache.commons.io.FileUtils;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.test.utils.KafkaTestUtils;
+import org.springframework.util.ResourceUtils;
+import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
+import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
+import uk.gov.companieshouse.stream.EventRecord;
+import uk.gov.companieshouse.stream.ResourceChangedData;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -16,29 +42,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static uk.gov.companieshouse.company.links.data.TestData.EVENT_TYPE_DELETE;
 import static uk.gov.companieshouse.company.links.data.TestData.RESOURCE_KIND_CHARGES;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
-import io.cucumber.java.en.And;
-import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.io.FileUtils;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.test.utils.KafkaTestUtils;
-import org.springframework.util.ResourceUtils;
-import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
-import uk.gov.companieshouse.stream.EventRecord;
-import uk.gov.companieshouse.stream.ResourceChangedData;
 
 public class ChargesStreamConsumerDeleteSteps {
 
@@ -49,6 +52,9 @@ public class ChargesStreamConsumerDeleteSteps {
 
     @Autowired
     public KafkaConsumer<String, Object> kafkaConsumer;
+
+    @Autowired
+    private ResettableCountDownLatch resettableCountDownLatch;
 
     @And("stubbed set with {string} and {string} for {string}")
     public void stubforCompanyNumberUsingResonseFiles(String linksResponseFile, String chargesResponse, String companyNumber){
@@ -148,8 +154,7 @@ public class ChargesStreamConsumerDeleteSteps {
         throws InterruptedException {
         kafkaTemplate.send(topicName, createChargeDeleteMessage(companyNumber));
         kafkaTemplate.flush();
-        
-        TimeUnit.SECONDS.sleep(1);
+        assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
     }
 
     private ResourceChangedData createChargeDeleteMessage(String companyNumber) {

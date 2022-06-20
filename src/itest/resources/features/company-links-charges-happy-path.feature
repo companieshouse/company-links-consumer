@@ -1,7 +1,6 @@
 Feature: Process company links information for error scenarios
 
   Scenario Outline: Company profile exists with zero charges
-
     Given Company links consumer api service is running
     Given Company profile stubbed with zero charges links for "<companyNumber>"
     When A valid avro message is sent to the Kafka topic "<topicName>"
@@ -14,7 +13,6 @@ Feature: Process company links information for error scenarios
       | SC987654      | stream-company-charges |
 
   Scenario Outline: Company profile exists with charges
-
     Given Company links consumer api service is running
     Given Company profile stubbed with charges present for "<companyNumber>"
     When A valid avro message is sent to the Kafka topic "<topicName>"

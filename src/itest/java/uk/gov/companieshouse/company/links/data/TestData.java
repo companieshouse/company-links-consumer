@@ -1,4 +1,4 @@
-package uk.gov.companieshouse.company.links.consumer;
+package uk.gov.companieshouse.company.links.data;
 
 import org.springframework.util.FileCopyUtils;
 import uk.gov.companieshouse.stream.EventRecord;

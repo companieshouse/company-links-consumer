@@ -1,17 +1,13 @@
 package uk.gov.companieshouse.company.links.steps;
 
-import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import com.github.tomakehurst.wiremock.admin.model.ServeEventQuery;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
-import io.cucumber.java.After;
-import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -20,8 +16,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
@@ -73,10 +67,20 @@ public class InsolvencyStreamConsumerSteps {
         this.companyNumber = companyNumber;
         WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,"profile-with-out-links.json");
         WiremockTestConfig.stubGetInsolvency(companyNumber, 200, "insolvency_output");
+        sendMessage(topicName, createMessage(this.companyNumber, topicName));
+
+        TimeUnit.SECONDS.sleep(1);
+    }
+
+    @When("a message is published to the {string} topic for companyNumber {string} to update links")
+    public void a_message_is_published_to_topic_for_company_number_to_update_links_410(String topicName, String companyNumber)
+            throws InterruptedException {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,"profile-with-out-links.json");
+        WiremockTestConfig.stubGetInsolvency(companyNumber, 410, null);
         kafkaTemplate.send(topicName, createMessage(this.companyNumber, topicName));
 
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @When("a message is published to {string} topic for companyNumber {string} to update links with a null attribute")
@@ -84,10 +88,9 @@ public class InsolvencyStreamConsumerSteps {
             throws InterruptedException {
         this.companyNumber = companyNumber;
         WiremockTestConfig.stubUpdateConsumerLinks(companyNumber,"profile-with-null-attribute.json");
-        kafkaTemplate.send(topicName, createMessage(this.companyNumber, topicName));
+        sendMessage(topicName, createMessage(this.companyNumber, topicName));
 
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        TimeUnit.SECONDS.sleep(1);
     }
 
 
@@ -96,10 +99,9 @@ public class InsolvencyStreamConsumerSteps {
             throws InterruptedException {
         this.companyNumber = companyNumber;
         WiremockTestConfig.stubGetConsumerLinksWithProfileLinks(companyNumber, Integer.parseInt(statusCode));
+        sendMessage(topicName, createMessage(companyNumber, topicName));
 
-        kafkaTemplate.send(topicName, createMessage(companyNumber, topicName));
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @When("calling GET insolvency-data-api with companyNumber {string} returns status code {string} and insolvency is gone")
@@ -107,18 +109,20 @@ public class InsolvencyStreamConsumerSteps {
             throws InterruptedException {
         this.companyNumber = companyNumber;
         WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode), "");
+    }
 
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+    @And("calling a GET insolvency-data-api with companyNumber {string} returns status code {string} and insolvency is gone")
+    public void call_to_insolvency_data_api_with_company_number_returns_status_code_And(String companyNumber, String statusCode)
+            throws InterruptedException {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode), "");
     }
 
     @When("calling GET insolvency-data-api with companyNumber {string} returns status code \"200\"")
     public void call_to_insolvency_data_api_with_company_number_returns_status_code_200(String companyNumber)
             throws InterruptedException {
         this.companyNumber = companyNumber;
-
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        WiremockTestConfig.stubGetInsolvency(companyNumber, 200, "");
     }
 
     @When("a delete event is sent to kafka topic stream insolvency")
@@ -132,10 +136,8 @@ public class InsolvencyStreamConsumerSteps {
                         .willReturn(aResponse()
                                 .withStatus(200)));
 
-        kafkaTemplate.send(topic, deleteMessage(companyNumber));
-
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        sendMessage(topic, deleteMessage(companyNumber));
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @When("a delete event is sent to {string} topic for companyNumber {string} which has no links")
@@ -150,10 +152,8 @@ public class InsolvencyStreamConsumerSteps {
                         .willReturn(aResponse()
                                 .withStatus(200)));
 
-        kafkaTemplate.send(topic, deleteMessage(this.companyNumber));
-
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        sendMessage(topic, deleteMessage(this.companyNumber));
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @When("a delete event is sent {string} topic")
@@ -166,10 +166,8 @@ public class InsolvencyStreamConsumerSteps {
                         .willReturn(aResponse()
                                 .withStatus(200)));
 
-        kafkaTemplate.send(topic, deleteMessage(companyNumber));
-
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        sendMessage(topic, deleteMessage(companyNumber));
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @Then("verify the company link is removed from company profile")
@@ -181,7 +179,6 @@ public class InsolvencyStreamConsumerSteps {
         String expected = WiremockTestConfig.loadFile("profile-with-insolvency-links-delete.json");
         assertThat(expected).isEqualTo(actual);
     }
-
 
     @Then("verify the patch endpoint is never invoked to delete company links")
     public void verify_the_patch_endpoint_is_never_invoked_to_delete_company_links() {
@@ -204,35 +201,35 @@ public class InsolvencyStreamConsumerSteps {
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/insolvency")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links"))
                 .withRequestBody(containing("/company/" + this.companyNumber + "/insolvency")));
-
     }
 
     @When("a non-avro message is published to {string} topic and failed to process")
     public void a_non_avro_message_is_published_to_topic_and_failed_to_process(String topicName) throws InterruptedException{
         kafkaTemplate.send(topicName,"invalid message");
+        kafkaTemplate.flush();
 
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @When("a valid message is published to {string} topic with invalid json")
     public void a_valid_message_is_published_to_topic_with_invalid_json(String topicName) throws InterruptedException {
         ResourceChangedData invalidJsonData = invalidJson();
-        kafkaTemplate.send(topicName, invalidJsonData);
+        sendMessage(topicName, invalidJsonData);
 
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @Then("the message should be moved to topic {string}")
     public void the_message_should_be_moved_to_topic(String topic) {
-        ConsumerRecord<String, Object> singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, topic);
+        ConsumerRecord<String, Object> singleRecord =
+                KafkaTestUtils.getSingleRecord(kafkaConsumer, topic, 5000L);
         assertThat(singleRecord.value()).isNotNull();
     }
 
     @Then("the message should be moved to topic {string} after retry attempts of {string}")
     public void the_message_should_be_moved_to_topic_after_retry_specified_attempts(String topic, String retryAttempts) {
-        ConsumerRecord<String, Object> singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, topic);
+        ConsumerRecord<String, Object> singleRecord =
+                KafkaTestUtils.getSingleRecord(kafkaConsumer, topic, 5000L);
 
         assertThat(singleRecord.value()).isNotNull();
 
@@ -242,6 +239,10 @@ public class InsolvencyStreamConsumerSteps {
         assertThat(retryList.size()).isEqualTo(Integer.parseInt(retryAttempts));
     }
 
+    private void sendMessage(String topicName, ResourceChangedData companyNumber) {
+        kafkaTemplate.send(topicName, companyNumber);
+        kafkaTemplate.flush();
+    }
 
     private ResourceChangedData createMessage(String companyNumber, String topicName) {
         EventRecord event = EventRecord.newBuilder()

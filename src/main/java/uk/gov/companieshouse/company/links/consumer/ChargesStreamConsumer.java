@@ -5,8 +5,6 @@ import static java.lang.String.format;
 import java.time.Duration;
 import java.time.Instant;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
@@ -19,18 +17,19 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.processor.ChargesStreamProcessor;
+import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 @Component
 public class ChargesStreamConsumer {
 
-    private static final Logger logger = LoggerFactory.getLogger(ChargesStreamConsumer.class);
-
     private final ChargesStreamProcessor chargesProcessor;
+    private final Logger logger;
 
     @Autowired
-    public ChargesStreamConsumer(ChargesStreamProcessor chargesProcessor) {
+    public ChargesStreamConsumer(ChargesStreamProcessor chargesProcessor, Logger logger) {
         this.chargesProcessor = chargesProcessor;
+        this.logger = logger;
     }
 
     /**
@@ -78,9 +77,8 @@ public class ChargesStreamConsumer {
                         Duration.between(startTime, Instant.now()).toMillis()));
             }
         } catch (Exception exception) {
-            logger.error(String.format("Exception occurred while processing the topic: %s "
-                            + "with contextId: %s, exception thrown: %s",
-                    topic, contextId, exception), exception);
+            logger.errorContext(contextId, format("Exception occurred while processing "
+                    + "message on the topic: %s", topic), exception, null);
             throw exception;
         }
     }

@@ -1,20 +1,16 @@
 package uk.gov.companieshouse.company.links.steps;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-
-import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import io.cucumber.java.en.And;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
@@ -27,10 +23,17 @@ import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+
 public class ChargesStreamRetryStepDefs {
 
-
     public static final String RETRY_TOPIC_ATTEMPTS = "retry_topic-attempts";
+
+    private UUID uuid;
+
     @Autowired
     public KafkaTemplate<String, Object> kafkaTemplate;
     @Autowired
@@ -56,14 +59,14 @@ public class ChargesStreamRetryStepDefs {
     public void a_non_avro_format_random_message_is_sent_to_the_kafka_topic(String topicName)
             throws InterruptedException {
         kafkaTemplate.send(topicName, "invalid message");
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        kafkaTemplate.flush();
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @Then("The message is successfully consumed only once from the {string} topic")
     public void the_message_is_successfully_consumed_only_once_from_the_topic(String topicName) {
         assertThatThrownBy(() -> KafkaTestUtils.getSingleRecord(kafkaConsumer,
-                topicName)).hasStackTraceContaining("No records found for topic");
+                topicName, 5000L)).hasStackTraceContaining("No records found for topic");
     }
 
     @Then("Failed to process and immediately moved the message into {string} topic")
@@ -82,9 +85,8 @@ public class ChargesStreamRetryStepDefs {
             String topicName)
             throws InterruptedException {
         kafkaTemplate.send(topicName, createChargesMessage(this.companyNumber, ""));
-
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        kafkaTemplate.flush();
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @Given("Stubbed Company Profile API PATCH endpoint will return {int} bad request http response code")
@@ -109,8 +111,22 @@ public class ChargesStreamRetryStepDefs {
             throws InterruptedException {
         var resourceUri = "/company/" + companyNumber + "/charges";
         kafkaTemplate.send(topicName, createChargesMessage(this.companyNumber, resourceUri));
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await(5, TimeUnit.SECONDS);
+        kafkaTemplate.flush();
+        TimeUnit.SECONDS.sleep(1);
+    }
+
+    @When("a delete event is sent to {string} topic")
+    public void a_delete_event_is_sent_topic(String topic) throws InterruptedException {
+        this.uuid = UUID.randomUUID();
+        WiremockTestConfig.stubGetConsumerLinksWithProfileLinks(this.companyNumber, Integer.parseInt("200"));
+        stubFor(
+                patch(urlEqualTo("/company/" + this.companyNumber + "/links")).withId(this.uuid)
+                        .withRequestBody(containing("00006400"))
+                        .willReturn(aResponse()
+                                .withStatus(200)));
+
+        sendMessage(topic, deleteMessage(companyNumber));
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @Given("Stubbed Company Profile API GET endpoint is down")
@@ -119,12 +135,11 @@ public class ChargesStreamRetryStepDefs {
                 HttpStatus.SERVICE_UNAVAILABLE.value(), "");
     }
 
-
     @Then("The message should be retried with {int} attempts and on retry exhaustion the message is finally sent into {string} topic")
     public void failed_to_process_and_immediately_sent_the_the_message_into_topic_for_attempts(
             Integer numberOfAttempts, String topicName) {
         ConsumerRecord<String, Object>
-                singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, topicName);
+                singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, topicName, 5000L);
 
         assertThat(singleRecord.value()).isNotNull();
 
@@ -132,6 +147,13 @@ public class ChargesStreamRetryStepDefs {
                 .filter(header -> header.key().equalsIgnoreCase(RETRY_TOPIC_ATTEMPTS))
                 .collect(Collectors.toList());
         assertThat(retryList.size()).isEqualTo(Integer.parseInt(numberOfAttempts.toString()));
+    }
+
+    @And("calling the GET insolvency-data-api with companyNumber {string} returns status code {string}")
+    public void call_to_insolvency_data_api_with_company_number_returns_status_code_And(String companyNumber, String statusCode)
+            throws InterruptedException {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode), "");
     }
 
     private ResourceChangedData createChargesMessage(String companyNumber, String resourceUri) {
@@ -146,6 +168,45 @@ public class ChargesStreamRetryStepDefs {
                 .setResourceId(companyNumber)
                 .setResourceKind("company-charges")
                 .setResourceUri(resourceUri)
+                .setData("{ \"key\": \"value\" }")
+                .setEvent(event)
+                .build();
+    }
+
+    private void sendMessage(String topicName, ResourceChangedData companyNumber) {
+        kafkaTemplate.send(topicName, companyNumber);
+        kafkaTemplate.flush();
+    }
+
+    private ResourceChangedData createMessage(String companyNumber, String topicName) {
+        EventRecord event = EventRecord.newBuilder()
+                .setType("changed")
+                .setPublishedAt("2022-02-22T10:51:30")
+                .setFieldsChanged(Arrays.asList("foo", "moo"))
+                .build();
+
+        return ResourceChangedData.newBuilder()
+                .setContextId("context_id")
+                .setResourceId(companyNumber)
+                .setResourceKind(topicName.contains("insolvency") ? "company-insolvency" : "charges-insolvency")
+                .setResourceUri(topicName.contains("insolvency") ? "/company/"+companyNumber+"/links" : "/company/"+companyNumber+"/charges" )
+                .setData("{ \"key\": \"value\" }")
+                .setEvent(event)
+                .build();
+    }
+
+    private ResourceChangedData deleteMessage(String companyNumber) {
+        EventRecord event = EventRecord.newBuilder()
+                .setType("deleted")
+                .setPublishedAt("2022-02-22T10:51:30")
+                .setFieldsChanged(Arrays.asList("foo", "moo"))
+                .build();
+
+        return ResourceChangedData.newBuilder()
+                .setContextId("context_id")
+                .setResourceId(companyNumber)
+                .setResourceKind("company-insolvency")
+                .setResourceUri("/company/"+companyNumber+"/links")
                 .setData("{ \"key\": \"value\" }")
                 .setEvent(event)
                 .build();

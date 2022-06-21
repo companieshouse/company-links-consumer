@@ -16,6 +16,7 @@ import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.service.ChargesService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.company.links.type.ApiType;
@@ -80,10 +81,7 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         ApiResponse<ChargesApi> chargesResponse = chargesService.getCharges(
                 logContext, companyNumber);
 
-        handleResponse(HttpStatus.valueOf(chargesResponse.getStatusCode()), logContext,
-                "GET", ApiType.CHARGES, companyNumber, logMap);
-
-        if (chargesResponse.getData().getTotalCount() == 0) {
+        if (chargesResponse.getStatusCode() == 410) {
             links.setCharges(null);
             data.setHasCharges(false);
             CompanyProfile companyProfile = new CompanyProfile();
@@ -97,10 +95,11 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
             handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
                     "PATCH", ApiType.COMPANY_PROFILE, companyNumber, logMap);
         } else {
-            logger.trace(String.format(
-                    "Nothing to PATCH with company number %s for contextId %s,"
-                            + " charges link not removed",
-                    companyNumber, logContext));
+            String message = "Response from get charges should be 410, no charges should be"
+                    + "present for the company id :" + companyNumber + ", Re-Trying";
+
+            logger.errorContext(logContext, message, null, logMap);
+            throw new RetryableErrorException(message);
         }
     }
 
@@ -133,6 +132,13 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
 
         // if no charges then update company profile
         if (!doesCompanyProfileHaveCharges(logContext, companyNumber, data.getLinks())) {
+
+            ApiResponse<ChargesApi> chargesResponse = chargesService.getCharges(
+                    logContext, companyNumber);
+
+            handleResponse(HttpStatus.valueOf(chargesResponse.getStatusCode()), logContext,
+                    "GET", ApiType.CHARGES, companyNumber, logMap);
+
             var patchResponse = updateCompanyProfileWithCharges(
                     logContext, companyNumber, data);
             handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,

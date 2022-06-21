@@ -1,9 +1,10 @@
 package uk.gov.companieshouse.company.links.processor;
 
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Objects;
 import java.util.Optional;
-
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,6 @@ import org.mockito.stubbing.Answer;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
-
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.util.FileCopyUtils;
 import uk.gov.companieshouse.api.charges.ChargesApi;
@@ -35,15 +35,7 @@ import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
-import java.io.IOException;
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -123,7 +115,7 @@ class ChargesStreamConsumerTest {
         final ChargesApi noCharges = new ChargesApi();
         noCharges.setTotalCount(0);
         final ApiResponse<ChargesApi> chargesApiResponseNoCharges = new ApiResponse<>(
-            HttpStatus.OK.value(), null, noCharges);
+            HttpStatus.GONE.value(), null, noCharges);
 
         ArgumentCaptor<CompanyProfile> argument = ArgumentCaptor.forClass(CompanyProfile.class);
         when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), (argument.capture()))).thenAnswer(
@@ -171,7 +163,7 @@ class ChargesStreamConsumerTest {
 
         when(chargesService.getCharges(CONTEXT_ID, MOCK_COMPANY_NUMBER)).thenReturn(chargesApiResponseNoCharges);
 
-        chargesStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+        assertThrows(RetryableErrorException.class, () ->chargesStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset"));
 
         verify(chargesStreamProcessor).processDelete(eq(mockResourceChangedMessage));
         verify(companyProfileService, times(1)).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
@@ -205,6 +197,12 @@ class ChargesStreamConsumerTest {
 
         when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
+
+        final ChargesApi hasCharges = new ChargesApi();
+        hasCharges.setTotalCount(1);
+        final ApiResponse<ChargesApi> chargesApiResponseNoCharges = new ApiResponse<>(
+                HttpStatus.OK.value(), null, hasCharges);
+        when(chargesService.getCharges(CONTEXT_ID, MOCK_COMPANY_NUMBER)).thenReturn(chargesApiResponseNoCharges);
 
         chargesStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
@@ -283,6 +281,12 @@ class ChargesStreamConsumerTest {
         final ApiResponse<Void> updatedCompanyProfileApiResponse = new ApiResponse<Void>(
                 HttpStatus.OK.value(), null, null);
         ArgumentCaptor<CompanyProfile> argument = ArgumentCaptor.forClass(CompanyProfile.class);
+
+        final ChargesApi hasCharges = new ChargesApi();
+        hasCharges.setTotalCount(1);
+        final ApiResponse<ChargesApi> chargesApiResponseNoCharges = new ApiResponse<>(
+                HttpStatus.OK.value(), null, hasCharges);
+        when(chargesService.getCharges(CONTEXT_ID, MOCK_COMPANY_NUMBER)).thenReturn(chargesApiResponseNoCharges);
 
         when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
                         (argument.capture())))
@@ -446,6 +450,12 @@ class ChargesStreamConsumerTest {
 
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, companyProfileWithLinks);
+
+        final ChargesApi hasCharges = new ChargesApi();
+        hasCharges.setTotalCount(1);
+        final ApiResponse<ChargesApi> chargesApiResponseNoCharges = new ApiResponse<>(
+                HttpStatus.OK.value(), null, hasCharges);
+        when(chargesService.getCharges(CONTEXT_ID, MOCK_COMPANY_NUMBER)).thenReturn(chargesApiResponseNoCharges);
 
         when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);

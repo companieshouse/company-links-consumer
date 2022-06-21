@@ -2,15 +2,16 @@ Feature: Process company links information for error scenarios
 
   Scenario Outline: Company profile exists with zero charges
     Given Company links consumer api service is running
+    And stubbed set with "<linksResponse>" and "<chargesResponse>" for "<companyNumber>" with all statuses as 200
     Given Company profile stubbed with zero charges links for "<companyNumber>"
     When A valid avro message is sent to the Kafka topic "<topicName>"
     Then The message is successfully consumed and company-profile-api PATCH endpoint is invoked with charges link payload
 
     Examples:
-      | companyNumber | topicName              |
-      | 00006400      | stream-company-charges |
-      | 12345678      | stream-company-charges |
-      | SC987654      | stream-company-charges |
+      | topicName              | companyNumber | linksResponse                 | chargesResponse        |
+      | stream-company-charges | 00006400      | profile-with-out-charges.json | no-charges-output.json |
+      | stream-company-charges | 12345678      | profile-with-out-charges.json | no-charges-output.json |
+      | stream-company-charges | SC987654      | profile-with-out-charges.json | no-charges-output.json |
 
   Scenario Outline: Company profile exists with charges
     Given Company links consumer api service is running

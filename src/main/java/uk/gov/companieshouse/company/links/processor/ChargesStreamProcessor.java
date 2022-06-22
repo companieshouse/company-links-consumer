@@ -1,10 +1,13 @@
 package uk.gov.companieshouse.company.links.processor;
 
+import static org.apache.commons.lang3.StringUtils.substringAfterLast;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -63,12 +66,7 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
                         + "for company number %s with contextId %s retrieved",
                 payload.getResourceKind(), companyNumber, logContext));
 
-        final ApiResponse<CompanyProfile> response =
-                companyProfileService.getCompanyProfile(logContext, companyNumber);
-        handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "GET", ApiType.COMPANY_PROFILE, companyNumber, logMap);
-
-        var data = response.getData().getData();
+        Data data = fetchCompanyProfile(logContext, companyNumber, logMap);
         var links = data.getLinks();
 
         if (links == null || links.getCharges() == null) {
@@ -81,32 +79,31 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         ApiResponse<ChargesApi> chargesResponse = chargesService.getCharges(
                 logContext, companyNumber);
 
-        if (chargesResponse.getStatusCode() == 410) {
-            links.setCharges(null);
-            data.setHasCharges(false);
-            CompanyProfile companyProfile = new CompanyProfile();
-            companyProfile.setData(data);
+        handleResponse(HttpStatus.valueOf(chargesResponse.getStatusCode()), logContext,
+                "GET", ApiType.CHARGES, companyNumber, logMap);
 
-            logger.trace(String.format("Performing a PATCH with "
-                    + "company number %s for contextId %s", companyNumber, logContext));
-            final ApiResponse<Void> patchResponse = companyProfileService.patchCompanyProfile(
-                            logContext, companyNumber, companyProfile);
+        ChargesApi chargesData = chargesResponse.getData();
 
-            handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                    "PATCH", ApiType.COMPANY_PROFILE, companyNumber, logMap);
+        if (chargesData.getTotalCount() == 0) {
+            removeCompanyChargesLink(logContext, logMap, companyNumber, data, links);
         } else {
-            String message = "Response from get charges should be 410, no charges should be"
-                    + "present for the company id :" + companyNumber + ", Re-Trying";
+            String incomingChargeId = substringAfterLast(resourceUri, "/");
+            if (chargesData.getItems().stream().anyMatch(x ->
+                    incomingChargeId.equals(x.getId()))) {
+                throw new RetryableErrorException(String.format("Charge with id: %s is still not "
+                        + "deleted", incomingChargeId));
+            }
 
-            logger.errorContext(logContext, message, null, logMap);
-            throw new RetryableErrorException(message);
+            logger.trace(String.format(
+                    "Nothing to PATCH with company number %s for contextId %s,"
+                            + " charges link not removed", companyNumber, logContext));
         }
     }
 
     /**
      * Process a ResourceChangedData message.
      */
-    public void process(Message<ResourceChangedData> resourceChangedMessage) {
+    public void processDelta(Message<ResourceChangedData> resourceChangedMessage) {
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
         final String resourceUri = payload.getResourceUri();
@@ -123,32 +120,27 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
                         + "for company number %s with contextId %s retrieved",
                 payload.getResourceKind(), companyNumber, logContext));
 
+        Data data = fetchCompanyProfile(logContext, companyNumber, logMap);
+
+        // if no charges then update company profile
+        if (!doesCompanyProfileHaveCharges(logContext, companyNumber, data.getLinks())) {
+            //TODO: Vijay: Invoke single GET charges endpoint
+            addCompanyChargesLink(logContext, logMap, companyNumber, data);
+        }
+    }
+
+    private Data fetchCompanyProfile(String logContext, String companyNumber,
+                                     Map<String, Object> logMap) {
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                 "GET", ApiType.COMPANY_PROFILE, companyNumber, logMap);
 
-        var data = response.getData().getData();
-
-        // if no charges then update company profile
-        if (!doesCompanyProfileHaveCharges(logContext, companyNumber, data.getLinks())) {
-
-            ApiResponse<ChargesApi> chargesResponse = chargesService.getCharges(
-                    logContext, companyNumber);
-
-            handleResponse(HttpStatus.valueOf(chargesResponse.getStatusCode()), logContext,
-                    "GET", ApiType.CHARGES, companyNumber, logMap);
-
-            var patchResponse = updateCompanyProfileWithCharges(
-                    logContext, companyNumber, data);
-            handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                    "PATCH", ApiType.COMPANY_PROFILE, companyNumber, logMap);
-        }
+        return response.getData().getData();
     }
 
-    ApiResponse<Void> updateCompanyProfileWithCharges(String logContext,
-                                                      String companyNumber,
-                                                      Data data) {
+    void addCompanyChargesLink(String logContext, Map<String, Object> logMap,
+                                       String companyNumber, Data data) {
         logger.trace(String.format("Message with contextId %s and company number %s -"
                         + "company profile does not contain charges link, attaching charges link",
                 logContext, companyNumber));
@@ -161,9 +153,26 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         var companyProfile = new CompanyProfile();
         companyProfile.setData(data);
 
-        return companyProfileService.patchCompanyProfile(
-                        logContext, companyNumber, companyProfile
-                );
+        final ApiResponse<Void> patchResponse = companyProfileService.patchCompanyProfile(
+                logContext, companyNumber, companyProfile);
+        handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
+                "PATCH", ApiType.COMPANY_PROFILE, companyNumber, logMap);
+    }
+
+    void removeCompanyChargesLink(String logContext, Map<String, Object> logMap,
+                                          String companyNumber, Data data, Links links) {
+        links.setCharges(null);
+        data.setHasCharges(false);
+        CompanyProfile companyProfile = new CompanyProfile();
+        companyProfile.setData(data);
+
+        logger.trace(String.format("Performing a PATCH with "
+                + "company number %s for contextId %s", companyNumber, logContext));
+        final ApiResponse<Void> patchResponse = companyProfileService.patchCompanyProfile(
+                logContext, companyNumber, companyProfile);
+
+        handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
+                "PATCH", ApiType.COMPANY_PROFILE, companyNumber, logMap);
     }
 
     boolean doesCompanyProfileHaveCharges(String logContext, String companyNumber, Links links) {

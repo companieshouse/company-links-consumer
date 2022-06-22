@@ -71,7 +71,7 @@ public class ChargesStreamConsumer {
                                 + "successfully processed in %d milliseconds", contextId,
                         Duration.between(startTime, Instant.now()).toMillis()));
             } else {
-                chargesProcessor.process(resourceChangedMessage);
+                chargesProcessor.processDelta(resourceChangedMessage);
                 logger.info(format("Charges Links Delta message with contextId: %s is "
                                 + "successfully processed in %d milliseconds", contextId,
                         Duration.between(startTime, Instant.now()).toMillis()));

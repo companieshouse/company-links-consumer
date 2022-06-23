@@ -50,7 +50,7 @@ public class StreamResponseProcessor {
     /**
      * Common response handler.
      */
-    void handleDeleteResponse(
+    void handleCompanyProfileResponse(
             final HttpStatus httpStatus,
             final String logContext,
             String requestType,

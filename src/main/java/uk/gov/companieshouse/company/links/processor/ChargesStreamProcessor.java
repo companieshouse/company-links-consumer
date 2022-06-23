@@ -64,7 +64,7 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
 
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
-        handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
+        handleCompanyProfileResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                 "GET", ApiType.COMPANY_PROFILE, companyNumber, logMap);
 
         var data = response.getData().getData();
@@ -126,7 +126,7 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
 
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
-        handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
+        handleCompanyProfileResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                 "GET", ApiType.COMPANY_PROFILE, companyNumber, logMap);
 
         var data = response.getData().getData();

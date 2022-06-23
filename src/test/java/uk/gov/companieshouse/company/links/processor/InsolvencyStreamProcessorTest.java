@@ -285,7 +285,7 @@ class InsolvencyStreamProcessorTest {
     }
 
     @Test
-    @DisplayName("GET company profile returns 410 DOCUMENT GONE throws Retryable error")
+    @DisplayName("GET company profile returns 410 DOCUMENT GONE throws Non Retryable error")
     void getCompanyProfileReturnsDocumentGone_then_nonRetryableError() throws IOException {
         Message<ResourceChangedData> mockResourceChangedMessage = createResourceChangedMessage();
 
@@ -295,7 +295,7 @@ class InsolvencyStreamProcessorTest {
         when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
+        assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
         verify(logger, times(1)).errorContext(any(), any(), any(), any());
         verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
                 eq("Response from GET company-profile-api"), eq(null), any());

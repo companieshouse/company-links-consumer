@@ -78,6 +78,7 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
 
         if (companyInsolvencyResponse.getStatusCode() == HttpStatus.GONE.value()) {
             links.setInsolvency(null);
+            data.hasInsolvencyHistory(false);
             data.setLinks(links);
             companyProfile.setData(data);
         } else {

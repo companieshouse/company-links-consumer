@@ -97,7 +97,7 @@ public class ChargesStreamConsumerDeleteSteps {
         stubFor(
             get(urlEqualTo("/company/" + companyNumber + "/charges"))
                 .willReturn(aResponse()
-                    .withStatus(410)
+                    .withStatus(200)
                     .withHeader("Content-Type", "application/json")
                     .withBody(chargesResponse)));
 
@@ -153,7 +153,7 @@ public class ChargesStreamConsumerDeleteSteps {
         stubFor(
             get(urlEqualTo("/company/" + companyNumber + "/charges"))
                 .willReturn(aResponse()
-                    .withStatus(410)
+                    .withStatus(200)
                     .withHeader("Content-Type", "application/json")
                     .withBody(chargesResponse)));
 
@@ -246,7 +246,6 @@ public class ChargesStreamConsumerDeleteSteps {
         verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));
         verify(0, patchRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));
      }
-
 
     @Then ("The message fails to process and retrys {int} times before being sent to the {string}")
     public void messageIsRetriedBeforeBeingSentToTopic(int retries, String errorTopic) {

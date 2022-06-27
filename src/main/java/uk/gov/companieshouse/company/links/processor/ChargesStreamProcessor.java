@@ -56,18 +56,10 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         final String resourceUri = payload.getResourceUri();
         final Map<String, Object> logMap = new HashMap<>();
 
-        final Optional<String> companyNumberOptional = extractCompanyNumber(resourceUri);
-        var companyNumber = companyNumberOptional.orElseThrow(
-                () -> new NonRetryableErrorException(String.format(
-                        "Unable to extract company number due to "
-                                + "invalid resource uri %s in message with contextId %s",
-                        resourceUri, logContext)));
-
-        logger.trace(String.format("Resource changed message for deleted event of kind %s "
-                        + "for company number %s with contextId %s retrieved",
-                payload.getResourceKind(), companyNumber, logContext));
-
-        Data data = fetchCompanyProfile(logContext, companyNumber, logMap);
+        final String companyNumber = extractCompanyNumber(resourceUri);
+        final ApiResponse<CompanyProfile> response =
+                getCompanyProfile(payload, logContext, logMap, companyNumber);
+        var data = response.getData().getData();
         var links = data.getLinks();
 
         if (links == null || links.getCharges() == null) {
@@ -110,18 +102,10 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         final String resourceUri = payload.getResourceUri();
         final Map<String, Object> logMap = new HashMap<>();
 
-        final Optional<String> companyNumberOptional = extractCompanyNumber(resourceUri);
-        var companyNumber = companyNumberOptional.orElseThrow(
-                () -> new NonRetryableErrorException(String.format(
-                        "Unable to extract company number due to "
-                                + "invalid resource uri %s in message with contextId %s",
-                        resourceUri, logContext)));
-
-        logger.trace(String.format("Resource changed message for event of kind %s "
-                        + "for company number %s with contextId %s retrieved",
-                payload.getResourceKind(), companyNumber, logContext));
-
-        Data data = fetchCompanyProfile(logContext, companyNumber, logMap);
+        final String companyNumber = extractCompanyNumber(resourceUri);
+        final ApiResponse<CompanyProfile> response =
+                getCompanyProfile(payload, logContext, logMap, companyNumber);
+        var data = response.getData().getData();
 
         // if no charges then update company profile
         if (!doesCompanyProfileHaveCharges(logContext, companyNumber, data.getLinks())) {
@@ -140,14 +124,24 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         }
     }
 
-    private Data fetchCompanyProfile(String logContext, String companyNumber,
-                                     Map<String, Object> logMap) {
+    private ApiResponse<CompanyProfile> getCompanyProfile(ResourceChangedData payload,
+                                                          String logContext,
+                                                          Map<String, Object> logMap,
+                                                          String companyNumber) {
+        if (StringUtils.isEmpty(companyNumber)) {
+            throw new NonRetryableErrorException(String.format(
+                    "Company number is empty or null in message with contextId %s", logContext));
+        }
+
+        logger.trace(String.format("Resource changed message with contextId %s of kind %s "
+                        + "for company number %s retrieved",
+                logContext, payload.getResourceKind(), companyNumber));
+
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
         handleResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
                 "GET", ApiType.COMPANY_PROFILE, companyNumber, logMap);
-
-        return response.getData().getData();
+        return response;
     }
 
     void addCompanyChargesLink(String logContext, Map<String, Object> logMap,
@@ -174,11 +168,14 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
                                           String companyNumber, Data data, Links links) {
         links.setCharges(null);
         data.setHasCharges(false);
+        patchCompanyProfile(logContext, logMap, companyNumber, data);
+    }
+
+    private void patchCompanyProfile(String logContext, Map<String, Object> logMap,
+                                     String companyNumber, Data data) {
         CompanyProfile companyProfile = new CompanyProfile();
         companyProfile.setData(data);
 
-        logger.trace(String.format("Performing a PATCH with "
-                + "company number %s for contextId %s", companyNumber, logContext));
         final ApiResponse<Void> patchResponse = companyProfileService.patchCompanyProfile(
                 logContext, companyNumber, companyProfile);
 
@@ -196,17 +193,17 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         return hasCharges;
     }
 
-    Optional<String> extractCompanyNumber(String resourceUri) {
+    String extractCompanyNumber(String resourceUri) {
         if (StringUtils.isNotBlank(resourceUri)) {
             //matches all characters between company/ and /
             Pattern companyNo = Pattern.compile(EXTRACT_COMPANY_NUMBER_PATTERN);
             Matcher matcher = companyNo.matcher(resourceUri);
             if (matcher.find()) {
-                return Optional.ofNullable(matcher.group());
+                return matcher.group();
             }
         }
         logger.trace(String.format("Could not extract company number from uri "
                 + "%s ", resourceUri));
-        return Optional.empty();
+        return null;
     }
 }

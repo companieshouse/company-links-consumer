@@ -25,17 +25,13 @@ Feature: Process company links charges stream delete scenarios
 
   Scenario Outline: Company profile exists with charges link and get charges returns a list of links a kafka delete will not patch the profile
     Given Company links consumer api service is running
-    And stubbed set with "<linksResponse>" and "<chargesResponse>" for "<companyNumber>" with all statuses as 200
+    And stubbed set with "<linksResponse>" and "<chargesResponse>" for "<companyNumber>"
     When A valid avro delete message for company number "<companyNumber>" is sent to the Kafka topic "<topicName>"
-#    Then The message is successfully consumed and company-profile-api PATCH endpoint is not invoked
-    Then The message fails to process and retrys 3 times before being sent to the "<errorTopic>"
-
-
+    Then The message is successfully consumed and company-profile-api PATCH endpoint is not invoked
 
     Examples:
-      | companyNumber | topicName              | linksResponse                   | chargesResponse     |errorTopic                                          |
-      | 00006400      | stream-company-charges | profile-with-charges-links.json | charges-output.json |stream-company-charges-company-links-consumer-error |
-
+      | companyNumber | topicName              | linksResponse                   | chargesResponse     |
+      | 00006400      | stream-company-charges | profile-with-charges-links.json | charges-output.json |
 
   Scenario Outline: Company profile exists with charges link and get charges returns a 503 the kafka delete is retried 3 times then sent to error topic
     Given Company links consumer api service is running

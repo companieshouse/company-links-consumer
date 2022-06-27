@@ -59,8 +59,8 @@ public class ChargesStreamConsumerSteps {
     @Given("Company profile stubbed with zero charges links for {string}")
     public void company_profile_exists_without_charges(String companyNumber) {
         this.companyNumber = companyNumber;
-        //setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-out-charges.json", companyNumber));
-     }
+        setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-out-charges.json", companyNumber));
+    }
 
     @Given("Company profile stubbed with charges present for {string}")
     public void company_profile_exists_with_charges(String companyNumber) {
@@ -88,12 +88,12 @@ public class ChargesStreamConsumerSteps {
     }
 
     @Then("The message is successfully consumed and company-profile-api PATCH endpoint is invoked with charges link payload")
-    public void patchEdpointIsCalled() throws JsonProcessingException {
+    public void patchEndpointIsCalled() throws JsonProcessingException {
 
         List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
-        assertEquals(4, events.size());
+        assertEquals(3, events.size());
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
-        verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/charges")));
+        verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/charges/123456789000")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
 
         String requestBody = new String(events.get(0).getRequest().getBody());
@@ -117,15 +117,6 @@ public class ChargesStreamConsumerSteps {
                     .withStatus(200)));
     }
 
-    private void setGetChargersFor(String response){
-        stubFor(
-                patch(urlEqualTo("/company/" + this.companyNumber + "/links"))
-                        .withRequestBody(containing("\"charges\":\"/company/" +
-                                this.companyNumber + "/charges\""))
-                        .willReturn(aResponse()
-                                .withStatus(200)));
-    }
-
     private ResourceChangedData createChargesMessage(String companyNumber) {
         return createBaseMessage(companyNumber, RESOURCE_KIND_CHARGES);
     }
@@ -141,7 +132,7 @@ public class ChargesStreamConsumerSteps {
                 .setContextId("context_id")
                 .setResourceId(companyNumber)
                 .setResourceKind(kind)
-                .setResourceUri("/company/"+companyNumber+"/charges/"+"123456789000")
+                .setResourceUri("/company/"+companyNumber+"/charges/123456789000")
                 .setData("{ \"key\": \"value\" }")
                 .setEvent(event)
                 .build();

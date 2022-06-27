@@ -20,6 +20,7 @@ import uk.gov.companieshouse.company.links.processor.ChargesStreamProcessor;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
+
 @Component
 public class ChargesStreamConsumer {
 

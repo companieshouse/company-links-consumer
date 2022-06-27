@@ -372,7 +372,8 @@ class ChargesStreamConsumerTest {
     @ParameterizedTest(name = "{index} ==> {2}: is {0} valid? {1}")
     @MethodSource("testExtractCompanyNumberFromResourceUri")
     public void urlPatternTest(String input, String expected) {
-        Optional<String> companyNumberOptional = chargesStreamProcessor.extractCompanyNumber(input);
+        Optional<String> companyNumberOptional =
+                Optional.ofNullable(chargesStreamProcessor.extractCompanyNumber(input));
         companyNumberOptional.ifPresent(companyNumber -> assertEquals(expected, companyNumber));
         if (expected == null) {
             assertFalse(companyNumberOptional.isPresent());

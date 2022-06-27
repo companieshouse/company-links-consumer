@@ -16,7 +16,7 @@ public class WiremockTestConfig {
 
     private static WireMockServer wireMockServer;
 
-    private static String chargeId="123456789000";
+    private static String chargeId = "123456789000";
 
     public static void setupWiremock() {
         if (wireMockServer == null) {
@@ -96,11 +96,16 @@ public class WiremockTestConfig {
         }
     }
 
-    public static void stubForGetChargeDataAPI(String companyNumber ) {
+    public static void stubForGetChargeDataAPI(String companyNumber) {
         stubFor(
                 get(urlEqualTo("/company/" + companyNumber + "/charges/"+ chargeId))
                         .willReturn(aResponse()
-                                .withStatus(200)));
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody("{\n" +
+                                        "    \"_id\": \"AbRiN\",\n" +
+                                        "    \"company_number\": \"" + companyNumber +
+                                        "\"\n}")));
     }
 
 }

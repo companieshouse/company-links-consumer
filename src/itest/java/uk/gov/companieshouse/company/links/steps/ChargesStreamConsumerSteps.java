@@ -68,6 +68,11 @@ public class ChargesStreamConsumerSteps {
         setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-charges-links.json", this.companyNumber));
     }
 
+    @Given("Company mortgages stubbed with a charge present for {string}")
+    public void company_charges_exists_for_charge_id(String companyNumber) {
+        WiremockTestConfig.stubForGetChargeDataAPI(companyNumber);
+    }
+
     @When("A valid avro message is sent to the Kafka topic {string}")
     public void send_kafka_message(String topicName) throws InterruptedException {
         kafkaTemplate.send(topicName, createChargesMessage(companyNumber));
@@ -84,8 +89,9 @@ public class ChargesStreamConsumerSteps {
 
     @Then("The message is successfully consumed and company-profile-api PATCH endpoint is invoked with charges link payload")
     public void patchEdpointIsCalled() throws JsonProcessingException {
+
         List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
-        assertEquals(3, events.size());
+        assertEquals(4, events.size());
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/charges")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
@@ -135,7 +141,7 @@ public class ChargesStreamConsumerSteps {
                 .setContextId("context_id")
                 .setResourceId(companyNumber)
                 .setResourceKind(kind)
-                .setResourceUri("/company/"+companyNumber+"/charges")
+                .setResourceUri("/company/"+companyNumber+"/charges/"+"123456789000")
                 .setData("{ \"key\": \"value\" }")
                 .setEvent(event)
                 .build();

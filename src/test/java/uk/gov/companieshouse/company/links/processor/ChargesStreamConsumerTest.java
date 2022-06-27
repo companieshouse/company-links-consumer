@@ -202,6 +202,9 @@ class ChargesStreamConsumerTest {
 
         when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
+        when(chargesService.getACharge(any(), any()))
+                .thenReturn(new ApiResponse<>(
+                        HttpStatus.OK.value(), null, null));
 
         chargesStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
@@ -284,6 +287,9 @@ class ChargesStreamConsumerTest {
         when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
                         (argument.capture())))
                 .thenAnswer((Answer) invocation -> updatedCompanyProfileApiResponse);
+        when(chargesService.getACharge(any(), any()))
+                .thenReturn(new ApiResponse<>(
+                        HttpStatus.OK.value(), null, null));
 
         chargesStreamProcessor.processDelta(mockResourceChangedMessage);
 
@@ -450,7 +456,9 @@ class ChargesStreamConsumerTest {
         when(companyProfileService.patchCompanyProfile(any(), any(), any()))
                 .thenReturn(new ApiResponse<>(
                         HttpStatus.BAD_REQUEST.value(), null, null));
-
+        when(chargesService.getACharge(any(), any()))
+                .thenReturn(new ApiResponse<>(
+                        HttpStatus.OK.value(), null, null));
         assertThrows(NonRetryableErrorException.class, () -> chargesStreamProcessor.processDelta(mockResourceChangedMessage));
 
         verify(companyProfileService).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
@@ -458,6 +466,26 @@ class ChargesStreamConsumerTest {
                 any(CompanyProfile.class));
 
         verifyNoMoreInteractions(companyProfileService);
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when Charges Data API returns non successfull response !2XX")
+    void throwRetryableErrorExceptionWhenChargeDataAPIReturnsNon2XX() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessageWithValidResourceUri();
+
+        CompanyProfile companyProfileWithLinks = testData.createCompanyProfile();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, companyProfileWithLinks);
+
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+        when(chargesService.getACharge(any(), any()))
+                .thenReturn(new ApiResponse<>(
+                        HttpStatus.NOT_FOUND.value(), null, null));
+        assertThrows(RetryableErrorException.class, () -> chargesStreamProcessor.processDelta(mockResourceChangedMessage));
+        verify(companyProfileService).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
+
     }
 
     private CompanyProfile createCompanyProfileWithoutChargesLinks() {

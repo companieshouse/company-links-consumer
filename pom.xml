@@ -34,7 +34,7 @@
 		<ch-kafka.version>1.4.2</ch-kafka.version>
 		<structured-logging.version>1.9.12</structured-logging.version>
 		<kafka-models.version>1.0.27</kafka-models.version>
-		<private-api-sdk-java.version>2.0.175</private-api-sdk-java.version>
+		<private-api-sdk-java.version>2.0.183</private-api-sdk-java.version>
 		<api-sdk-manager-java-library.version>1.0.4</api-sdk-manager-java-library.version>
 		<jib-maven-plugin.version>3.1.1</jib-maven-plugin.version>
 		<springfox-boot-starter.version>3.0.0</springfox-boot-starter.version>

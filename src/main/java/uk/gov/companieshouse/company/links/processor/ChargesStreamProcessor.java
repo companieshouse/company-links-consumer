@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
+import uk.gov.companieshouse.api.charges.ChargeApi;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
@@ -124,7 +125,17 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
 
         // if no charges then update company profile
         if (!doesCompanyProfileHaveCharges(logContext, companyNumber, data.getLinks())) {
-            //TODO: Vijay: Invoke single GET charges endpoint
+
+            ApiResponse<ChargeApi> chargeApiResponse =
+                    chargesService.getACharge(logContext, resourceUri);
+            HttpStatus httpStatus =
+                    HttpStatus.resolve(chargeApiResponse.getStatusCode());
+            if (httpStatus == null || !httpStatus.is2xxSuccessful()) {
+                throw new RetryableErrorException(String.format(
+                        "Resource not found in company charges for the "
+                                + "resource uri %s with contextId %s",
+                        resourceUri, logContext));
+            }
             addCompanyChargesLink(logContext, logMap, companyNumber, data);
         }
     }

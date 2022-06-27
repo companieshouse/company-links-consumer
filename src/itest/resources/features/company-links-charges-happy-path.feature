@@ -4,6 +4,7 @@ Feature: Process company links information for error scenarios
     Given Company links consumer api service is running
     And stubbed set with "<linksResponse>" and "<chargesResponse>" for "<companyNumber>" with all statuses as 200
     Given Company profile stubbed with zero charges links for "<companyNumber>"
+    And Company mortgages stubbed with a charge present for "<companyNumber>"
     When A valid avro message is sent to the Kafka topic "<topicName>"
     Then The message is successfully consumed and company-profile-api PATCH endpoint is invoked with charges link payload
 

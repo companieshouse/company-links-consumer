@@ -60,12 +60,17 @@ public class ChargesStreamConsumerSteps {
     public void company_profile_exists_without_charges(String companyNumber) {
         this.companyNumber = companyNumber;
         setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-out-charges.json", companyNumber));
-     }
+    }
 
     @Given("Company profile stubbed with charges present for {string}")
     public void company_profile_exists_with_charges(String companyNumber) {
         this.companyNumber = companyNumber;
         setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-charges-links.json", this.companyNumber));
+    }
+
+    @Given("Company mortgages stubbed with a charge present for {string}")
+    public void company_charges_exists_for_charge_id(String companyNumber) {
+        WiremockTestConfig.stubForGetChargeDataAPI(companyNumber);
     }
 
     @When("A valid avro message is sent to the Kafka topic {string}")
@@ -83,10 +88,12 @@ public class ChargesStreamConsumerSteps {
     }
 
     @Then("The message is successfully consumed and company-profile-api PATCH endpoint is invoked with charges link payload")
-    public void patchEdpointIsCalled() throws JsonProcessingException {
+    public void patchEndpointIsCalled() throws JsonProcessingException {
+
         List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
-        assertEquals(2, events.size());
+        assertEquals(3, events.size());
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+        verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/charges/123456789000")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
 
         String requestBody = new String(events.get(0).getRequest().getBody());
@@ -125,7 +132,7 @@ public class ChargesStreamConsumerSteps {
                 .setContextId("context_id")
                 .setResourceId(companyNumber)
                 .setResourceKind(kind)
-                .setResourceUri("/company/"+companyNumber+"/charges")
+                .setResourceUri("/company/"+companyNumber+"/charges/123456789000")
                 .setData("{ \"key\": \"value\" }")
                 .setEvent(event)
                 .build();

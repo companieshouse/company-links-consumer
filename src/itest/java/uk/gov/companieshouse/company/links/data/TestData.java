@@ -18,6 +18,8 @@ public class TestData {
     public static final String RESOURCE_KIND_CHARGES = "company-charges";
     public static final String RESOURCE_KIND_INSOLVENCY = "company-insolvency";
     public static final String CHARGES_RESOURCE_URI = "/company/12345678/charges";
+    public static final String SINGLE_CHARGE_RESOURCE_URI = "/company/12345678/charges/123456789000";
+
     public static final String INSOLVENCY_RESOURCE_URI = "/company/12345678/insolvency";
     public static final String EVENT_TYPE_DELETE = "deleted";
 
@@ -76,6 +78,31 @@ public class TestData {
                 Objects.requireNonNull(ClassLoader.getSystemClassLoader()
                         .getResourceAsStream(filename)));
         return FileCopyUtils.copyToString(exampleChargesJsonPayload);
+    }
+
+    public ResourceChangedData getResourceChangedDataForSingleChargeEvent(String fileName) throws IOException {
+        EventRecord event = EventRecord.newBuilder()
+                .setType(CHANGED)
+                .setPublishedAt("2022-02-22T10:51:30")
+                .setFieldsChanged(Arrays.asList("foo", "moo"))
+                .build();
+
+        String chargesData = getChargesData(fileName);
+
+        ResourceChangedData resourceChanged = getSingleChargeData(event, chargesData);
+        return resourceChanged;
+    }
+
+    private ResourceChangedData getSingleChargeData(EventRecord event, String chargesData) {
+        ResourceChangedData resourceChanged = ResourceChangedData.newBuilder()
+                .setContextId(CONTEXT_ID)
+                .setResourceId(RESOURCE_ID)
+                .setResourceKind(RESOURCE_KIND_CHARGES)
+                .setResourceUri(SINGLE_CHARGE_RESOURCE_URI)
+                .setData(chargesData)
+                .setEvent(event)
+                .build();
+        return resourceChanged;
     }
 
 }

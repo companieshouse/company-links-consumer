@@ -22,7 +22,8 @@ public class TestData {
     public static final String OFFSET = "offset_1";
     public static final String CONTEXT_ID = "context_id";
     public static final String MOCK_COMPANY_NUMBER = "03105860";
-    public static final String COMPANY_CHARGES_LINK = String.format("/company/%s/charges", MOCK_COMPANY_NUMBER);
+    public static final String COMPANY_CHARGES_LINK = String.format("/company/%s/charges/123", MOCK_COMPANY_NUMBER);
+    public static final String ALL_COMPANY_CHARGES_LINK = String.format("/company/%s/charges", MOCK_COMPANY_NUMBER);
     public static final String INVALID_COMPANY_CHARGES_LINK = String.format("/company/%s/metrics", MOCK_COMPANY_NUMBER);
     public static final String RESOURCE_ID = "11223344";
 

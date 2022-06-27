@@ -59,9 +59,17 @@ public class ChargesStreamConsumerDeleteSteps {
     @And("stubbed set with {string} and {string} for {string}")
     public void stubforCompanyNumberUsingResonseFiles(String linksResponseFile, String chargesResponse, String companyNumber){
         this.companyNumber = companyNumber;
-        setGetAndPatchStubsFor(
+        setGetAndPatchStubsForDelete(
             loadFileForCoNumber(linksResponseFile, this.companyNumber),
             loadFileForCoNumber(chargesResponse, this.companyNumber));
+    }
+
+    @And("stubbed set with {string} and {string} for {string} with all statuses as 200")
+    public void stubforCompanyNumberUsingResonseFilesForUpdate(String linksResponseFile, String chargesResponse, String companyNumber){
+        this.companyNumber = companyNumber;
+        setGetAndPatchStubsForUpdate(
+                loadFileForCoNumber(linksResponseFile, this.companyNumber),
+                loadFileForCoNumber(chargesResponse, this.companyNumber));
     }
 
     @And("stubbed set with {string} for {string} and getCharges give {int}")
@@ -71,7 +79,7 @@ public class ChargesStreamConsumerDeleteSteps {
             loadFileForCoNumber(linksResponseFile, this.companyNumber),chargesResponce);
     }
 
-    @And("stubbed set with {string} and {string} for {string} but patch enpoint give {int}")
+    @And("stubbed set with {string} and {string} for {string} but patch endpoint give {int}")
     public void stubforCompanyNumberUsingResonseFiles(String linksResponseFile, String chargesResponse, String companyNumber, int patchResponse){
         this.companyNumber = companyNumber;
         setGetStubsForWithPatchResonseResponse(
@@ -111,6 +119,15 @@ public class ChargesStreamConsumerDeleteSteps {
         }
     }
 
+    private String loadFileForCoNumber(String fileName, String companyNumber, int statusCode) {
+        try {
+            String templateText = FileUtils.readFileToString(ResourceUtils.getFile("classpath:stubs/"+fileName), StandardCharsets.UTF_8);
+            return String.format(templateText, companyNumber, companyNumber); // extra args are ignored
+        } catch (IOException e) {
+            throw new RuntimeException(String.format("Unable to locate file %s", fileName));
+        }
+    }
+
     private void setGetStubsForWithChargesResponse(String linksResponse, int chargesResponse){
         stubFor(
             get(urlEqualTo("/company/" + companyNumber + "/links"))
@@ -125,7 +142,7 @@ public class ChargesStreamConsumerDeleteSteps {
                     .withStatus(chargesResponse)));
     }
 
-    private void setGetAndPatchStubsFor(String linksResponse, String chargesResponse){
+    private void setGetAndPatchStubsForDelete(String linksResponse, String chargesResponse){
         stubFor(
             get(urlEqualTo("/company/" + companyNumber + "/links"))
                 .willReturn(aResponse()
@@ -147,6 +164,30 @@ public class ChargesStreamConsumerDeleteSteps {
                     companyNumber + "\""))
                 .willReturn(aResponse()
                     .withStatus(200)));
+    }
+
+    private void setGetAndPatchStubsForUpdate(String linksResponse, String chargesResponse){
+        stubFor(
+                get(urlEqualTo("/company/" + companyNumber + "/links"))
+                        .willReturn(aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(linksResponse)));
+
+        stubFor(
+                get(urlEqualTo("/company/" + companyNumber + "/charges"))
+                        .willReturn(aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(chargesResponse)));
+
+
+        stubFor(
+                patch(urlEqualTo("/company/" + companyNumber + "/links"))
+                        .withRequestBody(containing("\"company_number\":\"" +
+                                companyNumber + "\""))
+                        .willReturn(aResponse()
+                                .withStatus(200)));
     }
 
     @When ("A valid avro delete message for company number {string} is sent to the Kafka topic {string}")
@@ -206,8 +247,7 @@ public class ChargesStreamConsumerDeleteSteps {
         verify(0, patchRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));
      }
 
-
-    @Then ("The message fails to process and retrys {int} times bvefore being sent to the {string}")
+    @Then ("The message fails to process and retrys {int} times before being sent to the {string}")
     public void messageIsRetriedBeforeBeingSentToTopic(int retries, String errorTopic) {
         ConsumerRecord<String, Object>
             singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, errorTopic, 5000L);

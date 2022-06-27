@@ -1,9 +1,11 @@
 package uk.gov.companieshouse.company.links.processor;
 
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.Optional;
-
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,9 +20,9 @@ import org.mockito.stubbing.Answer;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
-
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.util.FileCopyUtils;
+import uk.gov.companieshouse.api.charges.ChargeApi;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
@@ -35,15 +37,7 @@ import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
-import java.io.IOException;
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -163,6 +157,9 @@ class ChargesStreamConsumerTest {
 
         final ChargesApi hasCharges = new ChargesApi();
         hasCharges.setTotalCount(1);
+        ChargeApi chargeApi = new ChargeApi();
+        chargeApi.setId("123");
+        hasCharges.getItems().add(chargeApi);
         final ApiResponse<ChargesApi> chargesApiResponseNoCharges = new ApiResponse<>(
             HttpStatus.OK.value(), null, hasCharges);
 
@@ -171,7 +168,7 @@ class ChargesStreamConsumerTest {
 
         when(chargesService.getCharges(CONTEXT_ID, MOCK_COMPANY_NUMBER)).thenReturn(chargesApiResponseNoCharges);
 
-        chargesStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+        assertThrows(RetryableErrorException.class, () ->chargesStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset"));
 
         verify(chargesStreamProcessor).processDelete(eq(mockResourceChangedMessage));
         verify(companyProfileService, times(1)).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
@@ -205,10 +202,13 @@ class ChargesStreamConsumerTest {
 
         when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
+        when(chargesService.getACharge(any(), any()))
+                .thenReturn(new ApiResponse<>(
+                        HttpStatus.OK.value(), null, null));
 
         chargesStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
-        verify(chargesStreamProcessor).process(eq(mockResourceChangedMessage));
+        verify(chargesStreamProcessor).processDelta(eq(mockResourceChangedMessage));
         verify(companyProfileService, times(1)).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
         // dont need to know that this method is called with a specific value just that it was called
         verify(companyProfileService, times(1)).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
@@ -217,7 +217,7 @@ class ChargesStreamConsumerTest {
         assertEquals(1, argument.getAllValues().size()); // should have only captured 1 argument
         assertNotNull(argument.getValue().getData().getLinks()); // we have links
         String links = argument.getValue().getData().getLinks().getCharges();
-        assertEquals(TestData.COMPANY_CHARGES_LINK, links); // and the charges link is as expected
+        assertEquals(TestData.ALL_COMPANY_CHARGES_LINK, links); // and the charges link is as expected
         verifyNoMoreInteractions(companyProfileService);
     }
 
@@ -246,7 +246,7 @@ class ChargesStreamConsumerTest {
 
         chargesStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
-        verify(chargesStreamProcessor).process(eq(mockResourceChangedMessage));
+        verify(chargesStreamProcessor).processDelta(eq(mockResourceChangedMessage));
         verify(companyProfileService).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
         verify(companyProfileService, times(0)).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
                 any(CompanyProfile.class));
@@ -287,8 +287,11 @@ class ChargesStreamConsumerTest {
         when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
                         (argument.capture())))
                 .thenAnswer((Answer) invocation -> updatedCompanyProfileApiResponse);
+        when(chargesService.getACharge(any(), any()))
+                .thenReturn(new ApiResponse<>(
+                        HttpStatus.OK.value(), null, null));
 
-        chargesStreamProcessor.process(mockResourceChangedMessage);
+        chargesStreamProcessor.processDelta(mockResourceChangedMessage);
 
         verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
                 any(CompanyProfile.class));
@@ -297,7 +300,7 @@ class ChargesStreamConsumerTest {
         Links links = argument.getValue().getData().getLinks();
         assertNotNull(links);
         String charges = links.getCharges();
-        assertEquals(String.format(TestData.COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER), charges);
+        assertEquals(String.format(TestData.ALL_COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER), charges);
         verifyNoMoreInteractions(companyProfileService);
     }
 
@@ -315,7 +318,7 @@ class ChargesStreamConsumerTest {
         when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenAnswer(invocation -> companyProfileApiGetResponse);
 
-        chargesStreamProcessor.process(mockResourceChangedMessage);
+        chargesStreamProcessor.processDelta(mockResourceChangedMessage);
 
         verify(companyProfileService, times(0)).
                 patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
@@ -340,7 +343,8 @@ class ChargesStreamConsumerTest {
                 (argument.capture())))
                 .thenAnswer((Answer) invocation -> updatedCompanyProfileApiResponse);
 
-        chargesStreamProcessor.updateCompanyProfileWithCharges(CONTEXT_ID, MOCK_COMPANY_NUMBER,
+        chargesStreamProcessor.addCompanyChargesLink(CONTEXT_ID, new HashMap<>(),
+                MOCK_COMPANY_NUMBER,
                 companyProfile.getData());
 
         verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
@@ -351,7 +355,7 @@ class ChargesStreamConsumerTest {
         assertTrue(data.getHasCharges());
         Links links = data.getLinks();
         assertNotNull(links);
-        assertEquals(String.format(TestData.COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER), links.getCharges());
+        assertEquals(String.format(TestData.ALL_COMPANY_CHARGES_LINK, MOCK_COMPANY_NUMBER), links.getCharges());
         verifyNoMoreInteractions(companyProfileService);
     }
 
@@ -368,7 +372,8 @@ class ChargesStreamConsumerTest {
     @ParameterizedTest(name = "{index} ==> {2}: is {0} valid? {1}")
     @MethodSource("testExtractCompanyNumberFromResourceUri")
     public void urlPatternTest(String input, String expected) {
-        Optional<String> companyNumberOptional = chargesStreamProcessor.extractCompanyNumber(input);
+        Optional<String> companyNumberOptional =
+                Optional.ofNullable(chargesStreamProcessor.extractCompanyNumber(input));
         companyNumberOptional.ifPresent(companyNumber -> assertEquals(expected, companyNumber));
         if (expected == null) {
             assertFalse(companyNumberOptional.isPresent());
@@ -383,7 +388,7 @@ class ChargesStreamConsumerTest {
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData
                 .createResourceChangedMessageWithInValidResourceUri();
-        assertThrows(NonRetryableErrorException.class, () -> chargesStreamProcessor.process(mockResourceChangedMessage));
+        assertThrows(NonRetryableErrorException.class, () -> chargesStreamProcessor.processDelta(mockResourceChangedMessage));
 
         verify(companyProfileService, times(0)).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
 
@@ -428,7 +433,7 @@ class ChargesStreamConsumerTest {
         when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyProfileApiResponse);
 
-        assertThrows(RetryableErrorException.class, () -> chargesStreamProcessor.process(mockResourceChangedMessage));
+        assertThrows(RetryableErrorException.class, () -> chargesStreamProcessor.processDelta(mockResourceChangedMessage));
 
         verify(companyProfileService).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
         verify(companyProfileService, times(0)).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
@@ -452,8 +457,10 @@ class ChargesStreamConsumerTest {
         when(companyProfileService.patchCompanyProfile(any(), any(), any()))
                 .thenReturn(new ApiResponse<>(
                         HttpStatus.BAD_REQUEST.value(), null, null));
-
-        assertThrows(NonRetryableErrorException.class, () -> chargesStreamProcessor.process(mockResourceChangedMessage));
+        when(chargesService.getACharge(any(), any()))
+                .thenReturn(new ApiResponse<>(
+                        HttpStatus.OK.value(), null, null));
+        assertThrows(NonRetryableErrorException.class, () -> chargesStreamProcessor.processDelta(mockResourceChangedMessage));
 
         verify(companyProfileService).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
         verify(companyProfileService, times(1)).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
@@ -462,6 +469,25 @@ class ChargesStreamConsumerTest {
         verifyNoMoreInteractions(companyProfileService);
     }
 
+    @Test
+    @DisplayName("throws RetryableErrorException when Charges Data API returns non successfull response !2XX")
+    void throwRetryableErrorExceptionWhenChargeDataAPIReturnsNon2XX() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createResourceChangedMessageWithValidResourceUri();
+
+        CompanyProfile companyProfileWithLinks = testData.createCompanyProfile();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, companyProfileWithLinks);
+
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+        when(chargesService.getACharge(any(), any()))
+                .thenReturn(new ApiResponse<>(
+                        HttpStatus.NOT_FOUND.value(), null, null));
+        assertThrows(RetryableErrorException.class, () -> chargesStreamProcessor.processDelta(mockResourceChangedMessage));
+        verify(companyProfileService).getCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER));
+
+    }
 
     private CompanyProfile createCompanyProfileWithoutChargesLinks() {
         Data companyProfileData = new Data();

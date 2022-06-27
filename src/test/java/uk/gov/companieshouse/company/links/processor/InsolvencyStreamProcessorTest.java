@@ -122,9 +122,9 @@ class InsolvencyStreamProcessorTest {
                 contains("Resource changed message with contextId context_id of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace(contains(
                 String.format("Company profile with company number %s,"
-                        + " contains insolvency links, will not perform PATCH",
+                                + " contains insolvency links, will not perform PATCH",
                         MOCK_COMPANY_NUMBER)
-                ));
+        ));
         verify(logger, times(1)).info(anyString());
         verify(logger, atLeastOnce()).info("Successfully invoked GET company-profile-api endpoint" +
                 " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
@@ -146,13 +146,11 @@ class InsolvencyStreamProcessorTest {
         verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
         verify(companyProfileService, never()).patchCompanyProfile(anyString(), anyString(), any(CompanyProfile.class));
         verify(logger, times(2)).trace(anyString());
-        verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message with contextId context_id for deleted event of kind company-insolvency"));
         verify(logger, atLeastOnce()).trace((
                 String.format("Company profile with company number %s, does not contain insolvency links," +
                                 " will not perform patch for contextId context_id",
                         MOCK_COMPANY_NUMBER)
-                ));
+        ));
         verify(logger, times(1)).info(anyString());
         verify(logger, atLeastOnce()).info("Successfully invoked GET company-profile-api endpoint" +
                 " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
@@ -181,8 +179,6 @@ class InsolvencyStreamProcessorTest {
         insolvencyProcessor.processDelete(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
-        verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message with contextId context_id for deleted event of kind company-insolvency"));
         verify(companyProfileService, times(1)).patchCompanyProfile(
                 eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), companyProfileCaptor.capture());
         assertNull(companyProfileCaptor.getValue().getData().getLinks().getInsolvency());
@@ -192,7 +188,6 @@ class InsolvencyStreamProcessorTest {
                 " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
         verify(logger, atLeastOnce()).info("Successfully invoked PATCH company-profile-api endpoint" +
                 " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
-
     }
 
     @Test

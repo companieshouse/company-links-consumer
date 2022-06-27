@@ -8,7 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.companieshouse.api.InternalApiClient;
+import uk.gov.companieshouse.api.charges.ChargeApi;
 import uk.gov.companieshouse.api.charges.ChargesApi;
+import uk.gov.companieshouse.api.handler.delta.charges.request.PrivateChargesGet;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.ApiType;
@@ -65,5 +67,24 @@ public class ChargesService extends BaseApiClientService {
         logMap.put("path", path);
         return logMap;
     }
+
+    /**
+     * Retrieve company charge given a resource URI from charges-data-api.
+     *
+     * @param uri the company's charge id
+     * @return an ApiResponse containing the charge data model
+     */
+    public ApiResponse<ChargeApi> getACharge(String contextId,
+                                             String uri) {
+        Map<String, Object> logMap = createLogMap(null,"GET", uri);
+        logger.infoContext(contextId, String.format("GET %s", uri), logMap);
+        InternalApiClient internalApiClient = internalApiClientSupplier.get();
+        internalApiClient.getHttpClient().setRequestId(contextId);
+        PrivateChargesGet privateChargesGet =
+                internalApiClient.privateDeltaChargeResourceHandler()
+                        .getACharge(uri);
+        return executeOp(contextId, "GET",ApiType.CHARGES, uri, privateChargesGet);
+    }
+
 
 }

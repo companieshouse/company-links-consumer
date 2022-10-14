@@ -168,7 +168,7 @@ class InsolvencyStreamProcessorTest {
                 .thenReturn(companyProfileApiResponse);
 
         final ApiResponse<CompanyInsolvency> companyInsolvencyGetApiResponse = new ApiResponse<>(
-                HttpStatus.GONE.value(), null, null);
+                HttpStatus.NOT_FOUND.value(), null, null);
 
         when(companyInsolvencyService.getCompanyInsolvency(
                 CONTEXT_ID, MOCK_COMPANY_NUMBER))

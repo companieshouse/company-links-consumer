@@ -65,7 +65,7 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
         final ApiResponse<CompanyInsolvency> companyInsolvencyResponse = companyInsolvencyService
                 .getCompanyInsolvency(logContext, companyNumber);
 
-        if (companyInsolvencyResponse.getStatusCode() == HttpStatus.GONE.value()) {
+        if (companyInsolvencyResponse.getStatusCode() == HttpStatus.NOT_FOUND.value()) {
             links.setInsolvency(null);
             data.hasInsolvencyHistory(false);
             data.setLinks(links);

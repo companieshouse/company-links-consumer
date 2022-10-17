@@ -16,7 +16,7 @@ Feature: Process company links information for happy path scenarios.
     Given Company links consumer api service is running
     And Company insolvency api service is running
     When a message is published to "stream-company-insolvency" topic for companyNumber "00006400" to check for links with status code "200"
-    When calling GET insolvency-data-api with companyNumber "00006400" returns status code "410" and insolvency is gone
+    When calling GET insolvency-data-api with companyNumber "00006400" returns status code "404" and insolvency is gone
     And a delete event is sent "stream-company-insolvency" topic
     Then verify the company link is removed from company profile
 

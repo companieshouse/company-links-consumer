@@ -34,6 +34,13 @@ company-links:
       attempts: ${COMPANY_LINKS_CONSUMER_CHARGES_ATTEMPTS:4}
       backoff-delay: ${COMPANY_LINKS_CONSUMER_CHARGES_BACKOFF_DELAY:100}
 
+    exemptions:
+      enable: ${COMPANY_LINKS_CONSUMER_EXEMPTIONS_ENABLED:true}
+      group-id: ${COMPANY_LINKS_CONSUMER_EXEMPTIONS_GROUP_ID:company-links-consumer}
+      topic: ${COMPANY_LINKS_CONSUMER_EXEMPTIONS_TOPIC:stream-company-exemptions}
+      attempts: ${COMPANY_LINKS_CONSUMER_EXEMPTIONS_ATTEMPTS:4}
+      backoff-delay: ${COMPANY_LINKS_CONSUMER_EXEMPTIONS_BACKOFF_DELAY:100}
+
 management:
   endpoints:
     enabled-by-default: false

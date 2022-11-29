@@ -16,14 +16,14 @@ public class ResourceChange {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        ResourceChange that = (ResourceChange) o;
+        ResourceChange that = (ResourceChange) obj;
         return Objects.equals(data, that.data);
     }
 

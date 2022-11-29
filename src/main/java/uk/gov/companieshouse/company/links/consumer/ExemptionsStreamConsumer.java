@@ -70,5 +70,4 @@ public class ExemptionsStreamConsumer  {
             throw exception;
         }
     }
-
 }

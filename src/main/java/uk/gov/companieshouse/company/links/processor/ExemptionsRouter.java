@@ -20,7 +20,8 @@ public class ExemptionsRouter implements ExemptionsRoutable {
         if ("changed".equals(eventType)) {
             addExemptionsService.process(message.getData().getResourceUri());
         } else {
-            throw new NonRetryableErrorException(String.format("Invalid event type: %s", eventType));
+            throw new NonRetryableErrorException(
+                    String.format("Invalid event type: %s", eventType));
         }
     }
 }

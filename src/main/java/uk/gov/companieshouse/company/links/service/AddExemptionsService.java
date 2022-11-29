@@ -1,16 +1,16 @@
 package uk.gov.companieshouse.company.links.service;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 @Component
 public class AddExemptionsService implements ExemptionsService {
-    private static final String EXTRACT_COMPANY_NUMBER_PATTERN = "(?<=company/)(.*\\d)(?=/exemptions)";
+    private static final String EXTRACT_COMPANY_NUMBER_PATTERN =
+            "(?<=company/)(.*\\d)(?=/exemptions)";
 
     private final AddExemptionsClient client;
 

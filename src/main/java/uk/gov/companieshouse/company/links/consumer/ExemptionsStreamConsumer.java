@@ -14,20 +14,20 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
-import uk.gov.companieshouse.company.links.processor.ChargesStreamProcessor;
-import uk.gov.companieshouse.company.links.processor.ExemptionsStreamProcessor;
+import uk.gov.companieshouse.company.links.processor.ExemptionsRouter;
+import uk.gov.companieshouse.company.links.type.ResourceChange;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 public class ExemptionsStreamConsumer  {
 
     private final Logger logger;
-    private final ExemptionsStreamProcessor exemptionsStreamProcessor;
+    private final ExemptionsRouter exemptionsRouter;
 
     @Autowired
-    public ExemptionsStreamConsumer(Logger logger, ExemptionsStreamProcessor exemptionsStreamProcessor) {
+    public ExemptionsStreamConsumer(Logger logger, ExemptionsRouter exemptionsRouter) {
         this.logger = logger;
-        this.exemptionsStreamProcessor = exemptionsStreamProcessor;
+        this.exemptionsRouter = exemptionsRouter;
     }
 
     /**
@@ -60,11 +60,10 @@ public class ExemptionsStreamConsumer  {
                 topic, partition, offset, contextId));
 
         try {
-            exemptionsStreamProcessor.processDelta(resourceChangedMessage);
+            exemptionsRouter.route(new ResourceChange(payload));
             logger.info(format("Company exemptions message with contextId: %s is "
                             + "successfully processed in %d milliseconds", contextId,
                     Duration.between(startTime, Instant.now()).toMillis()));
-
         } catch (Exception exception) {
             logger.errorContext(contextId, format("Exception occurred while processing "
                     + "message on the topic: %s", topic), exception, null);

@@ -14,7 +14,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
-import uk.gov.companieshouse.company.links.processor.AddExemptionsService;
 import uk.gov.companieshouse.company.links.processor.ExemptionsRouter;
 import uk.gov.companieshouse.company.links.type.ResourceChange;
 import uk.gov.companieshouse.stream.EventRecord;

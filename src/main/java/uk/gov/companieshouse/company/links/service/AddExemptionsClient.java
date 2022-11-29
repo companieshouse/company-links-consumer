@@ -17,8 +17,6 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 
 @Component
 public class AddExemptionsClient {
-
-    private static final String EXTRACT_COMPANY_NUMBER_PATTERN = "(?<=company/)(.*?)(?=/exemptions)";
     private final Logger logger;
     private final Supplier<InternalApiClient> internalApiClientFactory;
 
@@ -27,14 +25,9 @@ public class AddExemptionsClient {
         this.internalApiClientFactory = internalApiClientFactory;
     }
 
-    public void processDelta(Message<ResourceChangedData> resourceChangedMessage) {
-        final ResourceChangedData payload = resourceChangedMessage.getPayload();
-        final String resourceUri = payload.getResourceUri();
-        final String companyNumber = extractCompanyNumber(resourceUri);
-
+    public void addExemptionsLink(String path) {
         InternalApiClient client = internalApiClientFactory.get();
         // TODO define new request model & new handler
-        String path = "somePath";
 
         try {
             client.privateDeltaCompanyAppointmentResourceHandler()
@@ -55,19 +48,5 @@ public class AddExemptionsClient {
             logger.error("Invalid path specified when handling API request");
             throw new NonRetryableErrorException("Invalid path specified", e);
         }
-    }
-
-    String extractCompanyNumber(String resourceUri) {
-        if (StringUtils.isNotBlank(resourceUri)) {
-            //matches all characters between company/ and /
-            Pattern companyNo = Pattern.compile(EXTRACT_COMPANY_NUMBER_PATTERN);
-            Matcher matcher = companyNo.matcher(resourceUri);
-            if (matcher.find()) {
-                return matcher.group();
-            }
-        }
-        logger.error(String.format("Could not extract company number from uri "
-                + "%s ", resourceUri));
-        return null;
     }
 }

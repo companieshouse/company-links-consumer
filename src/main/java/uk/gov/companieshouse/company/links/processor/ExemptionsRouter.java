@@ -2,6 +2,7 @@ package uk.gov.companieshouse.company.links.processor;
 
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.service.ExemptionsService;
 import uk.gov.companieshouse.company.links.type.ResourceChange;
 
 @Component

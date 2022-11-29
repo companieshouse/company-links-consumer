@@ -1,4 +1,4 @@
-package uk.gov.companieshouse.company.links.processor;
+package uk.gov.companieshouse.company.links.service;
 
 public interface ExemptionsService {
     void process(String uri);

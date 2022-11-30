@@ -74,10 +74,9 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
 
         // when
-        Executable actual = () -> client.addExemptionsLink(PATH);
+        client.addExemptionsLink(PATH);
 
         // then
-        assertThrows(NonRetryableErrorException.class, actual);
         verify(resourceHandler).addExemptionsCompanyLink(PATH);
         verify(exemptionsLinksPatchHandler).execute();
     }

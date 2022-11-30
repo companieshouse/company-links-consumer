@@ -38,9 +38,15 @@ public class AddExemptionsClient {
                         + "processing add exemptions link request", ex.getStatusCode()));
                 throw new RetryableErrorException("Server error returned when processing "
                         + "add exemptions link request", ex);
+            } else if (ex.getStatusCode() == 409) {
+                logger.info("HTTP 409 Conflict returned; "
+                        + "company profile already had exemptions link");
+            } else if (ex.getStatusCode() == 404) {
+                logger.info("HTTP 404 Not Found returned; "
+                        + "company profile does not exist");
             } else {
-                logger.error(String.format("Add exemptions client error returned with " 
-                        + "status code: [%s] when processing add exemptions link request", 
+                logger.error(String.format("Add exemptions client error returned with "
+                        + "status code: [%s] when processing add exemptions link request",
                         ex.getStatusCode()));
                 throw new NonRetryableErrorException("UpsertClient error returned when "
                         + "processing add exemptions link request", ex);

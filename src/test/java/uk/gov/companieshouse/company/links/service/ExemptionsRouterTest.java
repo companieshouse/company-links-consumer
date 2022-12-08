@@ -23,7 +23,10 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 class ExemptionsRouterTest {
 
     @Mock
-    private AddExemptionsService service;
+    private AddExemptionsService addExemptionsService;
+
+    @Mock
+    private DeleteExemptionsService deleteExemptionsService;
 
     @InjectMocks
     private ExemptionsRouter router;
@@ -50,23 +53,41 @@ class ExemptionsRouterTest {
         router.route(message);
 
         // then
-        verify(service).process("company/12345678/exemptions");
+        verify(addExemptionsService).process("company/12345678/exemptions");
+        verifyNoInteractions(deleteExemptionsService);
     }
 
     @Test
-    @DisplayName("Route should not route deleted events to the add exemptions service")
+    @DisplayName("Route should successfully route delete events to the delete exemptions service")
     void routeDeleted() {
         // given
         when(message.getData()).thenReturn(data);
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("deleted");
+        when(data.getResourceUri()).thenReturn("company/12345678/exemptions");
+
+        // when
+        router.route(message);
+
+        // then
+        verify(deleteExemptionsService).process("company/12345678/exemptions");
+        verifyNoInteractions(addExemptionsService);
+    }
+
+    @Test
+    @DisplayName("Route should not route events to the add or deleted exemptions service if invalid event type")
+    void routeError() {
+        // given
+        when(message.getData()).thenReturn(data);
+        when(data.getEvent()).thenReturn(event);
+        when(event.getType()).thenReturn("");
 
         // when
         Executable executable = () -> router.route(message);
 
         // then
         Exception exception = assertThrows(NonRetryableErrorException.class, executable);
-        assertEquals("Invalid event type: deleted", exception.getMessage());
-        verifyNoInteractions(service);
+        assertEquals("Invalid event type: ", exception.getMessage());
+        verifyNoInteractions(addExemptionsService);
     }
 }

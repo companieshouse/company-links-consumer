@@ -6,11 +6,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
@@ -23,12 +23,11 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 class ExemptionsRouterTest {
 
     @Mock
-    private AddExemptionsService addExemptionsService;
+    private ExemptionsService addExemptionsService;
 
     @Mock
-    private DeleteExemptionsService deleteExemptionsService;
+    private ExemptionsService deleteExemptionsService;
 
-    @InjectMocks
     private ExemptionsRouter router;
 
     @Mock
@@ -39,6 +38,11 @@ class ExemptionsRouterTest {
 
     @Mock
     private EventRecord event;
+
+    @BeforeEach
+    void setup() {
+        router = new ExemptionsRouter(addExemptionsService, deleteExemptionsService);
+    }
 
     @Test
     @DisplayName("Route should successfully route add changed events to the add exemptions service")

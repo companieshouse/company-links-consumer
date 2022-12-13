@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class DeleteExemptionsClientTest {
 
-    private static final String PATH = "/company/12345678/links/exemptions";
+    private static final String PATH = "/company/12345678/links/exemptions/delete";
 
     @Mock
     private Supplier<InternalApiClient> internalApiClientSupplier;

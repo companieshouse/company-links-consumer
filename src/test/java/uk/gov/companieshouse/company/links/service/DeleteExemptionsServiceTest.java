@@ -36,7 +36,7 @@ public class DeleteExemptionsServiceTest {
         service.process("company/12345678/exemptions");
 
         // then
-        verify(client).deleteExemptionsLink("/company/12345678/links/exemptions");
+        verify(client).deleteExemptionsLink("/company/12345678/links/exemptions/delete");
     }
 
     @Test

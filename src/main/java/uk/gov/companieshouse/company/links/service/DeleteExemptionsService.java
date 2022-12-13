@@ -34,7 +34,7 @@ public class DeleteExemptionsService implements ExemptionsService {
         Matcher matcher = companyNo.matcher(uri);
         if (matcher.find()) {
             client.deleteExemptionsLink(
-                    String.format("/company/%s/links/exemptions", matcher.group()));
+                    String.format("/company/%s/links/exemptions/delete", matcher.group()));
         } else {
             logger.error(String.format("Could not extract company number from uri "
                     + "%s ", uri));

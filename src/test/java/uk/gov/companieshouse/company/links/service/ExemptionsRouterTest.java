@@ -6,11 +6,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
@@ -23,9 +23,11 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 class ExemptionsRouterTest {
 
     @Mock
-    private AddExemptionsService service;
+    private ExemptionsService addExemptionsService;
 
-    @InjectMocks
+    @Mock
+    private ExemptionsService deleteExemptionsService;
+
     private ExemptionsRouter router;
 
     @Mock
@@ -36,6 +38,11 @@ class ExemptionsRouterTest {
 
     @Mock
     private EventRecord event;
+
+    @BeforeEach
+    void setup() {
+        router = new ExemptionsRouter(addExemptionsService, deleteExemptionsService);
+    }
 
     @Test
     @DisplayName("Route should successfully route add changed events to the add exemptions service")
@@ -50,23 +57,41 @@ class ExemptionsRouterTest {
         router.route(message);
 
         // then
-        verify(service).process("company/12345678/exemptions");
+        verify(addExemptionsService).process("company/12345678/exemptions");
+        verifyNoInteractions(deleteExemptionsService);
     }
 
     @Test
-    @DisplayName("Route should not route deleted events to the add exemptions service")
+    @DisplayName("Route should successfully route delete events to the delete exemptions service")
     void routeDeleted() {
         // given
         when(message.getData()).thenReturn(data);
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("deleted");
+        when(data.getResourceUri()).thenReturn("company/12345678/exemptions");
+
+        // when
+        router.route(message);
+
+        // then
+        verify(deleteExemptionsService).process("company/12345678/exemptions");
+        verifyNoInteractions(addExemptionsService);
+    }
+
+    @Test
+    @DisplayName("Route should not route events to the add or deleted exemptions service if invalid event type")
+    void routeError() {
+        // given
+        when(message.getData()).thenReturn(data);
+        when(data.getEvent()).thenReturn(event);
+        when(event.getType()).thenReturn("");
 
         // when
         Executable executable = () -> router.route(message);
 
         // then
         Exception exception = assertThrows(NonRetryableErrorException.class, executable);
-        assertEquals("Invalid event type: deleted", exception.getMessage());
-        verifyNoInteractions(service);
+        assertEquals("Invalid event type: ", exception.getMessage());
+        verifyNoInteractions(addExemptionsService);
     }
 }

@@ -11,7 +11,7 @@ import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 
 @Component
-public class DeleteExemptionsClient {
+public class DeleteExemptionsClient implements LinkClient {
     private final Logger logger;
     private final Supplier<InternalApiClient> internalApiClientFactory;
 
@@ -25,13 +25,15 @@ public class DeleteExemptionsClient {
      * Sends a patch request to the delete exemptions link endpoint in the
      * company profile api and handles any error responses.
      *
-     * @param path The path of the patch request
+     * @param companyNumber The companyNumber of the patch request
      */
-    public void deleteExemptionsLink(String path) {
+    @Override
+    public void patchLink(String companyNumber) {
         InternalApiClient client = internalApiClientFactory.get();
         try {
             client.privateCompanyLinksResourceHandler()
-                    .deleteExemptionsCompanyLink(path)
+                    .deleteExemptionsCompanyLink(
+                            String.format("/company/%s/links/exemptions/delete", companyNumber))
                     .execute();
         } catch (ApiErrorResponseException ex) {
             if (ex.getStatusCode() / 100 == 5) {
@@ -57,8 +59,8 @@ public class DeleteExemptionsClient {
             throw new RetryableErrorException("Server error returned when processing delete "
                     + "exemptions link request", ex);
         } catch (URIValidationException ex) {
-            logger.error("Invalid path specified when handling API request");
-            throw new NonRetryableErrorException("Invalid path specified", ex);
+            logger.error("Invalid company number specified when handling API request");
+            throw new NonRetryableErrorException("Invalid company number specified", ex);
         }
     }
 }

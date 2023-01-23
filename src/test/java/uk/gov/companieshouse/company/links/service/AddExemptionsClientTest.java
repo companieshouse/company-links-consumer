@@ -28,7 +28,8 @@ import uk.gov.companieshouse.logging.Logger;
 @ExtendWith(MockitoExtension.class)
 class AddExemptionsClientTest {
 
-    private static final String PATH = "/company/12345678/links/exemptions";
+    private static final String COMPANY_NUMBER = "12345678";
+    private static final String PATH = String.format("/company/%s/links/exemptions", COMPANY_NUMBER);
 
     @Mock
     private Supplier<InternalApiClient> internalApiClientSupplier;
@@ -58,7 +59,7 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
 
         // when
-        client.addExemptionsLink(PATH);
+        client.patchLink(COMPANY_NUMBER);
 
         // then
         verify(resourceHandler).addExemptionsCompanyLink(PATH);
@@ -74,7 +75,7 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
 
         // when
-        client.addExemptionsLink(PATH);
+        client.patchLink(COMPANY_NUMBER);
 
         // then
         verify(resourceHandler).addExemptionsCompanyLink(PATH);
@@ -90,7 +91,7 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
 
         // when
-        Executable actual = () -> client.addExemptionsLink(PATH);
+        Executable actual = () -> client.patchLink(COMPANY_NUMBER);
 
         // then
         assertThrows(RetryableErrorException.class, actual);
@@ -107,7 +108,7 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
 
         // when
-        Executable actual = () -> client.addExemptionsLink(PATH);
+        Executable actual = () -> client.patchLink(COMPANY_NUMBER);
 
         // then
         assertThrows(RetryableErrorException.class, actual);
@@ -116,7 +117,7 @@ class AddExemptionsClientTest {
     }
 
     @Test
-    void testThrowNonRetryableExceptionIfPathInvalid() throws ApiErrorResponseException, URIValidationException {
+    void testThrowNonRetryableExceptionIfComapnyNumberInvalid() throws ApiErrorResponseException, URIValidationException {
         // given
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
         when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
@@ -124,11 +125,11 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new URIValidationException("Invalid URI"));
 
         // when
-        Executable actual = () -> client.addExemptionsLink("/invalid/path");
+        Executable actual = () -> client.patchLink("invalid/path");
 
         // then
         assertThrows(NonRetryableErrorException.class, actual);
-        verify(resourceHandler).addExemptionsCompanyLink("/invalid/path");
+        verify(resourceHandler).addExemptionsCompanyLink("/company/invalid/path/links/exemptions");
         verify(exemptionsLinksPatchHandler).execute();
     }
 }

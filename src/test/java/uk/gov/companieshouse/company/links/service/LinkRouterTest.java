@@ -1,34 +1,36 @@
 package uk.gov.companieshouse.company.links.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.function.Executable;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
-import uk.gov.companieshouse.company.links.processor.ExemptionsRouter;
+import uk.gov.companieshouse.company.links.processor.LinkRouter;
 import uk.gov.companieshouse.company.links.type.ResourceChange;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 @ExtendWith(MockitoExtension.class)
-class ExemptionsRouterTest {
+class LinkRouterTest {
 
     @Mock
-    private ExemptionsService addExemptionsService;
+    private CompanyNumberExtractable extractor;
 
     @Mock
-    private ExemptionsService deleteExemptionsService;
+    private LinkClientFactory factory;
 
-    private ExemptionsRouter router;
+    @Mock
+    private AddExemptionsClient addExemptionsClient;
+
+    @Mock
+    private DeleteExemptionsClient deleteExemptionsClient;
+
+    private LinkRouter router;
 
     @Mock
     private ResourceChange message;
@@ -41,7 +43,7 @@ class ExemptionsRouterTest {
 
     @BeforeEach
     void setup() {
-        router = new ExemptionsRouter(addExemptionsService, deleteExemptionsService);
+        router = new LinkRouter(extractor, factory);
     }
 
     @Test
@@ -52,13 +54,15 @@ class ExemptionsRouterTest {
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("changed");
         when(data.getResourceUri()).thenReturn("company/12345678/exemptions");
+        when(extractor.extractCompanyNumber(any())).thenReturn("12345678");
+        when(factory.getLinkClient(any(), any())).thenReturn(addExemptionsClient);
 
         // when
-        router.route(message);
+        router.route(message, "deltaType");
 
         // then
-        verify(addExemptionsService).process("company/12345678/exemptions");
-        verifyNoInteractions(deleteExemptionsService);
+        verify(extractor).extractCompanyNumber("company/12345678/exemptions");
+        verify(addExemptionsClient).patchLink("12345678");
     }
 
     @Test
@@ -69,29 +73,14 @@ class ExemptionsRouterTest {
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("deleted");
         when(data.getResourceUri()).thenReturn("company/12345678/exemptions");
+        when(extractor.extractCompanyNumber(any())).thenReturn("12345678");
+        when(factory.getLinkClient(any(), any())).thenReturn(deleteExemptionsClient);
 
         // when
-        router.route(message);
+        router.route(message, "deltaType");
 
         // then
-        verify(deleteExemptionsService).process("company/12345678/exemptions");
-        verifyNoInteractions(addExemptionsService);
-    }
-
-    @Test
-    @DisplayName("Route should not route events to the add or deleted exemptions service if invalid event type")
-    void routeError() {
-        // given
-        when(message.getData()).thenReturn(data);
-        when(data.getEvent()).thenReturn(event);
-        when(event.getType()).thenReturn("");
-
-        // when
-        Executable executable = () -> router.route(message);
-
-        // then
-        Exception exception = assertThrows(NonRetryableErrorException.class, executable);
-        assertEquals("Invalid event type: ", exception.getMessage());
-        verifyNoInteractions(addExemptionsService);
+        verify(extractor).extractCompanyNumber("company/12345678/exemptions");
+        verify(deleteExemptionsClient).patchLink("12345678");
     }
 }

@@ -15,7 +15,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
-import uk.gov.companieshouse.company.links.processor.ExemptionsRouter;
+import uk.gov.companieshouse.company.links.processor.LinkRouter;
 import uk.gov.companieshouse.company.links.type.ResourceChange;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -24,10 +24,10 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 public class ExemptionsStreamConsumer  {
 
     private final Logger logger;
-    private final ExemptionsRouter exemptionsRouter;
+    private final LinkRouter exemptionsRouter;
 
     @Autowired
-    public ExemptionsStreamConsumer(Logger logger, ExemptionsRouter exemptionsRouter) {
+    public ExemptionsStreamConsumer(Logger logger, LinkRouter exemptionsRouter) {
         this.logger = logger;
         this.exemptionsRouter = exemptionsRouter;
     }
@@ -62,7 +62,7 @@ public class ExemptionsStreamConsumer  {
                 topic, partition, offset, contextId));
 
         try {
-            exemptionsRouter.route(new ResourceChange(payload));
+            exemptionsRouter.route(new ResourceChange(payload), "exemptions");
             logger.info(format("Company exemptions message with contextId: %s is "
                             + "successfully processed in %d milliseconds", contextId,
                     Duration.between(startTime, Instant.now()).toMillis()));

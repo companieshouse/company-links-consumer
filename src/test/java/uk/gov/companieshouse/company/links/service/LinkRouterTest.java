@@ -30,6 +30,12 @@ class LinkRouterTest {
     @Mock
     private DeleteExemptionsClient deleteExemptionsClient;
 
+    @Mock
+    private AddOfficersClient addOfficersClient;
+
+    //    @Mock
+    //    private RemoveOfficersClient removeOfficersClient;
+
     private LinkRouter router;
 
     @Mock
@@ -48,7 +54,7 @@ class LinkRouterTest {
 
     @Test
     @DisplayName("Route should successfully route add changed events to the add exemptions service")
-    void routeChanged() {
+    void routeChangedExemptions() {
         // given
         when(message.getData()).thenReturn(data);
         when(data.getEvent()).thenReturn(event);
@@ -67,7 +73,7 @@ class LinkRouterTest {
 
     @Test
     @DisplayName("Route should successfully route delete events to the delete exemptions service")
-    void routeDeleted() {
+    void routeDeletedExemptions() {
         // given
         when(message.getData()).thenReturn(data);
         when(data.getEvent()).thenReturn(event);
@@ -83,4 +89,42 @@ class LinkRouterTest {
         verify(extractor).extractCompanyNumber("company/12345678/exemptions");
         verify(deleteExemptionsClient).patchLink("12345678");
     }
+
+    @Test
+    @DisplayName("Route should successfully route add changed events to the add officers service")
+    void routeChangedOfficers() {
+        // given
+        when(message.getData()).thenReturn(data);
+        when(data.getEvent()).thenReturn(event);
+        when(event.getType()).thenReturn("changed");
+        when(data.getResourceUri()).thenReturn("company/12345678/officers");
+        when(extractor.extractCompanyNumber(any())).thenReturn("12345678");
+        when(factory.getLinkClient(any(), any())).thenReturn(addOfficersClient);
+
+        // when
+        router.route(message, "deltaType");
+
+        // then
+        verify(extractor).extractCompanyNumber("company/12345678/officers");
+        verify(addOfficersClient).patchLink("12345678");
+    }
+
+    //    @Test
+    //    @DisplayName("Route should successfully route remove events to the delete officers service")
+    //    void routeRemovedOfficers() {
+    //        // given
+    //        when(message.getData()).thenReturn(data);
+    //        when(data.getEvent()).thenReturn(event);
+    //        when(event.getType()).thenReturn("deleted");
+    //        when(data.getResourceUri()).thenReturn("company/12345678/officers");
+    //        when(extractor.extractCompanyNumber(any())).thenReturn("12345678");
+    //        when(factory.getLinkClient(any(), any())).thenReturn(removeOfficersClient);
+    //
+    //        // when
+    //        router.route(message, "deltaType");
+    //
+    //        // then
+    //        verify(extractor).extractCompanyNumber("company/12345678/officers");
+    //        verify(removeOfficersClient).patchLink("12345678");
+    //    }
 }

@@ -14,6 +14,10 @@ public class LinkClientConfig {
     private LinkClient addExemptionsClient;
     @Autowired
     private LinkClient deleteExemptionsClient;
+    @Autowired
+    private LinkClient addOfficersClient;
+    //    @Autowired
+    //    private LinkClient removeOfficersClient;
 
     @Bean
     Map<String, Map<String, LinkClient>> linkClientMap() {
@@ -23,6 +27,11 @@ public class LinkClientConfig {
         exemptionsClientConfig.put("changed", addExemptionsClient);
         exemptionsClientConfig.put("deleted", deleteExemptionsClient);
         linkClientConfig.put("exemptions", exemptionsClientConfig);
+
+        Map<String, LinkClient> officersClientConfig = new HashMap<>();
+        officersClientConfig.put("changed", addOfficersClient);
+        //officersClientConfig.put("deleted", removeOfficersClient);
+        linkClientConfig.put("officers", officersClientConfig);
 
         return linkClientConfig;
     }

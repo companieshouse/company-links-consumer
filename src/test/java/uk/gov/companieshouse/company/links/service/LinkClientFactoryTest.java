@@ -36,6 +36,28 @@ class LinkClientFactoryTest {
     }
 
     @Test
+    @DisplayName("Link factory correctly returns an add officers client")
+    void getAddOfficersClient() {
+        // given
+        // when
+        LinkClient linkClient = factory.getLinkClient("officers", "changed");
+
+        // then
+        assertTrue(linkClient instanceof AddOfficersClient);
+    }
+
+    //    @Test
+    //    @DisplayName("Link factory correctly returns a remove officers client")
+    //    void getRemoveOfficersClient() {
+    //        // given
+    //        // when
+    //        LinkClient linkClient = factory.getLinkClient("officers", "deleted");
+    //
+    //        // then
+    //        assertTrue(linkClient instanceof RemoveOfficersClient);
+    //    }
+
+    @Test
     @DisplayName("Link factory correctly returns a null link client when deltaType mismatch")
     void getDefaultLinkClientDeltaType() {
         // given

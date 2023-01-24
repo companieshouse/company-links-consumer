@@ -33,8 +33,8 @@ class LinkRouterTest {
     @Mock
     private AddOfficersClient addOfficersClient;
 
-    //    @Mock
-    //    private RemoveOfficersClient removeOfficersClient;
+    @Mock
+    private RemoveOfficersClient removeOfficersClient;
 
     private LinkRouter router;
 
@@ -109,22 +109,22 @@ class LinkRouterTest {
         verify(addOfficersClient).patchLink("12345678");
     }
 
-    //    @Test
-    //    @DisplayName("Route should successfully route remove events to the delete officers service")
-    //    void routeRemovedOfficers() {
-    //        // given
-    //        when(message.getData()).thenReturn(data);
-    //        when(data.getEvent()).thenReturn(event);
-    //        when(event.getType()).thenReturn("deleted");
-    //        when(data.getResourceUri()).thenReturn("company/12345678/officers");
-    //        when(extractor.extractCompanyNumber(any())).thenReturn("12345678");
-    //        when(factory.getLinkClient(any(), any())).thenReturn(removeOfficersClient);
-    //
-    //        // when
-    //        router.route(message, "deltaType");
-    //
-    //        // then
-    //        verify(extractor).extractCompanyNumber("company/12345678/officers");
-    //        verify(removeOfficersClient).patchLink("12345678");
-    //    }
+    @Test
+    @DisplayName("Route should successfully route remove events to the delete officers service")
+    void routeRemovedOfficers() {
+        // given
+        when(message.getData()).thenReturn(data);
+        when(data.getEvent()).thenReturn(event);
+        when(event.getType()).thenReturn("deleted");
+        when(data.getResourceUri()).thenReturn("company/12345678/officers");
+        when(extractor.extractCompanyNumber(any())).thenReturn("12345678");
+        when(factory.getLinkClient(any(), any())).thenReturn(removeOfficersClient);
+
+        // when
+        router.route(message, "deltaType");
+
+        // then
+        verify(extractor).extractCompanyNumber("company/12345678/officers");
+        verify(removeOfficersClient).patchLink("12345678");
+    }
 }

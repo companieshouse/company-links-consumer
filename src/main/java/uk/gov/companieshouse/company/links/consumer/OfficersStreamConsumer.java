@@ -14,12 +14,14 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
+import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.processor.LinkRouter;
 import uk.gov.companieshouse.company.links.type.ResourceChange;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
+@Component
 public class OfficersStreamConsumer {
 
     private final Logger logger;

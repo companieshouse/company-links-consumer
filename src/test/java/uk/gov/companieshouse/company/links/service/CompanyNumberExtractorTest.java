@@ -32,10 +32,10 @@ class CompanyNumberExtractorTest {
     void process() {
         // given
         // when
-        String actual = extractor.extractCompanyNumber("company/12345678/5exemptions/1234/officers");
+        String actual = extractor.extractCompanyNumber("company/OC305127/appointments/-0YatipCW4ZL295N9UVFo1TGyW8");
 
         // then
-        assertEquals("12345678", actual);
+        assertEquals("OC305127", actual);
     }
 
     @ParameterizedTest(name = "{index}: {0}")
@@ -44,11 +44,11 @@ class CompanyNumberExtractorTest {
         // given
 
         // when
-        Executable executable = () -> extractor.extractCompanyNumber("company-exemptions");
+        Executable executable = () -> extractor.extractCompanyNumber(uri);
 
         // then
         Exception exception = assertThrows(NonRetryableErrorException.class, executable);
-        assertEquals("Could not extract company number from resource URI: company-exemptions", exception.getMessage());
+        assertEquals(expected, exception.getMessage());
     }
 
     private static Stream<Arguments> extractorFixtures() {

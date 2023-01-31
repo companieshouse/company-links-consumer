@@ -10,7 +10,7 @@ import uk.gov.companieshouse.logging.Logger;
 @Component
 public class CompanyNumberExtractor implements CompanyNumberExtractable {
     private static final String EXTRACT_COMPANY_NUMBER_PATTERN =
-            "(?<=company/)(\\d{0,10})(?=/.*)";
+            "(?<=company/)([a-zA-Z0-9]{6,10})(?=/.*)";
 
     private final Logger logger;
 

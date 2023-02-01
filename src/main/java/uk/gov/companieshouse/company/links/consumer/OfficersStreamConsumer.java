@@ -5,7 +5,6 @@ import static java.lang.String.format;
 import java.time.Duration;
 import java.time.Instant;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.retrytopic.DltStrategy;
@@ -27,7 +26,6 @@ public class OfficersStreamConsumer {
     private final Logger logger;
     private final LinkRouter officersRouter;
 
-    @Autowired
     public OfficersStreamConsumer(Logger logger, LinkRouter officersRouter) {
         this.logger = logger;
         this.officersRouter = officersRouter;

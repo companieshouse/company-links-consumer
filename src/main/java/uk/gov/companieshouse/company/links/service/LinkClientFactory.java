@@ -1,6 +1,6 @@
 package uk.gov.companieshouse.company.links.service;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +17,7 @@ public class LinkClientFactory {
     }
 
     public LinkClient getLinkClient(String deltaType, String eventType) {
-        return linkClientMap.getOrDefault(deltaType,
-                new HashMap<>()).getOrDefault(eventType, nullLinkClient);
+        return linkClientMap.getOrDefault(deltaType, Collections.emptyMap())
+                .getOrDefault(eventType, nullLinkClient);
     }
 }

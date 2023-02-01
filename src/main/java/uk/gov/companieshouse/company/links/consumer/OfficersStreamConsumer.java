@@ -27,7 +27,6 @@ public class OfficersStreamConsumer {
     private final Logger logger;
     private final LinkRouter officersRouter;
 
-    @Autowired
     public OfficersStreamConsumer(Logger logger, LinkRouter officersRouter) {
         this.logger = logger;
         this.officersRouter = officersRouter;

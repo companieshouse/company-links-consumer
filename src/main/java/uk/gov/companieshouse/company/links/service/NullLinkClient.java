@@ -14,8 +14,9 @@ public class NullLinkClient implements LinkClient {
     }
 
     @Override
-    public void patchLink(String path) {
-        logger.error("Invalid delta type and/or event type");
+    public void patchLink(String companyNumber) {
+        logger.error(String.format(
+                "Invalid delta type and/or event type for company number %s", companyNumber));
         throw new NonRetryableErrorException("Invalid delta type and/or event type");
     }
 }

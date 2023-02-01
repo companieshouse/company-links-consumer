@@ -26,7 +26,6 @@ public class ExemptionsStreamConsumer  {
     private final Logger logger;
     private final LinkRouter exemptionsRouter;
 
-    @Autowired
     public ExemptionsStreamConsumer(Logger logger, LinkRouter exemptionsRouter) {
         this.logger = logger;
         this.exemptionsRouter = exemptionsRouter;

@@ -29,7 +29,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class DeleteExemptionsClientTest {
 
-    private static final String PATH = "/company/12345678/links/exemptions/delete";
+    private static final String COMPANY_NUMBER = "12345678";
+    private static final String PATH = String.format("/company/%s/links/exemptions/delete", COMPANY_NUMBER);
 
     @Mock
     private Supplier<InternalApiClient> internalApiClientSupplier;
@@ -58,7 +59,7 @@ class DeleteExemptionsClientTest {
         when(exemptionsLinksDelete.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
 
         // when
-        client.deleteExemptionsLink(PATH);
+        client.patchLink(COMPANY_NUMBER);
 
         // then
         verify(resourceHandler).deleteExemptionsCompanyLink(PATH);
@@ -74,7 +75,7 @@ class DeleteExemptionsClientTest {
         when(exemptionsLinksDelete.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
 
         // when
-        client.deleteExemptionsLink(PATH);
+        client.patchLink(COMPANY_NUMBER);
 
         // then
         verify(resourceHandler).deleteExemptionsCompanyLink(PATH);
@@ -90,7 +91,7 @@ class DeleteExemptionsClientTest {
         when(exemptionsLinksDelete.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
 
         // when
-        Executable actual = () -> client.deleteExemptionsLink(PATH);
+        Executable actual = () -> client.patchLink(COMPANY_NUMBER);
 
         // then
         assertThrows(RetryableErrorException.class, actual);
@@ -107,7 +108,7 @@ class DeleteExemptionsClientTest {
         when(exemptionsLinksDelete.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
 
         // when
-        Executable actual = () -> client.deleteExemptionsLink(PATH);
+        Executable actual = () -> client.patchLink(COMPANY_NUMBER);
 
         // then
         assertThrows(RetryableErrorException.class, actual);
@@ -116,7 +117,7 @@ class DeleteExemptionsClientTest {
     }
 
     @Test
-    void testThrowNonRetryableExceptionIfPathInvalid() throws ApiErrorResponseException, URIValidationException {
+    void testThrowNonRetryableExceptionIfCompanyNumberInvalid() throws ApiErrorResponseException, URIValidationException {
         // given
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
         when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
@@ -124,11 +125,11 @@ class DeleteExemptionsClientTest {
         when(exemptionsLinksDelete.execute()).thenThrow(new URIValidationException("Invalid URI"));
 
         // when
-        Executable actual = () -> client.deleteExemptionsLink("/invalid/path");
+        Executable actual = () -> client.patchLink("invalid/companyNumber");
 
         // then
         assertThrows(NonRetryableErrorException.class, actual);
-        verify(resourceHandler).deleteExemptionsCompanyLink("/invalid/path");
+        verify(resourceHandler).deleteExemptionsCompanyLink("/company/invalid/companyNumber/links/exemptions/delete");
         verify(exemptionsLinksDelete).execute();
     }
 }

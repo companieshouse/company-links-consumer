@@ -4,6 +4,7 @@ import static java.lang.String.format;
 
 import java.time.Duration;
 import java.time.Instant;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
@@ -21,38 +22,38 @@ import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 @Component
-public class ExemptionsStreamConsumer  {
+public class OfficersStreamConsumer {
 
     private final Logger logger;
-    private final LinkRouter exemptionsRouter;
+    private final LinkRouter officersRouter;
 
-    public ExemptionsStreamConsumer(Logger logger, LinkRouter exemptionsRouter) {
+    public OfficersStreamConsumer(Logger logger, LinkRouter officersRouter) {
         this.logger = logger;
-        this.exemptionsRouter = exemptionsRouter;
+        this.officersRouter = officersRouter;
     }
 
     /**
      * Receives Main topic messages.
      */
-    @RetryableTopic(attempts = "${company-links.consumer.exemptions.attempts}",
+    @RetryableTopic(attempts = "${company-links.consumer.officers.attempts}",
             backoff = @Backoff(delayExpression =
-                    "${company-links.consumer.exemptions.backoff-delay}"),
+                    "${company-links.consumer.officers.backoff-delay}"),
             fixedDelayTopicStrategy = FixedDelayStrategy.SINGLE_TOPIC,
-            retryTopicSuffix = "-${company-links.consumer.exemptions.group-id}-retry",
-            dltTopicSuffix = "-${company-links.consumer.exemptions.group-id}-error",
+            retryTopicSuffix = "-${company-links.consumer.officers.group-id}-retry",
+            dltTopicSuffix = "-${company-links.consumer.officers.group-id}-error",
             dltStrategy = DltStrategy.FAIL_ON_ERROR,
             autoCreateTopics = "false",
             exclude = NonRetryableErrorException.class)
     @KafkaListener(
-            id = "${company-links.consumer.exemptions.topic}-consumer",
-            topics = "${company-links.consumer.exemptions.topic}",
-            groupId = "${company-links.consumer.exemptions.group-id}",
-            autoStartup = "${company-links.consumer.exemptions.enable}",
+            id = "${company-links.consumer.officers.topic}-consumer",
+            topics = "${company-links.consumer.officers.topic}",
+            groupId = "${company-links.consumer.officers.group-id}",
+            autoStartup = "${company-links.consumer.officers.enable}",
             containerFactory = "listenerContainerFactory")
     public void receive(Message<ResourceChangedData> resourceChangedMessage,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
-            @Header(KafkaHeaders.OFFSET) String offset) {
+                        @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+                        @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
+                        @Header(KafkaHeaders.OFFSET) String offset) {
         Instant startTime = Instant.now();
         ResourceChangedData payload = resourceChangedMessage.getPayload();
         String contextId = payload.getContextId();
@@ -61,8 +62,8 @@ public class ExemptionsStreamConsumer  {
                 topic, partition, offset, contextId));
 
         try {
-            exemptionsRouter.route(new ResourceChange(payload), "exemptions");
-            logger.info(format("Company exemptions message with contextId: %s is "
+            officersRouter.route(new ResourceChange(payload), "officers");
+            logger.info(format("Company officers message with contextId: %s is "
                             + "successfully processed in %d milliseconds", contextId,
                     Duration.between(startTime, Instant.now()).toMillis()));
         } catch (Exception exception) {

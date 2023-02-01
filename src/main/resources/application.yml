@@ -41,6 +41,13 @@ company-links:
       attempts: ${COMPANY_LINKS_CONSUMER_EXEMPTIONS_ATTEMPTS:4}
       backoff-delay: ${COMPANY_LINKS_CONSUMER_EXEMPTIONS_BACKOFF_DELAY:100}
 
+    officers:
+      enable: ${COMPANY_LINKS_CONSUMER_OFFICERS_ENABLED:true}
+      group-id: ${COMPANY_LINKS_CONSUMER_OFFICERS_GROUP_ID:company-links-consumer}
+      topic: ${COMPANY_LINKS_CONSUMER_OFFICERS_TOPIC:stream-company-officers}
+      attempts: ${COMPANY_LINKS_CONSUMER_OFFICERS_ATTEMPTS:4}
+      backoff-delay: ${COMPANY_LINKS_CONSUMER_OFFICERS_BACKOFF_DELAY:100}
+
 management:
   endpoints:
     enabled-by-default: false

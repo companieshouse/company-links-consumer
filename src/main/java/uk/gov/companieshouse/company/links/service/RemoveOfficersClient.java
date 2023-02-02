@@ -33,7 +33,7 @@ public class RemoveOfficersClient implements LinkClient {
         try {
             client.privateCompanyLinksResourceHandler()
                     .removeOfficersCompanyLink(
-                            String.format("/company/%s/links/officers", companyNumber))
+                            String.format("/company/%s/links/officers/delete", companyNumber))
                     .execute();
         } catch (ApiErrorResponseException ex) {
             if (ex.getStatusCode() / 100 == 5) {
@@ -43,7 +43,7 @@ public class RemoveOfficersClient implements LinkClient {
                         + "remove officers link request", ex);
             } else if (ex.getStatusCode() == 409) {
                 logger.info("HTTP 409 Conflict returned; "
-                        + "company profile already had officers link");
+                        + "company profile does not have an officers link already");
             } else if (ex.getStatusCode() == 404) {
                 logger.info("HTTP 404 Not Found returned; "
                         + "company profile does not exist");
@@ -51,7 +51,7 @@ public class RemoveOfficersClient implements LinkClient {
                 logger.error(String.format("remove officers client error returned with "
                           + "status code: [%s] when processing remove officers link request",
                         ex.getStatusCode()));
-                throw new NonRetryableErrorException("UpsertClient error returned when "
+                throw new NonRetryableErrorException("Client error returned when "
                         + "processing remove officers link request", ex);
             }
         } catch (IllegalArgumentException ex) {

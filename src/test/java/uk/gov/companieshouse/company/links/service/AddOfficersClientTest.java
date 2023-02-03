@@ -27,7 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class AddOfficersClientTest {
+class AddOfficersClientTest {
     private static final String COMPANY_NUMBER = "12345678";
     private static final String PATH = String.format("/company/%s/links/officers", COMPANY_NUMBER);
 

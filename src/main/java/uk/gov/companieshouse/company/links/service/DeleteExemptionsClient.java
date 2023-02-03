@@ -43,7 +43,7 @@ public class DeleteExemptionsClient implements LinkClient {
                         + "delete exemptions link request", ex);
             } else if (ex.getStatusCode() == 409) {
                 logger.info("HTTP 409 Conflict returned; "
-                        + "company profile already did not had exemptions link");
+                        + "company profile does not have an exemptions link already");
             } else if (ex.getStatusCode() == 404) {
                 logger.info("HTTP 404 Not Found returned; "
                         + "company profile does not exist");

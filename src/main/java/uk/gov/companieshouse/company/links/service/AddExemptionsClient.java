@@ -42,7 +42,7 @@ public class AddExemptionsClient implements LinkClient {
                         + "add exemptions link request", ex);
             } else if (ex.getStatusCode() == 409) {
                 logger.info("HTTP 409 Conflict returned; "
-                        + "company profile already had exemptions link");
+                        + "company profile already has an exemptions link");
             } else if (ex.getStatusCode() == 404) {
                 logger.info("HTTP 404 Not Found returned; "
                         + "company profile does not exist");

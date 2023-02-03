@@ -27,9 +27,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class RemoveOfficersClientTest {
+class RemoveOfficersClientTest {
     private static final String COMPANY_NUMBER = "12345678";
-    private static final String PATH = String.format("/company/%s/links/officers", COMPANY_NUMBER);
+    private static final String PATH = String.format("/company/%s/links/officers/delete", COMPANY_NUMBER);
 
     @Mock
     private Supplier<InternalApiClient> internalApiClientSupplier;
@@ -124,11 +124,11 @@ public class RemoveOfficersClientTest {
         when(officersLinksRemoveHandler.execute()).thenThrow(new URIValidationException("Invalid URI"));
 
         // when
-        Executable actual = () -> client.patchLink("invalid/path");
+        Executable actual = () -> client.patchLink("OC401invalid/companyNumber");
 
         // then
         assertThrows(NonRetryableErrorException.class, actual);
-        verify(resourceHandler).removeOfficersCompanyLink("/company/invalid/path/links/officers");
+        verify(resourceHandler).removeOfficersCompanyLink("/company/OC401invalid/companyNumber/links/officers/delete");
         verify(officersLinksRemoveHandler).execute();
     }
 }

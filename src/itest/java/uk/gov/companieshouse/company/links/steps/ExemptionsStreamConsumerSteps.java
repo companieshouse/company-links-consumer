@@ -29,7 +29,7 @@ import static uk.gov.companieshouse.company.links.config.WiremockTestConfig.setu
 import static uk.gov.companieshouse.company.links.data.TestData.RESOURCE_KIND_EXEMPTIONS;
 
 public class ExemptionsStreamConsumerSteps {
-    private static final int CONSUME_MESSAGE_TIMEOUT = 500;
+    private static final int CONSUME_MESSAGE_TIMEOUT = 5;
     private static final long GET_RECORDS_TIMEOUT = 5000L;
     private static final String COMPANY_NUMBER = "00006400";
 

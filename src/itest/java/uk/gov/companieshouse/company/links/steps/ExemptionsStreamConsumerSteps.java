@@ -30,6 +30,9 @@ import static uk.gov.companieshouse.company.links.data.TestData.RESOURCE_KIND_EX
 public class ExemptionsStreamConsumerSteps {
     private static final int CONSUME_MESSAGE_TIMEOUT = 5;
     private static final long GET_RECORDS_TIMEOUT = 5000L;
+    private static final String COMPANY_NUMBER = "00006400";
+
+    private int statusCode;
 
     @Value("${company-links.consumer.exemptions.topic}")
     private String mainTopic;
@@ -46,6 +49,7 @@ public class ExemptionsStreamConsumerSteps {
     @BeforeEach
     public void beforeEach() {
         resettableCountDownLatch.resetLatch(4);
+        statusCode = 200;
     }
 
     @Given("Company links consumer is available")
@@ -53,14 +57,20 @@ public class ExemptionsStreamConsumerSteps {
         setupWiremock();
     }
 
-    @And("The response code {int} will be returned from the PATCH request for {string}")
-    public void stubPatchExemptionsLink(int responseCode, String companyNumber) {
-        stubPatchLink(companyNumber, responseCode);
+    @And("The user is unauthorized")
+    public void stubUnauthorizedPatchRequest() {
+        statusCode = 401;
     }
 
-    @When("A valid message is consumed for {string}")
-    public void consumeValidMessage(String companyNumber) throws InterruptedException {
-        kafkaTemplate.send(mainTopic, createValidMessage(companyNumber, RESOURCE_KIND_EXEMPTIONS));
+    @And("The company profile api is unavailable")
+    public void stubServiceUnavailablePatchRequest() {
+        statusCode = 503;
+    }
+
+    @When("A valid message is consumed")
+    public void consumeValidMessage() throws InterruptedException {
+        stubPatchLink(COMPANY_NUMBER, statusCode);
+        kafkaTemplate.send(mainTopic, createValidMessage(COMPANY_NUMBER, RESOURCE_KIND_EXEMPTIONS));
         kafkaTemplate.flush();
 
         assertMessageConsumed();
@@ -72,20 +82,26 @@ public class ExemptionsStreamConsumerSteps {
         kafkaTemplate.flush();
     }
 
-    @When("A message is consumed for {string} with invalid event type")
-    public void consumeValidMessageWithInvalidEventType(String companyNumber) throws InterruptedException {
-        kafkaTemplate.send(mainTopic, createMessageWithInvalidEventType(companyNumber, RESOURCE_KIND_EXEMPTIONS));
+    @When("A message is consumed with invalid event type")
+    public void consumeValidMessageWithInvalidEventType() throws InterruptedException {
+        kafkaTemplate.send(mainTopic, createMessageWithInvalidEventType(COMPANY_NUMBER, RESOURCE_KIND_EXEMPTIONS));
         kafkaTemplate.flush();
 
         assertMessageConsumed();
     }
 
-    @Then("A PATCH request is sent to the add company exemptions link endpoint for {string}")
-    public void verifyPatchEndpointIsCalled(String companyNumber) {
-        verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/exemptions", companyNumber))));
+    @Then("A PATCH request is sent to the API")
+    public void verifyPatchEndpointIsCalled() {
+        verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/exemptions", COMPANY_NUMBER))));
     }
 
-    @Then("The message is placed on the appropriate topic: {string}")
+    @Then("No messages are placed on the invalid, error or retry topics")
+    public void verifyConsumerRecordsAreEmpty() {
+        ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer, GET_RECORDS_TIMEOUT);
+        assertThat(records).isEmpty();
+    }
+
+    @Then("The message is placed on the {string} topic")
     public void verifyMessageIsPlaceOnCorrectTopic(String topic) {
         String requiredTopic = String.format("stream-company-exemptions-company-links-consumer-%s", topic);
 
@@ -139,14 +155,5 @@ public class ExemptionsStreamConsumerSteps {
                 .setData("")
                 .setEvent(event)
                 .build();
-    }
-
-    private String loadFileForCoNumber(String fileName, String companyNumber) {
-        try {
-            String templateText = FileUtils.readFileToString(ResourceUtils.getFile("classpath:stubs/"+fileName), StandardCharsets.UTF_8);
-            return String.format(templateText, companyNumber, companyNumber); // extra args are ignored
-        } catch (IOException e) {
-            throw new RuntimeException(String.format("Unable to locate file %s", fileName));
-        }
     }
 }

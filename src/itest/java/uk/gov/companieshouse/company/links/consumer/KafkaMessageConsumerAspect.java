@@ -14,7 +14,7 @@ public class KafkaMessageConsumerAspect {
         this.resettableCountDownLatch = resettableCountDownLatch;
     }
 
-    @AfterReturning("execution(* uk.gov.companieshouse.company.links.consumer.InsolvencyStreamConsumer.receive(..)) " +
+    @AfterReturning(value = "execution(* uk.gov.companieshouse.company.links.consumer.InsolvencyStreamConsumer.receive(..)) " +
             "|| execution(* uk.gov.companieshouse.company.links.consumer.ChargesStreamConsumer.receive(..))" +
             "|| execution(* uk.gov.companieshouse.company.links.consumer.ExemptionsStreamConsumer.receive(..))")
     void onSuccessfulProcessing() {
@@ -32,7 +32,7 @@ public class KafkaMessageConsumerAspect {
         }
     }
 
-    @AfterThrowing("execution(* uk.gov.companieshouse.company.links.serialization.ResourceChangedDataDeserializer.deserialize(..))")
+    @AfterThrowing(value = "execution(* org.apache.kafka.common.serialization.Deserializer.deserialize(..))", throwing = "ex")
     void deserialize() {
         resettableCountDownLatch.countDownAll();
     }

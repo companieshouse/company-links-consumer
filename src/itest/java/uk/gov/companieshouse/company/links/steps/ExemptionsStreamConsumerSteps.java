@@ -4,31 +4,32 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
-import org.springframework.util.ResourceUtils;
 import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.patch;
+import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.companieshouse.company.links.config.WiremockTestConfig.setupWiremock;
 import static uk.gov.companieshouse.company.links.data.TestData.RESOURCE_KIND_EXEMPTIONS;
 
 public class ExemptionsStreamConsumerSteps {
-    private static final int CONSUME_MESSAGE_TIMEOUT = 5;
+    private static final int CONSUME_MESSAGE_TIMEOUT = 500;
     private static final long GET_RECORDS_TIMEOUT = 5000L;
     private static final String COMPANY_NUMBER = "00006400";
 
@@ -51,6 +52,7 @@ public class ExemptionsStreamConsumerSteps {
         resettableCountDownLatch.resetLatch(4);
         statusCode = 200;
         setupWiremock();
+        kafkaConsumer.poll(Duration.ofSeconds(1));
     }
 
     @And("The user is unauthorized")
@@ -76,6 +78,8 @@ public class ExemptionsStreamConsumerSteps {
     public void consumeInvalidMessage() throws InterruptedException {
         kafkaTemplate.send(mainTopic, "invalid message");
         kafkaTemplate.flush();
+
+        assertMessageConsumed();
     }
 
     @When("A message is consumed with invalid event type")

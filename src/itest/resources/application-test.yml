@@ -30,6 +30,13 @@ company-links:
       attempts: 4
       backoff-delay: 10
 
+    exemptions:
+      enable: true
+      group-id: company-links-consumer
+      topic: stream-company-exemptions
+      attempts: 4
+      backoff-delay: 10
+
 wiremock:
   server:
   port: 8888

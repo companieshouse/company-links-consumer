@@ -46,14 +46,10 @@ public class ExemptionsStreamConsumerSteps {
     @Autowired
     private ResettableCountDownLatch resettableCountDownLatch;
 
-    @BeforeEach
-    public void beforeEach() {
-        resettableCountDownLatch.resetLatch(4);
-        statusCode = 200;
-    }
-
     @Given("Company links consumer is available")
     public void companyLinksConsumerIsRunning() {
+        resettableCountDownLatch.resetLatch(4);
+        statusCode = 200;
         setupWiremock();
     }
 
@@ -67,10 +63,10 @@ public class ExemptionsStreamConsumerSteps {
         statusCode = 503;
     }
 
-    @When("A valid message is consumed")
-    public void consumeValidMessage() throws InterruptedException {
-        stubPatchLink(COMPANY_NUMBER, statusCode);
-        kafkaTemplate.send(mainTopic, createValidMessage(COMPANY_NUMBER, RESOURCE_KIND_EXEMPTIONS));
+    @When("A valid {string} message is consumed")
+    public void consumeValidMessage(String type) throws InterruptedException {
+        stubPatchLink(statusCode, type);
+        kafkaTemplate.send(mainTopic, createValidMessage(COMPANY_NUMBER, type, RESOURCE_KIND_EXEMPTIONS));
         kafkaTemplate.flush();
 
         assertMessageConsumed();
@@ -90,9 +86,14 @@ public class ExemptionsStreamConsumerSteps {
         assertMessageConsumed();
     }
 
-    @Then("A PATCH request is sent to the API")
-    public void verifyPatchEndpointIsCalled() {
+    @Then("An add link PATCH request is sent to the API")
+    public void verifyAddPatchEndpointIsCalled() {
         verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/exemptions", COMPANY_NUMBER))));
+    }
+
+    @Then("A remove link PATCH request is sent to the API")
+    public void verifyRemovePatchEndpointIsCalled() {
+        verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/exemptions/delete", COMPANY_NUMBER))));
     }
 
     @Then("No messages are placed on the invalid, error or retry topics")
@@ -110,11 +111,18 @@ public class ExemptionsStreamConsumerSteps {
         assertThat(actualTopic).isEqualTo(requiredTopic);
     }
 
-    private void stubPatchLink(String companyNumber, int responseCode) {
-        stubFor(
-                patch(urlEqualTo("/company/" + companyNumber + "/links/exemptions"))
-                        .willReturn(aResponse()
-                                .withStatus(responseCode)));
+    private void stubPatchLink(int responseCode, String type) {
+        if(type.equals("changed")) {
+            stubFor(
+                    patch(urlEqualTo("/company/" + COMPANY_NUMBER + "/links/exemptions"))
+                            .willReturn(aResponse()
+                                    .withStatus(responseCode)));
+        } else {
+            stubFor(
+                    patch(urlEqualTo("/company/" + COMPANY_NUMBER + "/links/exemptions/delete"))
+                            .willReturn(aResponse()
+                                    .withStatus(responseCode)));
+        }
     }
 
     private void assertMessageConsumed() throws InterruptedException {
@@ -123,9 +131,9 @@ public class ExemptionsStreamConsumerSteps {
                 .isTrue();
     }
 
-    private ResourceChangedData createValidMessage(String companyNumber, String kind) {
+    private ResourceChangedData createValidMessage(String companyNumber, String type, String kind) {
         EventRecord event = EventRecord.newBuilder()
-                .setType("changed")
+                .setType(type)
                 .setPublishedAt("2022-02-22T10:51:30")
                 .setFieldsChanged(Arrays.asList("foo", "moo"))
                 .build();

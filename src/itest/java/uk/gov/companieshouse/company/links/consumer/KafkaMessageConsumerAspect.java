@@ -16,14 +16,16 @@ public class KafkaMessageConsumerAspect {
 
     @AfterReturning(value = "execution(* uk.gov.companieshouse.company.links.consumer.InsolvencyStreamConsumer.receive(..)) " +
             "|| execution(* uk.gov.companieshouse.company.links.consumer.ChargesStreamConsumer.receive(..))" +
-            "|| execution(* uk.gov.companieshouse.company.links.consumer.ExemptionsStreamConsumer.receive(..))")
+            "|| execution(* uk.gov.companieshouse.company.links.consumer.ExemptionsStreamConsumer.receive(..))" +
+            "|| execution(* uk.gov.companieshouse.company.links.consumer.OfficersStreamConsumer.receive(..))")
     void onSuccessfulProcessing() {
         resettableCountDownLatch.countDownAll();
     }
 
     @AfterThrowing(value = "execution(* uk.gov.companieshouse.company.links.consumer.InsolvencyStreamConsumer.receive(..)) " +
             "|| execution(* uk.gov.companieshouse.company.links.consumer.ChargesStreamConsumer.receive(..))" +
-            "|| execution(* uk.gov.companieshouse.company.links.consumer.ExemptionsStreamConsumer.receive(..))", throwing = "ex")
+            "|| execution(* uk.gov.companieshouse.company.links.consumer.ExemptionsStreamConsumer.receive(..))" +
+            "|| execution(* uk.gov.companieshouse.company.links.consumer.OfficersStreamConsumer.receive(..))", throwing = "ex")
     void onConsumerException(Exception ex) {
         if (ex instanceof NonRetryableErrorException) {
             resettableCountDownLatch.countDownAll();

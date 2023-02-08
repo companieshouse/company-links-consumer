@@ -9,7 +9,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
@@ -31,18 +30,19 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.companieshouse.company.links.config.WiremockTestConfig.setupWiremock;
-import static uk.gov.companieshouse.company.links.data.TestData.RESOURCE_KIND_EXEMPTIONS;
 
-public class ExemptionsStreamConsumerSteps {
+public class StreamConsumerSteps {
     private static final int CONSUME_MESSAGE_TIMEOUT = 5;
     private static final long GET_RECORDS_TIMEOUT = 5000L;
     private static final String COMPANY_NUMBER = "00006400";
     private static final String RETRY_TOPIC_ATTEMPTS_KEY = "retry_topic-attempts";
     private static final int RETRY_ATTEMPTS = 4;
     private int statusCode;
-
-    @Value("${company-links.consumer.exemptions.topic}")
+    private String patchUrl;
     private String mainTopic;
+    private String topicPrefix;
+    private String deltaType;
+    private String resourceUri;
 
     @Autowired
     public KafkaTemplate<String, Object> kafkaTemplate;
@@ -71,8 +71,11 @@ public class ExemptionsStreamConsumerSteps {
         statusCode = 503;
     }
 
-    @When("A valid {string} message is consumed")
-    public void consumeValidMessage(String eventType) throws InterruptedException {
+    @When("A valid {string} message is consumed from the {string} stream")
+    public void consumeValidMessage(String eventType, String deltaType) throws InterruptedException {
+        this.deltaType = deltaType;
+        initialiseVariablesToDeltaType();
+
         stubPatchLink(statusCode, eventType);
         kafkaTemplate.send(mainTopic, createValidMessage(eventType));
         kafkaTemplate.flush();
@@ -80,30 +83,31 @@ public class ExemptionsStreamConsumerSteps {
         assertMessageConsumed();
     }
 
-    @When("An invalid message is consumed")
-    public void consumeInvalidMessage() throws InterruptedException {
+    @When("An invalid message is consumed from the {string} stream")
+    public void consumeInvalidMessage(String deltaType) throws InterruptedException {
+        this.deltaType = deltaType;
+        initialiseVariablesToDeltaType();
+
         kafkaTemplate.send(mainTopic, "invalid message");
         kafkaTemplate.flush();
 
         assertMessageConsumed();
     }
 
-    @When("A message is consumed with invalid event type")
-    public void consumeValidMessageWithInvalidEventType() throws InterruptedException {
+    @When("A message is consumed with invalid event type from the {string} stream")
+    public void consumeValidMessageWithInvalidEventType(String deltaType) throws InterruptedException {
+        this.deltaType = deltaType;
+        initialiseVariablesToDeltaType();
+
         kafkaTemplate.send(mainTopic, createMessageWithInvalidEventType());
         kafkaTemplate.flush();
 
         assertMessageConsumed();
     }
 
-    @Then("An add link PATCH request is sent to the API")
+    @Then("A PATCH request is sent to the API")
     public void verifyAddPatchEndpointIsCalled() {
-        verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/exemptions", COMPANY_NUMBER))));
-    }
-
-    @Then("A remove link PATCH request is sent to the API")
-    public void verifyRemovePatchEndpointIsCalled() {
-        verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/exemptions/delete", COMPANY_NUMBER))));
+        verify(1, patchRequestedFor(urlEqualTo(patchUrl)));
     }
 
     @Then("No messages are placed on the invalid, error or retry topics")
@@ -113,10 +117,10 @@ public class ExemptionsStreamConsumerSteps {
     }
 
     @Then("The message is placed on the {string} topic")
-    public void verifyMessageIsPlaceOnCorrectTopic(String topic) {
-        String requiredTopic = String.format("stream-company-exemptions-company-links-consumer-%s", topic);
+    public void verifyMessageIsPlaceOnCorrectTopic(String topicSuffix) {
+        String requiredTopic = String.format("%s-%s", topicPrefix, topicSuffix);
 
-        switch (topic) {
+        switch (topicSuffix) {
             case "invalid":
                 ConsumerRecord<String, Object> invalidRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, requiredTopic, GET_RECORDS_TIMEOUT);
                 String invalidTopic = invalidRecord.topic();
@@ -140,17 +144,19 @@ public class ExemptionsStreamConsumerSteps {
     }
 
     private void stubPatchLink(int responseCode, String eventType) {
-        if(eventType.equals("changed")) {
-            stubFor(
-                    patch(urlEqualTo("/company/" + COMPANY_NUMBER + "/links/exemptions"))
-                            .willReturn(aResponse()
-                                    .withStatus(responseCode)));
-        } else {
-            stubFor(
-                    patch(urlEqualTo("/company/" + COMPANY_NUMBER + "/links/exemptions/delete"))
-                            .willReturn(aResponse()
-                                    .withStatus(responseCode)));
+        switch (eventType) {
+            case "changed":
+                patchUrl = String.format("/company/%s/links/%s", COMPANY_NUMBER, deltaType);
+                break;
+            case "deleted":
+                patchUrl = String.format("/company/%s/links/%s/delete", COMPANY_NUMBER, deltaType);
+                break;
         }
+
+        stubFor(
+                patch(urlEqualTo(patchUrl))
+                        .willReturn(aResponse()
+                                .withStatus(responseCode)));
     }
 
     private void assertMessageConsumed() throws InterruptedException {
@@ -169,8 +175,8 @@ public class ExemptionsStreamConsumerSteps {
         return ResourceChangedData.newBuilder()
                 .setContextId("context_id")
                 .setResourceId(COMPANY_NUMBER)
-                .setResourceKind(RESOURCE_KIND_EXEMPTIONS)
-                .setResourceUri(String.format("/company/%s/exemptions", COMPANY_NUMBER))
+                .setResourceKind(deltaType)
+                .setResourceUri(resourceUri)
                 .setData("{ \"key\": \"value\" }")
                 .setEvent(event)
                 .build();
@@ -186,10 +192,16 @@ public class ExemptionsStreamConsumerSteps {
         return ResourceChangedData.newBuilder()
                 .setContextId("context_id")
                 .setResourceId(COMPANY_NUMBER)
-                .setResourceKind(RESOURCE_KIND_EXEMPTIONS)
-                .setResourceUri(String.format("/company/%s/exemptions", COMPANY_NUMBER))
+                .setResourceKind(deltaType)
+                .setResourceUri(resourceUri)
                 .setData("")
                 .setEvent(event)
                 .build();
+    }
+
+    private void initialiseVariablesToDeltaType() {
+        mainTopic = String.format("stream-company-%s", deltaType);
+        topicPrefix = String.format("%s-company-links-consumer", mainTopic);
+        resourceUri = String.format("company/%s/%s", COMPANY_NUMBER, deltaType);
     }
 }

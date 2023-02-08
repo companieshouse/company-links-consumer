@@ -27,6 +27,7 @@ Feature: Process company links information for exemptions
     And   The company profile api is unavailable
     When A valid "changed" message is consumed
     Then The message is placed on the "retry" topic
+    And The message is placed on the "error" topic
 
   Scenario: PATCH company exemptions link successfully - remove link
     Given Company links consumer is available
@@ -45,3 +46,4 @@ Feature: Process company links information for exemptions
     And   The company profile api is unavailable
     When A valid "deleted" message is consumed
     Then The message is placed on the "retry" topic
+    And  The message is placed on the "error" topic

@@ -4,8 +4,10 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.header.Header;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -16,7 +18,10 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.patch;
@@ -32,7 +37,8 @@ public class ExemptionsStreamConsumerSteps {
     private static final int CONSUME_MESSAGE_TIMEOUT = 5;
     private static final long GET_RECORDS_TIMEOUT = 5000L;
     private static final String COMPANY_NUMBER = "00006400";
-
+    private static final String RETRY_TOPIC_ATTEMPTS_KEY = "retry_topic-attempts";
+    private static final int RETRY_ATTEMPTS = 4;
     private int statusCode;
 
     @Value("${company-links.consumer.exemptions.topic}")
@@ -66,9 +72,9 @@ public class ExemptionsStreamConsumerSteps {
     }
 
     @When("A valid {string} message is consumed")
-    public void consumeValidMessage(String type) throws InterruptedException {
-        stubPatchLink(statusCode, type);
-        kafkaTemplate.send(mainTopic, createValidMessage(COMPANY_NUMBER, type, RESOURCE_KIND_EXEMPTIONS));
+    public void consumeValidMessage(String eventType) throws InterruptedException {
+        stubPatchLink(statusCode, eventType);
+        kafkaTemplate.send(mainTopic, createValidMessage(eventType));
         kafkaTemplate.flush();
 
         assertMessageConsumed();
@@ -84,7 +90,7 @@ public class ExemptionsStreamConsumerSteps {
 
     @When("A message is consumed with invalid event type")
     public void consumeValidMessageWithInvalidEventType() throws InterruptedException {
-        kafkaTemplate.send(mainTopic, createMessageWithInvalidEventType(COMPANY_NUMBER, RESOURCE_KIND_EXEMPTIONS));
+        kafkaTemplate.send(mainTopic, createMessageWithInvalidEventType());
         kafkaTemplate.flush();
 
         assertMessageConsumed();
@@ -110,13 +116,31 @@ public class ExemptionsStreamConsumerSteps {
     public void verifyMessageIsPlaceOnCorrectTopic(String topic) {
         String requiredTopic = String.format("stream-company-exemptions-company-links-consumer-%s", topic);
 
-        ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer, GET_RECORDS_TIMEOUT);
-        String actualTopic = records.records(requiredTopic).iterator().next().topic();
-        assertThat(actualTopic).isEqualTo(requiredTopic);
+        switch (topic) {
+            case "invalid":
+                ConsumerRecord<String, Object> invalidRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, requiredTopic, GET_RECORDS_TIMEOUT);
+                String invalidTopic = invalidRecord.topic();
+                assertThat(invalidTopic).isEqualTo(requiredTopic);
+                break;
+            case "retry":
+                ConsumerRecords<String, Object> retryRecord = KafkaTestUtils.getRecords(kafkaConsumer, GET_RECORDS_TIMEOUT);
+                String retryTopic = retryRecord.records(requiredTopic).iterator().next().topic();
+                assertThat(retryTopic).isEqualTo(requiredTopic);
+                break;
+            case "error":
+                ConsumerRecord<String, Object> errorRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, requiredTopic, GET_RECORDS_TIMEOUT);
+                assertThat(errorRecord.topic()).isEqualTo(requiredTopic);
+
+                List<Header> retryList = StreamSupport.stream(errorRecord.headers().spliterator(), false)
+                        .filter(header -> header.key().equalsIgnoreCase(RETRY_TOPIC_ATTEMPTS_KEY))
+                        .collect(Collectors.toList());
+                assertThat(retryList.size()).isEqualTo(RETRY_ATTEMPTS);
+                break;
+        }
     }
 
-    private void stubPatchLink(int responseCode, String type) {
-        if(type.equals("changed")) {
+    private void stubPatchLink(int responseCode, String eventType) {
+        if(eventType.equals("changed")) {
             stubFor(
                     patch(urlEqualTo("/company/" + COMPANY_NUMBER + "/links/exemptions"))
                             .willReturn(aResponse()
@@ -135,24 +159,24 @@ public class ExemptionsStreamConsumerSteps {
                 .isTrue();
     }
 
-    private ResourceChangedData createValidMessage(String companyNumber, String type, String kind) {
+    private ResourceChangedData createValidMessage(String eventType) {
         EventRecord event = EventRecord.newBuilder()
-                .setType(type)
+                .setType(eventType)
                 .setPublishedAt("2022-02-22T10:51:30")
                 .setFieldsChanged(Arrays.asList("foo", "moo"))
                 .build();
 
         return ResourceChangedData.newBuilder()
                 .setContextId("context_id")
-                .setResourceId(companyNumber)
-                .setResourceKind(kind)
-                .setResourceUri(String.format("/company/%s/exemptions", companyNumber))
+                .setResourceId(COMPANY_NUMBER)
+                .setResourceKind(RESOURCE_KIND_EXEMPTIONS)
+                .setResourceUri(String.format("/company/%s/exemptions", COMPANY_NUMBER))
                 .setData("{ \"key\": \"value\" }")
                 .setEvent(event)
                 .build();
     }
 
-    private ResourceChangedData createMessageWithInvalidEventType(String companyNumber, String kind) {
+    private ResourceChangedData createMessageWithInvalidEventType() {
         EventRecord event = EventRecord.newBuilder()
                 .setType("invalid")
                 .setPublishedAt("2022-02-22T10:51:30")
@@ -161,9 +185,9 @@ public class ExemptionsStreamConsumerSteps {
 
         return ResourceChangedData.newBuilder()
                 .setContextId("context_id")
-                .setResourceId(companyNumber)
-                .setResourceKind(kind)
-                .setResourceUri(String.format("/company/%s/exemptions", companyNumber))
+                .setResourceId(COMPANY_NUMBER)
+                .setResourceKind(RESOURCE_KIND_EXEMPTIONS)
+                .setResourceUri(String.format("/company/%s/exemptions", COMPANY_NUMBER))
                 .setData("")
                 .setEvent(event)
                 .build();

@@ -80,6 +80,24 @@ class AddExemptionsClientTest {
         // then
         verify(resourceHandler).addExemptionsCompanyLink(PATH);
         verify(exemptionsLinksPatchHandler).execute();
+        verify(logger).info("HTTP 404 Not Found returned; company profile does not exist");
+    }
+
+    @Test
+    void testThrowNonRetryableExceptionIf409Returned() throws ApiErrorResponseException, URIValidationException {
+        // given
+        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
+        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
+        when(resourceHandler.addExemptionsCompanyLink(anyString())).thenReturn(exemptionsLinksPatchHandler);
+        when(exemptionsLinksPatchHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
+
+        // when
+        client.patchLink(COMPANY_NUMBER);
+
+        // then
+        verify(resourceHandler).addExemptionsCompanyLink(PATH);
+        verify(exemptionsLinksPatchHandler).execute();
+        verify(logger).info("HTTP 409 Conflict returned; company profile already has an exemptions link");
     }
 
     @Test

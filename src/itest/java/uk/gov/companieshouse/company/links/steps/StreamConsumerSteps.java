@@ -9,9 +9,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
+import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
@@ -43,6 +45,7 @@ public class StreamConsumerSteps {
     private String topicPrefix;
     private String deltaType;
     private String resourceUri;
+    private Logger logger;
 
     @Autowired
     public KafkaTemplate<String, Object> kafkaTemplate;
@@ -56,19 +59,19 @@ public class StreamConsumerSteps {
     @Given("Company links consumer is available")
     public void companyLinksConsumerIsRunning() {
         resettableCountDownLatch.resetLatch(4);
-        statusCode = 200;
+        statusCode = HttpStatus.OK.value();
         setupWiremock();
         kafkaConsumer.poll(Duration.ofSeconds(1));
     }
 
     @And("The user is unauthorized")
     public void stubUnauthorizedPatchRequest() {
-        statusCode = 401;
+        statusCode = HttpStatus.UNAUTHORIZED.value();
     }
 
     @And("The company profile api is unavailable")
     public void stubServiceUnavailablePatchRequest() {
-        statusCode = 503;
+        statusCode = HttpStatus.SERVICE_UNAVAILABLE.value();
     }
 
     @When("A valid {string} message is consumed from the {string} stream")
@@ -140,6 +143,9 @@ public class StreamConsumerSteps {
                         .collect(Collectors.toList());
                 assertThat(retryList.size()).isEqualTo(RETRY_ATTEMPTS);
                 break;
+            default:
+                throw new IllegalArgumentException(String.format("Suffix: '%s' is not a valid topic suffix. " +
+                        "Please use 'invalid', 'retry' or 'error' as the topic suffix.", topicSuffix));
         }
     }
 
@@ -151,6 +157,9 @@ public class StreamConsumerSteps {
             case "deleted":
                 patchUrl = String.format("/company/%s/links/%s/delete", COMPANY_NUMBER, deltaType);
                 break;
+            default:
+                throw new IllegalArgumentException(String.format("Event type: '%s' is not a valid event type, " +
+                        "this will result in the patch url being null. Please use either 'changed' or 'deleted'.", eventType));
         }
 
         stubFor(

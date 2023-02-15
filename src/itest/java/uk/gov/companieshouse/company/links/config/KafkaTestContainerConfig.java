@@ -119,18 +119,19 @@ public class KafkaTestContainerConfig {
         consumer.subscribe(List.of("stream-company-insolvency-company-links-consumer-invalid",
                 "stream-company-insolvency-company-links-consumer-error",
                 "stream-company-charges-company-links-consumer-invalid",
-                "stream-company-charges-company-links-consumer-error"));
+                "stream-company-charges-company-links-consumer-error",
+                "stream-company-exemptions-company-links-consumer-error",
+                "stream-company-exemptions-company-links-consumer-invalid",
+                "stream-company-exemptions-company-links-consumer-retry",
+                "stream-company-officers-company-links-consumer-error",
+                "stream-company-officers-company-links-consumer-invalid",
+                "stream-company-officers-company-links-consumer-retry"));
 
         return consumer;
     }
 
     @Bean
-    public ResettableCountDownLatch resettableCountDownLatch() {
-        return new ResettableCountDownLatch();
-    }
-
-    @Bean
-    public KafkaMessageConsumerAspect kafkaMessageConsumerAspect() {
-        return new KafkaMessageConsumerAspect();
+    public KafkaMessageConsumerAspect kafkaMessageConsumerAspect(ResettableCountDownLatch resettableCountDownLatch) {
+        return new KafkaMessageConsumerAspect(resettableCountDownLatch);
     }
 }

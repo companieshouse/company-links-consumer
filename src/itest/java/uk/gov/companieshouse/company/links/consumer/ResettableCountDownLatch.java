@@ -1,7 +1,10 @@
 package uk.gov.companieshouse.company.links.consumer;
 
+import org.springframework.stereotype.Component;
+
 import java.util.concurrent.CountDownLatch;
 
+@Component
 public class ResettableCountDownLatch {
 
     private CountDownLatch countDownLatch;

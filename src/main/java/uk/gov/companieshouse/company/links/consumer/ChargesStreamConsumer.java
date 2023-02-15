@@ -22,7 +22,7 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 
 
 @Component
-public class  ChargesStreamConsumer {
+public class ChargesStreamConsumer {
 
     private final ChargesStreamProcessor chargesProcessor;
     private final Logger logger;

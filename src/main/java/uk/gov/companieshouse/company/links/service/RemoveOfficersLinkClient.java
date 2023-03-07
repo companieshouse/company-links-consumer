@@ -1,8 +1,9 @@
 package uk.gov.companieshouse.company.links.service;
 
-import org.springframework.http.HttpStatus;
+import java.util.function.Supplier;
+
 import org.springframework.stereotype.Component;
-import uk.gov.companieshouse.api.appointment.OfficerList;
+import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
@@ -10,17 +11,14 @@ import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 
 @Component
-public class RemoveOfficersClient implements LinkClient {
+public class RemoveOfficersLinkClient implements LinkClient {
     private final Logger logger;
-    private final AppointmentsListClient appointmentsListClient;
-    private final RemoveOfficersLinkClient removeOfficersLinkClient;
+    private final Supplier<InternalApiClient> internalApiClientFactory;
 
-    public RemoveOfficersClient(Logger logger,
-                                AppointmentsListClient appointmentsListClient,
-                                RemoveOfficersLinkClient removeOfficersLinkClient) {
+    public RemoveOfficersLinkClient(Logger logger,
+                                Supplier<InternalApiClient> internalApiClientFactory) {
         this.logger = logger;
-        this.appointmentsListClient = appointmentsListClient;
-        this.removeOfficersLinkClient = removeOfficersLinkClient;
+        this.internalApiClientFactory = internalApiClientFactory;
     }
 
     /**
@@ -31,16 +29,14 @@ public class RemoveOfficersClient implements LinkClient {
      */
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
+        InternalApiClient client = internalApiClientFactory.get();
         try {
-
-            OfficerList officerList = appointmentsListClient.getAppointmentsList(companyNumber);
-            if (officerList.getTotalResults() == 0) {
-                removeOfficersLinkClient.patchLink(companyNumber);
-            } else {
-
-            }
+            client.privateCompanyLinksResourceHandler()
+                    .removeOfficersCompanyLink(
+                            String.format("/company/%s/links/officers/delete", companyNumber))
+                    .execute();
         } catch (ApiErrorResponseException ex) {
-            if (HttpStatus.valueOf(ex.getStatusCode()).is5xxServerError()) {
+            if (ex.getStatusCode() / 100 == 5) {
                 logger.error(String.format("Server error returned with status code: [%s] "
                         + "processing remove officers link request", ex.getStatusCode()));
                 throw new RetryableErrorException("Server error returned when processing "

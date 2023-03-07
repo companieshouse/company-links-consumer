@@ -7,6 +7,7 @@ import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
 @Component
@@ -21,18 +22,18 @@ public class AddExemptionsClient implements LinkClient {
     }
 
     /**
-     * Sends a patch request to the add exemptions link endpoint in the
-     * company profile api and handles any error responses.
+     * Sends a patch request to the add exemptions link endpoint in the company profile api and
+     * handles any error responses.
      *
-     * @param companyNumber The companyNumber of the patch request
+     * @param linkRequest
      */
     @Override
-    public void patchLink(String companyNumber) {
+    public void patchLink(PatchLinkRequest linkRequest) {
         InternalApiClient client = internalApiClientFactory.get();
         try {
             client.privateCompanyLinksResourceHandler()
                     .addExemptionsCompanyLink(
-                            String.format("/company/%s/links/exemptions", companyNumber))
+                            String.format("/company/%s/links/exemptions", linkRequest.getCompanyNumber()))
                     .execute();
         } catch (ApiErrorResponseException ex) {
             if (ex.getStatusCode() / 100 == 5) {

@@ -54,7 +54,7 @@ class LinkClientFactoryTest {
         LinkClient linkClient = factory.getLinkClient("officers", "deleted");
 
         // then
-        assertTrue(linkClient instanceof RemoveOfficersClient);
+        assertTrue(linkClient instanceof RemoveOfficersLinkClient);
     }
 
     @Test

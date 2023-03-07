@@ -25,14 +25,14 @@ class CompanyNumberExtractorTest {
     private Logger logger;
 
     @InjectMocks
-    private CompanyNumberExtractor extractor;
+    private PatchLinkRequestExtractor extractor;
 
     @Test
     @DisplayName("The extractor should get the correct company number back")
     void process() {
         // given
         // when
-        String actual = extractor.extractCompanyNumber("company/OC305127/appointments/-0YatipCW4ZL295N9UVFo1TGyW8");
+        String actual = extractor.extractPatchLinkRequest("company/OC305127/appointments/-0YatipCW4ZL295N9UVFo1TGyW8");
 
         // then
         assertEquals("OC305127", actual);
@@ -44,7 +44,7 @@ class CompanyNumberExtractorTest {
         // given
 
         // when
-        Executable executable = () -> extractor.extractCompanyNumber(uri);
+        Executable executable = () -> extractor.extractPatchLinkRequest(uri);
 
         // then
         Exception exception = assertThrows(NonRetryableErrorException.class, executable);

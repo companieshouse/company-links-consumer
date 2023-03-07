@@ -47,7 +47,7 @@ class RemoveOfficersClientTest {
     private Logger logger;
 
     @InjectMocks
-    private RemoveOfficersClient client;
+    private RemoveOfficersLinkClient client;
 
     @Test
     void testUpsert() throws ApiErrorResponseException, URIValidationException {

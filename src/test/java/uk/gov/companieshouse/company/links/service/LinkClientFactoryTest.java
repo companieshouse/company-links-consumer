@@ -1,5 +1,7 @@
 package uk.gov.companieshouse.company.links.service;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
@@ -54,7 +56,7 @@ class LinkClientFactoryTest {
         LinkClient linkClient = factory.getLinkClient("officers", "deleted");
 
         // then
-        assertTrue(linkClient instanceof RemoveOfficersLinkClient);
+        assertTrue(linkClient instanceof RemoveOfficersClient);
     }
 
     @Test

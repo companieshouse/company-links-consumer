@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.companieshouse.company.links.processor.LinkRouter;
+import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.company.links.type.ResourceChange;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -47,6 +48,9 @@ class LinkRouterTest {
     @Mock
     private EventRecord event;
 
+    @Mock
+    private PatchLinkRequest linkRequest;
+
     @BeforeEach
     void setup() {
         router = new LinkRouter(extractor, factory);
@@ -60,7 +64,7 @@ class LinkRouterTest {
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("changed");
         when(data.getResourceUri()).thenReturn("company/12345678/exemptions");
-        when(extractor.extractPatchLinkRequest(any())).thenReturn("12345678");
+        when(extractor.extractPatchLinkRequest(any())).thenReturn(linkRequest);
         when(factory.getLinkClient(any(), any())).thenReturn(addExemptionsClient);
 
         // when
@@ -68,7 +72,7 @@ class LinkRouterTest {
 
         // then
         verify(extractor).extractPatchLinkRequest("company/12345678/exemptions");
-        verify(addExemptionsClient).patchLink("12345678");
+        verify(addExemptionsClient).patchLink(linkRequest);
     }
 
     @Test
@@ -79,7 +83,7 @@ class LinkRouterTest {
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("deleted");
         when(data.getResourceUri()).thenReturn("company/12345678/exemptions");
-        when(extractor.extractPatchLinkRequest(any())).thenReturn("12345678");
+        when(extractor.extractPatchLinkRequest(any())).thenReturn(linkRequest);
         when(factory.getLinkClient(any(), any())).thenReturn(deleteExemptionsClient);
 
         // when
@@ -87,7 +91,7 @@ class LinkRouterTest {
 
         // then
         verify(extractor).extractPatchLinkRequest("company/12345678/exemptions");
-        verify(deleteExemptionsClient).patchLink("12345678");
+        verify(deleteExemptionsClient).patchLink(linkRequest);
     }
 
     @Test
@@ -98,7 +102,7 @@ class LinkRouterTest {
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("changed");
         when(data.getResourceUri()).thenReturn("company/12345678/officers");
-        when(extractor.extractPatchLinkRequest(any())).thenReturn("12345678");
+        when(extractor.extractPatchLinkRequest(any())).thenReturn(linkRequest);
         when(factory.getLinkClient(any(), any())).thenReturn(addOfficersClient);
 
         // when
@@ -106,7 +110,7 @@ class LinkRouterTest {
 
         // then
         verify(extractor).extractPatchLinkRequest("company/12345678/officers");
-        verify(addOfficersClient).patchLink("12345678");
+        verify(addOfficersClient).patchLink(linkRequest);
     }
 
     @Test
@@ -117,7 +121,7 @@ class LinkRouterTest {
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("deleted");
         when(data.getResourceUri()).thenReturn("company/12345678/officers");
-        when(extractor.extractPatchLinkRequest(any())).thenReturn("12345678");
+        when(extractor.extractPatchLinkRequest(any())).thenReturn(linkRequest);
         when(factory.getLinkClient(any(), any())).thenReturn(removeOfficersLinkClient);
 
         // when
@@ -125,6 +129,6 @@ class LinkRouterTest {
 
         // then
         verify(extractor).extractPatchLinkRequest("company/12345678/officers");
-        verify(removeOfficersLinkClient).patchLink("12345678");
+        verify(removeOfficersLinkClient).patchLink(linkRequest);
     }
 }

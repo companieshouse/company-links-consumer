@@ -1,8 +1,8 @@
 package uk.gov.companieshouse.company.links.processor;
 
 import org.springframework.stereotype.Component;
-import uk.gov.companieshouse.company.links.service.PatchLinkRequestExtractable;
 import uk.gov.companieshouse.company.links.service.LinkClientFactory;
+import uk.gov.companieshouse.company.links.service.PatchLinkRequestExtractable;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.company.links.type.ResourceChange;
 

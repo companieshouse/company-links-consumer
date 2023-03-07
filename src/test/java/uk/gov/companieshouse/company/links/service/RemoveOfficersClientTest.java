@@ -16,6 +16,7 @@ import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
 import java.util.Collections;
@@ -49,6 +50,8 @@ class RemoveOfficersClientTest {
     @InjectMocks
     private RemoveOfficersLinkClient client;
 
+    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER);
+
     @Test
     void testUpsert() throws ApiErrorResponseException, URIValidationException {
         // given
@@ -58,7 +61,7 @@ class RemoveOfficersClientTest {
         when(officersLinksRemoveHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
 
         // when
-        client.patchLink(COMPANY_NUMBER);
+        client.patchLink(linkRequest);
 
         // then
         verify(resourceHandler).removeOfficersCompanyLink(PATH);
@@ -74,7 +77,7 @@ class RemoveOfficersClientTest {
         when(officersLinksRemoveHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
 
         // when
-        client.patchLink(COMPANY_NUMBER);
+        client.patchLink(linkRequest);
 
         // then
         verify(resourceHandler).removeOfficersCompanyLink(PATH);
@@ -91,7 +94,7 @@ class RemoveOfficersClientTest {
         when(officersLinksRemoveHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
 
         // when
-        client.patchLink(COMPANY_NUMBER);
+        client.patchLink(linkRequest);
 
         // then
         verify(resourceHandler).removeOfficersCompanyLink(PATH);
@@ -108,7 +111,7 @@ class RemoveOfficersClientTest {
         when(officersLinksRemoveHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
 
         // when
-        Executable actual = () -> client.patchLink(COMPANY_NUMBER);
+        Executable actual = () -> client.patchLink(linkRequest);
 
         // then
         assertThrows(RetryableErrorException.class, actual);
@@ -125,7 +128,7 @@ class RemoveOfficersClientTest {
         when(officersLinksRemoveHandler.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
 
         // when
-        Executable actual = () -> client.patchLink(COMPANY_NUMBER);
+        Executable actual = () -> client.patchLink(linkRequest);
 
         // then
         assertThrows(RetryableErrorException.class, actual);
@@ -142,7 +145,7 @@ class RemoveOfficersClientTest {
         when(officersLinksRemoveHandler.execute()).thenThrow(new URIValidationException("Invalid URI"));
 
         // when
-        Executable actual = () -> client.patchLink("OC401invalid/companyNumber");
+        Executable actual = () -> client.patchLink(new PatchLinkRequest("OC401invalid/companyNumber"));
 
         // then
         assertThrows(NonRetryableErrorException.class, actual);

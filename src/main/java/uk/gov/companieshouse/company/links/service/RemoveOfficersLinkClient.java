@@ -1,13 +1,13 @@
 package uk.gov.companieshouse.company.links.service;
 
 import java.util.function.Supplier;
-
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
 @Component
@@ -16,7 +16,7 @@ public class RemoveOfficersLinkClient implements LinkClient {
     private final Supplier<InternalApiClient> internalApiClientFactory;
 
     public RemoveOfficersLinkClient(Logger logger,
-                                Supplier<InternalApiClient> internalApiClientFactory) {
+            Supplier<InternalApiClient> internalApiClientFactory) {
         this.logger = logger;
         this.internalApiClientFactory = internalApiClientFactory;
     }
@@ -25,7 +25,7 @@ public class RemoveOfficersLinkClient implements LinkClient {
      * Sends a patch request to the remove officers link endpoint in the company profile api and
      * handles any error responses.
      *
-     * @param linkRequest
+     * @param linkRequest PatchLinkRequest
      */
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
@@ -33,7 +33,8 @@ public class RemoveOfficersLinkClient implements LinkClient {
         try {
             client.privateCompanyLinksResourceHandler()
                     .removeOfficersCompanyLink(
-                            String.format("/company/%s/links/officers/delete", companyNumber))
+                            String.format("/company/%s/links/officers/delete",
+                                    linkRequest.getCompanyNumber()))
                     .execute();
         } catch (ApiErrorResponseException ex) {
             if (ex.getStatusCode() / 100 == 5) {
@@ -49,7 +50,7 @@ public class RemoveOfficersLinkClient implements LinkClient {
                         + "company profile does not exist");
             } else {
                 logger.error(String.format("remove officers client error returned with "
-                          + "status code: [%s] when processing remove officers link request",
+                                + "status code: [%s] when processing remove officers link request",
                         ex.getStatusCode()));
                 throw new NonRetryableErrorException("Client error returned when "
                         + "processing remove officers link request", ex);

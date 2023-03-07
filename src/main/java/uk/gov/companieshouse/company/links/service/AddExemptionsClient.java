@@ -25,7 +25,7 @@ public class AddExemptionsClient implements LinkClient {
      * Sends a patch request to the add exemptions link endpoint in the company profile api and
      * handles any error responses.
      *
-     * @param linkRequest
+     * @param linkRequest PatchLinkRequest
      */
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
@@ -33,7 +33,8 @@ public class AddExemptionsClient implements LinkClient {
         try {
             client.privateCompanyLinksResourceHandler()
                     .addExemptionsCompanyLink(
-                            String.format("/company/%s/links/exemptions", linkRequest.getCompanyNumber()))
+                            String.format("/company/%s/links/exemptions",
+                                    linkRequest.getCompanyNumber()))
                     .execute();
         } catch (ApiErrorResponseException ex) {
             if (ex.getStatusCode() / 100 == 5) {

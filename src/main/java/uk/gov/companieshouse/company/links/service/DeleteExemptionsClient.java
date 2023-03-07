@@ -1,7 +1,6 @@
 package uk.gov.companieshouse.company.links.service;
 
 import java.util.function.Supplier;
-
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
@@ -26,7 +25,7 @@ public class DeleteExemptionsClient implements LinkClient {
      * Sends a patch request to the delete exemptions link endpoint in the company profile api and
      * handles any error responses.
      *
-     * @param linkRequest
+     * @param linkRequest PatchLinkRequest
      */
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
@@ -34,7 +33,8 @@ public class DeleteExemptionsClient implements LinkClient {
         try {
             client.privateCompanyLinksResourceHandler()
                     .deleteExemptionsCompanyLink(
-                            String.format("/company/%s/links/exemptions/delete", linkRequest.getCompanyNumber()))
+                            String.format("/company/%s/links/exemptions/delete",
+                                    linkRequest.getCompanyNumber()))
                     .execute();
         } catch (ApiErrorResponseException ex) {
             if (ex.getStatusCode() / 100 == 5) {
@@ -50,7 +50,7 @@ public class DeleteExemptionsClient implements LinkClient {
                         + "company profile does not exist");
             } else {
                 logger.error(String.format("Delete exemptions client error returned with status"
-                        + " code: [%s] when processing delete exemptions link request",
+                                + " code: [%s] when processing delete exemptions link request",
                         ex.getStatusCode()));
                 throw new NonRetryableErrorException("DeleteClient error returned when "
                         + "processing delete exemptions link request", ex);

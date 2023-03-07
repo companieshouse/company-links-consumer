@@ -41,7 +41,8 @@ public class AppointmentsListClient {
 
             if (HttpStatus.valueOf(ex.getStatusCode()).is5xxServerError()) {
                 String message = String.format("Server error status code: [%s] "
-                                + "while fetching appointments list for company %s", ex.getStatusCode(),
+                                + "while fetching appointments list for company %s",
+                        ex.getStatusCode(),
                         companyNumber);
                 logger.error(message);
                 throw new RetryableErrorException(message, ex);

@@ -25,7 +25,7 @@ public class AddOfficersClient implements LinkClient {
      * Sends a patch request to the add officers link endpoint in the company profile api and
      * handles any error responses.
      *
-     * @param linkRequest
+     * @param linkRequest PatchLinkRequest
      */
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
@@ -33,7 +33,8 @@ public class AddOfficersClient implements LinkClient {
         try {
             client.privateCompanyLinksResourceHandler()
                     .addOfficersCompanyLink(
-                            String.format("/company/%s/links/officers", linkRequest.getCompanyNumber()))
+                            String.format("/company/%s/links/officers",
+                                    linkRequest.getCompanyNumber()))
                     .execute();
         } catch (ApiErrorResponseException ex) {
             if (ex.getStatusCode() / 100 == 5) {

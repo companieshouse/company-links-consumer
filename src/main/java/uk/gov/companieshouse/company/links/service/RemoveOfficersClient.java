@@ -8,6 +8,7 @@ import uk.gov.companieshouse.logging.Logger;
 
 @Component
 public class RemoveOfficersClient implements LinkClient {
+
     private final Logger logger;
     private final AppointmentsListClient appointmentsListClient;
     private final RemoveOfficersLinkClient removeOfficersLinkClient;
@@ -40,11 +41,15 @@ public class RemoveOfficersClient implements LinkClient {
         if (officerList.getTotalResults() == 0) {
             removeOfficersLinkClient.patchLink(linkRequest);
         } else {
-//            if (chargesData.getItems().stream().anyMatch(x ->
-//                    incomingChargeId.equals(x.getId()))) {
-//                throw new RetryableErrorException(String.format("Charge with id: %s is still not "
-//                        + "deleted", incomingChargeId));
-//            }
+            if (officerList.getItems().stream()
+                    .anyMatch(officerSummary -> officerSummary.getLinks().getSelf()
+                            .endsWith(linkRequest.getResourceId()))) {
+                throw new RetryableErrorException(String.format("Officer with id: %s is still not "
+                        + "deleted", linkRequest.getResourceId()));
+            } else {
+                logger.debug(String.format("Officers for company number [%s] still exist",
+                        linkRequest.getCompanyNumber()));
+            }
         }
     }
 }

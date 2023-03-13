@@ -12,8 +12,9 @@ import uk.gov.companieshouse.logging.Logger;
 
 @Component
 public class PatchLinkRequestExtractor implements PatchLinkRequestExtractable {
-    private static final String EXTRACT_COMPANY_NUMBER_PATTERN =
-            "(?<=company/)([a-zA-Z0-9]{6,10})(?=/.*)";
+
+    private static final Pattern EXTRACT_COMPANY_NUMBER_PATTERN =
+            Pattern.compile("(?<=company/)([a-zA-Z0-9]{6,10})(?=/.*)");
 
     private final Logger logger;
 
@@ -29,8 +30,7 @@ public class PatchLinkRequestExtractor implements PatchLinkRequestExtractable {
                     "Could not extract company number from empty or null resource uri");
         }
         // matches up to 10 digits between company/ and /
-        Pattern companyNo = Pattern.compile(EXTRACT_COMPANY_NUMBER_PATTERN);
-        Matcher matcher = companyNo.matcher(uri);
+        Matcher matcher = EXTRACT_COMPANY_NUMBER_PATTERN.matcher(uri);
         if (matcher.find()) {
             return new PatchLinkRequest(matcher.group(), substringAfterLast(uri, "/"));
         } else {

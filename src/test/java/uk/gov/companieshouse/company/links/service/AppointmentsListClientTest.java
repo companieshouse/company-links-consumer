@@ -13,6 +13,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import java.util.Collections;
 import java.util.function.Supplier;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
@@ -55,13 +56,17 @@ class AppointmentsListClientTest {
     @InjectMocks
     private AppointmentsListClient client;
 
-    @Test
-    void shouldReturnOfficerList() throws Exception {
-        // given
+    @BeforeEach
+    void setup() {
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
         when(internalApiClient.privateCompanyAppointmentsListHandler()).thenReturn(resourceHandler);
         when(resourceHandler.getCompanyAppointmentsList(anyString())).thenReturn(
                 privateCompanyAppointmentsList);
+    }
+
+    @Test
+    void shouldReturnOfficerList() throws Exception {
+        // given
         when(privateCompanyAppointmentsList.execute()).thenReturn(
                 new ApiResponse<>(200, Collections.emptyMap(),
                         new OfficerList()
@@ -80,10 +85,6 @@ class AppointmentsListClientTest {
     @Test
     void shouldThrowApiErrorResponseExceptionWhenServerError() throws Exception {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyAppointmentsListHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.getCompanyAppointmentsList(anyString())).thenReturn(
-                privateCompanyAppointmentsList);
         when(privateCompanyAppointmentsList.execute())
                 .thenThrow(new ApiErrorResponseException(
                         new HttpResponseException
@@ -101,10 +102,6 @@ class AppointmentsListClientTest {
     @Test
     void shouldReturnOfficerListWithTotalCountZeroWhenNotFound() throws Exception {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyAppointmentsListHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.getCompanyAppointmentsList(anyString())).thenReturn(
-                privateCompanyAppointmentsList);
         when(privateCompanyAppointmentsList.execute())
                 .thenThrow(new ApiErrorResponseException(
                         new HttpResponseException
@@ -123,10 +120,6 @@ class AppointmentsListClientTest {
     @Test
     void shouldThrowRetryableErrorExceptionWhenAppointmentsApiIsDown() throws Exception {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyAppointmentsListHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.getCompanyAppointmentsList(anyString())).thenReturn(
-                privateCompanyAppointmentsList);
         when(privateCompanyAppointmentsList.execute())
                 .thenThrow(new ApiErrorResponseException(
                         new HttpResponseException
@@ -145,10 +138,6 @@ class AppointmentsListClientTest {
     @Test
     void shouldThrowApiErrorResponseExceptionWhenClientError() throws Exception {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyAppointmentsListHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.getCompanyAppointmentsList(anyString())).thenReturn(
-                privateCompanyAppointmentsList);
         when(privateCompanyAppointmentsList.execute())
                 .thenThrow(new ApiErrorResponseException(
                         new HttpResponseException
@@ -166,10 +155,6 @@ class AppointmentsListClientTest {
     @Test
     void shouldThrowRetryableErrorExceptionWhenIllegalArgumentThrownByApi() throws Exception {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyAppointmentsListHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.getCompanyAppointmentsList(anyString())).thenReturn(
-                privateCompanyAppointmentsList);
         when(privateCompanyAppointmentsList.execute())
                 .thenThrow(new IllegalArgumentException());
 
@@ -183,10 +168,6 @@ class AppointmentsListClientTest {
     @Test
     void shouldThrowNonRetryableErrorExceptionWhenURIValidationExceptionThrownByApi() throws Exception {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyAppointmentsListHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.getCompanyAppointmentsList(anyString())).thenReturn(
-                privateCompanyAppointmentsList);
         when(privateCompanyAppointmentsList.execute())
                 .thenThrow(new URIValidationException("URI wrong"));
 

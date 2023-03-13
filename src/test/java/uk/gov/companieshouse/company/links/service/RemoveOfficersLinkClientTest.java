@@ -2,6 +2,7 @@ package uk.gov.companieshouse.company.links.service;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
@@ -52,12 +53,16 @@ class RemoveOfficersLinkClientTest {
 
     private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER);
 
-    @Test
-    void testUpsert() throws ApiErrorResponseException, URIValidationException {
-        // given
+    @BeforeEach
+    void setup() {
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
         when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
         when(resourceHandler.removeOfficersCompanyLink(anyString())).thenReturn(officersLinksRemoveHandler);
+    }
+
+    @Test
+    void testUpsert() throws ApiErrorResponseException, URIValidationException {
+        // given
         when(officersLinksRemoveHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
 
         // when
@@ -71,9 +76,6 @@ class RemoveOfficersLinkClientTest {
     @Test
     void testThrowNonRetryableExceptionIfClientErrorReturned() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.removeOfficersCompanyLink(anyString())).thenReturn(officersLinksRemoveHandler);
         when(officersLinksRemoveHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
 
         // when
@@ -88,9 +90,6 @@ class RemoveOfficersLinkClientTest {
     @Test
     void testThrowNonRetryableExceptionIf409Returned() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.removeOfficersCompanyLink(anyString())).thenReturn(officersLinksRemoveHandler);
         when(officersLinksRemoveHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
 
         // when
@@ -105,9 +104,6 @@ class RemoveOfficersLinkClientTest {
     @Test
     void testThrowRetryableExceptionIfServerErrorReturned() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.removeOfficersCompanyLink(anyString())).thenReturn(officersLinksRemoveHandler);
         when(officersLinksRemoveHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
 
         // when
@@ -122,9 +118,6 @@ class RemoveOfficersLinkClientTest {
     @Test
     void testThrowRetryableExceptionIfIllegalArgumentExceptionIsCaught() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.removeOfficersCompanyLink(anyString())).thenReturn(officersLinksRemoveHandler);
         when(officersLinksRemoveHandler.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
 
         // when
@@ -139,9 +132,6 @@ class RemoveOfficersLinkClientTest {
     @Test
     void testThrowNonRetryableExceptionIfComapnyNumberInvalid() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.removeOfficersCompanyLink(anyString())).thenReturn(officersLinksRemoveHandler);
         when(officersLinksRemoveHandler.execute()).thenThrow(new URIValidationException("Invalid URI"));
 
         // when

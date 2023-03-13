@@ -1,5 +1,7 @@
 package uk.gov.companieshouse.company.links.service;
 
+import static org.springframework.http.HttpHeaders.CONTENT_LENGTH;
+
 import java.util.function.Supplier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -47,6 +49,25 @@ public class AppointmentsListClient {
                 logger.error(message);
                 throw new RetryableErrorException(message, ex);
             } else if (ex.getStatusCode() == 404) {
+
+                // *** HACK ALERT!!!
+                // A 404 will be received from an API client under two conditions
+                //   1. The requested resource was not present in the database, or
+                //   2. The target service is not available
+                // When the services are hosted on ECS the latter case will be fixed and a 500
+                // response will be used to signal a service is down.
+                // In the meantime, a zero length response body is seen when a resource is not
+                // found (case 1), and a non-zero response body is seen when a service is
+                // unavailable (case 2).
+                if ((ex.getHeaders().containsKey(CONTENT_LENGTH)
+                        && ex.getHeaders().getContentLength() > 0)
+                        || (ex.getContent() != null && ex.getContent().length() > 0)) {
+                    logger.error("Company-appointments service is not available");
+                    throw new RetryableErrorException(
+                            "Company-appointments service is not available", ex);
+                }
+                // *** End HACK ALERT!!!
+
                 logger.debug(String.format("HTTP 404 Not Found returned for company number %s",
                         companyNumber));
                 return new OfficerList()

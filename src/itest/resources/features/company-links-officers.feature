@@ -31,13 +31,22 @@ Feature: Process company links information for officers
 
   Scenario: PATCH company officers link successfully - remove link
     Given Company links consumer is available
+    And The number of officers remaining in the company is 0
     When  A valid "deleted" message is consumed from the "officers" stream
     Then  A PATCH request is sent to the API
+    And No messages are placed on the invalid, error or retry topics
+
+  Scenario: PATCH company officers link fails to delete officers - remove link
+    Given Company links consumer is available
+    And The number of officers remaining in the company is 2
+    When  A valid "deleted" message is consumed from the "officers" stream
+    Then  A PATCH request is NOT sent to the API
     And No messages are placed on the invalid, error or retry topics
 
   Scenario: Consume a valid officers message but the user is not authorized - remove link
     Given Company links consumer is available
     And   The user is unauthorized
+    And The number of officers remaining in the company is 0
     When A valid "deleted" message is consumed from the "officers" stream
     Then The message is placed on the "invalid" topic
 
@@ -47,3 +56,10 @@ Feature: Process company links information for officers
     When A valid "deleted" message is consumed from the "officers" stream
     Then The message is placed on the "retry" topic
     And  The message is placed on the "error" topic
+
+  Scenario: Consume a valid officers message but the company appointments api is unavailable - remove link
+    Given Company links consumer is available
+    And   The company appointments api is unavailable
+    When A valid "deleted" message is consumed from the "officers" stream
+    Then The message is placed on the "retry" topic
+    

@@ -52,9 +52,6 @@ class AppointmentsListClientTest {
     @Mock
     private Logger logger;
 
-    @Mock
-    private HttpResponseException httpResponseException;
-
     @InjectMocks
     private AppointmentsListClient client;
 
@@ -112,7 +109,8 @@ class AppointmentsListClientTest {
                 .thenThrow(new ApiErrorResponseException(
                         new HttpResponseException
                                 .Builder(NOT_FOUND.value(),
-                                "Not found", new HttpHeaders())));
+                                "Not found", new HttpHeaders()
+                                .setContentLength(0L))));
 
         OfficerList officerList = client.getAppointmentsList(COMPANY_NUMBER);
 
@@ -120,6 +118,28 @@ class AppointmentsListClientTest {
         verify(privateCompanyAppointmentsList).execute();
         assertThat(officerList).isNotNull();
         assertThat(officerList.getTotalResults()).isZero();
+    }
+
+    @Test
+    void shouldThrowRetryableErrorExceptionWhenAppointmentsApiIsDown() throws Exception {
+        // given
+        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
+        when(internalApiClient.privateCompanyAppointmentsListHandler()).thenReturn(resourceHandler);
+        when(resourceHandler.getCompanyAppointmentsList(anyString())).thenReturn(
+                privateCompanyAppointmentsList);
+        when(privateCompanyAppointmentsList.execute())
+                .thenThrow(new ApiErrorResponseException(
+                        new HttpResponseException
+                                .Builder(NOT_FOUND.value(),
+                                "Not found", new HttpHeaders()
+                                .setContentLength(2L))
+                                .setContent("{}")));
+
+        Executable actual = () -> client.getAppointmentsList(COMPANY_NUMBER);
+
+        Exception ex = assertThrows(RetryableErrorException.class, actual);
+        assertThat(ex.getMessage())
+                .isEqualTo("Company-appointments service is not available");
     }
 
     @Test

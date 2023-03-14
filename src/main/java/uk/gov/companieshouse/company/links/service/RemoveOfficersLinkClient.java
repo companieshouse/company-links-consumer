@@ -11,18 +11,18 @@ import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
 @Component
-public class AddExemptionsClient implements LinkClient {
+public class RemoveOfficersLinkClient implements LinkClient {
     private final Logger logger;
     private final Supplier<InternalApiClient> internalApiClientFactory;
 
-    public AddExemptionsClient(Logger logger,
+    public RemoveOfficersLinkClient(Logger logger,
             Supplier<InternalApiClient> internalApiClientFactory) {
         this.logger = logger;
         this.internalApiClientFactory = internalApiClientFactory;
     }
 
     /**
-     * Sends a patch request to the add exemptions link endpoint in the company profile api and
+     * Sends a patch request to the remove officers link endpoint in the company profile api and
      * handles any error responses.
      *
      * @param linkRequest PatchLinkRequest
@@ -32,33 +32,33 @@ public class AddExemptionsClient implements LinkClient {
         InternalApiClient client = internalApiClientFactory.get();
         try {
             client.privateCompanyLinksResourceHandler()
-                    .addExemptionsCompanyLink(
-                            String.format("/company/%s/links/exemptions",
+                    .removeOfficersCompanyLink(
+                            String.format("/company/%s/links/officers/delete",
                                     linkRequest.getCompanyNumber()))
                     .execute();
         } catch (ApiErrorResponseException ex) {
             if (ex.getStatusCode() / 100 == 5) {
                 logger.error(String.format("Server error returned with status code: [%s] "
-                        + "processing add exemptions link request", ex.getStatusCode()));
+                        + "processing remove officers link request", ex.getStatusCode()));
                 throw new RetryableErrorException("Server error returned when processing "
-                        + "add exemptions link request", ex);
+                        + "remove officers link request", ex);
             } else if (ex.getStatusCode() == 409) {
                 logger.info("HTTP 409 Conflict returned; "
-                        + "company profile already has an exemptions link");
+                        + "company profile does not have an officers link already");
             } else if (ex.getStatusCode() == 404) {
                 logger.info("HTTP 404 Not Found returned; "
                         + "company profile does not exist");
             } else {
-                logger.error(String.format("Add exemptions client error returned with "
-                        + "status code: [%s] when processing add exemptions link request",
+                logger.error(String.format("remove officers client error returned with "
+                                + "status code: [%s] when processing remove officers link request",
                         ex.getStatusCode()));
-                throw new NonRetryableErrorException("UpsertClient error returned when "
-                        + "processing add exemptions link request", ex);
+                throw new NonRetryableErrorException("Client error returned when "
+                        + "processing remove officers link request", ex);
             }
         } catch (IllegalArgumentException ex) {
             logger.error("Illegal argument exception caught when handling API response");
-            throw new RetryableErrorException("Server error returned when processing add "
-                    + "exemptions link request", ex);
+            throw new RetryableErrorException("Server error returned when processing remove "
+                    + "officers link request", ex);
         } catch (URIValidationException ex) {
             logger.error("Invalid companyNumber specified when handling API request");
             throw new NonRetryableErrorException("Invalid companyNumber specified", ex);

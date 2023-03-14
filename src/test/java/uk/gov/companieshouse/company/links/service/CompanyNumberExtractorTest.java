@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,17 +26,17 @@ class CompanyNumberExtractorTest {
     private Logger logger;
 
     @InjectMocks
-    private CompanyNumberExtractor extractor;
+    private PatchLinkRequestExtractor extractor;
 
     @Test
     @DisplayName("The extractor should get the correct company number back")
     void process() {
         // given
         // when
-        String actual = extractor.extractCompanyNumber("company/OC305127/appointments/-0YatipCW4ZL295N9UVFo1TGyW8");
+        PatchLinkRequest actual = extractor.extractPatchLinkRequest("company/OC305127/appointments/-0YatipCW4ZL295N9UVFo1TGyW8");
 
         // then
-        assertEquals("OC305127", actual);
+        assertEquals("OC305127", actual.getCompanyNumber());
     }
 
     @ParameterizedTest(name = "{index}: {0}")
@@ -44,7 +45,7 @@ class CompanyNumberExtractorTest {
         // given
 
         // when
-        Executable executable = () -> extractor.extractCompanyNumber(uri);
+        Executable executable = () -> extractor.extractPatchLinkRequest(uri);
 
         // then
         Exception exception = assertThrows(NonRetryableErrorException.class, executable);

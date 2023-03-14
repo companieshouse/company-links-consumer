@@ -2,6 +2,7 @@ package uk.gov.companieshouse.company.links.steps;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -41,7 +42,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class InsolvencyStreamConsumerSteps {
 
-    public static final String RETRY_TOPIC_ATTEMPTS = "retry_topic-attempts";
+    private static final String RETRY_TOPIC_ATTEMPTS = "retry_topic-attempts";
+    private static final int RETRY_COUNT = 5;
 
     private String companyNumber;
 
@@ -122,22 +124,19 @@ public class InsolvencyStreamConsumerSteps {
     }
 
     @When("calling GET insolvency-data-api with companyNumber {string} returns status code {string} and insolvency is gone")
-    public void call_to_insolvency_data_api_with_company_number_returns_status_code(String companyNumber, String statusCode)
-            throws InterruptedException {
+    public void call_to_insolvency_data_api_with_company_number_returns_status_code(String companyNumber, String statusCode) {
         this.companyNumber = companyNumber;
         WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode), "");
     }
 
     @And("calling a GET insolvency-data-api with companyNumber {string} returns status code {string} and insolvency is gone")
-    public void call_to_insolvency_data_api_with_company_number_returns_status_code_And(String companyNumber, String statusCode)
-            throws InterruptedException {
+    public void call_to_insolvency_data_api_with_company_number_returns_status_code_And(String companyNumber, String statusCode) {
         this.companyNumber = companyNumber;
         WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode), "");
     }
 
     @When("calling GET insolvency-data-api with companyNumber {string} returns status code \"200\"")
-    public void call_to_insolvency_data_api_with_company_number_returns_status_code_200(String companyNumber)
-            throws InterruptedException {
+    public void call_to_insolvency_data_api_with_company_number_returns_status_code_200(String companyNumber) {
         this.companyNumber = companyNumber;
         WiremockTestConfig.stubGetInsolvency(companyNumber, 200, "");
     }
@@ -189,10 +188,10 @@ public class InsolvencyStreamConsumerSteps {
 
     @Then("verify the company link is removed from company profile")
     public void verify_the_company_link_is_removed_from_company_profile() {
-        List<ServeEvent> serveEvents = getAllServeEvents(ServeEventQuery.forStubMapping(this.uuid));
-        ServeEvent serveEvent = serveEvents.get(0);
+        ServeEvent serveEvent = findServeEvents()
+                .orElseThrow()
+                .get(0);
         String actual = serveEvent.getRequest().getBodyAsString();
-
         String expected = WiremockTestConfig.loadFile("profile-with-insolvency-links-delete.json");
         assertThat(expected).isEqualTo(actual);
     }
@@ -253,7 +252,7 @@ public class InsolvencyStreamConsumerSteps {
         List<Header> retryList = StreamSupport.stream(singleRecord.headers().spliterator(), false)
                 .filter(header -> header.key().equalsIgnoreCase(RETRY_TOPIC_ATTEMPTS))
                 .collect(Collectors.toList());
-        assertThat(retryList.size()).isEqualTo(Integer.parseInt(retryAttempts));
+        assertThat(retryList).hasSize(Integer.parseInt(retryAttempts));
     }
 
     private void sendMessage(String topicName, ResourceChangedData companyNumber) {
@@ -312,4 +311,19 @@ public class InsolvencyStreamConsumerSteps {
                 .build();
     }
 
+    private Optional<List<ServeEvent>> findServeEvents() {
+        for (int i = 0; i < RETRY_COUNT; i++) {
+            List<ServeEvent> events = getAllServeEvents(ServeEventQuery.forStubMapping(this.uuid));
+            if (!events.isEmpty()) {
+                return Optional.of(events);
+            } else {
+                try {
+                    Thread.sleep(1_000); // NOSONAR
+                } catch (InterruptedException ignore) {
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
 }

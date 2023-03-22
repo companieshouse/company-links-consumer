@@ -4,7 +4,6 @@ import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

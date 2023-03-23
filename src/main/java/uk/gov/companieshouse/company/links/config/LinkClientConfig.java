@@ -18,6 +18,10 @@ public class LinkClientConfig {
     private LinkClient addOfficersClient;
     @Autowired
     private LinkClient removeOfficersClient;
+    @Autowired
+    private LinkClient addStatementsClient;
+    @Autowired
+    private LinkClient deleteStatementsClient;
 
     @Bean
     Map<String, Map<String, LinkClient>> linkClientMap() {
@@ -32,6 +36,11 @@ public class LinkClientConfig {
         officersClientConfig.put("changed", addOfficersClient);
         officersClientConfig.put("deleted", removeOfficersClient);
         linkClientConfig.put("officers", officersClientConfig);
+
+        Map<String, LinkClient> statementsClientConfig = new HashMap<>();
+        statementsClientConfig.put("changed", addStatementsClient);
+        statementsClientConfig.put("deleted", deleteStatementsClient);
+        linkClientConfig.put("statements", statementsClientConfig);
 
         return linkClientConfig;
     }

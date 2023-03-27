@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.service;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import org.springframework.stereotype.Component;
@@ -7,6 +8,9 @@ import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
+import uk.gov.companieshouse.api.model.ApiResponse;
+import uk.gov.companieshouse.api.psc.Statement;
+import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
@@ -29,9 +33,14 @@ public class AddStatementsClient implements LinkClient {
     public void patchLink(String companyNumber) {
         InternalApiClient client = internalApiClientFactory.get();
         try {
-            client.privateCompanyLinksResourceHandler()
-                    .addPscStatementsCompanyLink(String.format("/company/%s/links/persons-with-significant-control-statements", companyNumber))
-                    .execute();
+            ApiResponse<StatementList> response = client.privateDeltaResourceHandler().getPscStatements(companyNumber).execute();
+            List<Statement> statementsList = response.getData().getItems();
+
+            if (statementsList.size() > 0) {
+                client.privateCompanyLinksResourceHandler()
+                .addPscStatementsCompanyLink(String.format("/company/%s/links/persons-with-significant-control-statements", companyNumber))
+                .execute();
+            }
         } catch (ApiErrorResponseException e) {
             if (e.getStatusCode() / 100 == 5) {
                 logger.error(String.format("Server error returned with status code: [%s] " + "processing add company PSC statements link request", e.getStatusCode()));

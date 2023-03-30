@@ -6,8 +6,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
@@ -22,8 +24,12 @@ import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.company.PrivateCompanyLinksResourceHandler;
 import uk.gov.companieshouse.api.handler.company.links.request.PrivatePscStatementsLinksAdd;
+import uk.gov.companieshouse.api.handler.delta.PrivateDeltaResourceHandler;
+import uk.gov.companieshouse.api.handler.delta.pscstatements.request.PscStatementsGetAll;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
+import uk.gov.companieshouse.api.psc.Statement;
+import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
@@ -43,7 +49,23 @@ public class AddStatementsClientTest {
     private PrivateCompanyLinksResourceHandler resourceHandler;
 
     @Mock
+    private PrivateDeltaResourceHandler deltaResourceHandler;
+
+    @Mock
     private PrivatePscStatementsLinksAdd pscStatementsLinkAddHandler;
+
+    @Mock 
+    private PscStatementsGetAll getAll;
+
+    @Mock 
+    private ApiResponse<StatementList> response;
+
+    @Mock
+    private StatementList getData;
+
+    private List<Statement> statementsList;
+    private Statement statementOne;
+    private Statement statementTwo;
 
     @Mock
     private Logger logger;
@@ -51,14 +73,26 @@ public class AddStatementsClientTest {
     @InjectMocks
     private AddStatementsClient client;
 
-    @Test
-    void testUpsert() throws ApiErrorResponseException, URIValidationException {
-        //given
+    @BeforeEach
+    void setup() throws ApiErrorResponseException, URIValidationException {
+        statementsList.add(statementOne);
+        statementsList.add(statementTwo);
+
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
         when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
         when(resourceHandler.addPscStatementsCompanyLink(anyString())).thenReturn(pscStatementsLinkAddHandler);
-        when(pscStatementsLinkAddHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
+        when(deltaResourceHandler.getPscStatements(COMPANY_NUMBER)).thenReturn(getAll);
+        when(getAll.execute()).thenReturn(response);
+        when(response.getData()).thenReturn(getData);
+        when(getData.getItems()).thenReturn(statementsList);
+    }
 
+    @Test
+    void testUpsert() throws ApiErrorResponseException, URIValidationException {
+        //given
+        
+        when(pscStatementsLinkAddHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
+        
         //when
         client.patchLink(COMPANY_NUMBER);
 
@@ -89,6 +123,11 @@ public class AddStatementsClientTest {
         //given
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
         when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
+        when(internalApiClient.privateDeltaResourceHandler()).thenReturn(deltaResourceHandler);
+        when(deltaResourceHandler.getPscStatements(COMPANY_NUMBER)).thenReturn(getAll);
+        when(getAll.execute()).thenReturn(response);
+        when(response.getData()).thenReturn(getData);
+        when(getData.getItems()).thenReturn(statementsList);
         when(resourceHandler.addPscStatementsCompanyLink(anyString())).thenReturn(pscStatementsLinkAddHandler);
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
           

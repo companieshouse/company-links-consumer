@@ -34,7 +34,7 @@ public class DeleteStatementsClient implements LinkClient {
                                                         .execute();
             List<Statement> statementsList = response.getData().getItems();
 
-            if ( statementsList.size() == 0) {
+            if (statementsList.size() == 0 || response.getStatusCode() == 404) {
                 client.privateCompanyLinksResourceHandler().deletePscStatementsCompanyLink(String
                             .format("/company/%s/links/persons-with-significant-control-statements/delete", 
                             companyNumber)).execute();

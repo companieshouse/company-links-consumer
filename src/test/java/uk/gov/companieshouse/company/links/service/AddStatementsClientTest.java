@@ -2,9 +2,11 @@ package uk.gov.companieshouse.company.links.service;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
@@ -16,6 +18,8 @@ import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
@@ -35,6 +39,7 @@ import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class AddStatementsClientTest {
     private static final String COMPANY_NUMBER = "12345678";
     private static final String PATH = String.format("/company/%s/links/persons-with-significant-control-statements", COMPANY_NUMBER);
@@ -64,8 +69,6 @@ public class AddStatementsClientTest {
     private StatementList getData;
 
     private List<Statement> statementsList;
-    private Statement statementOne;
-    private Statement statementTwo;
 
     @Mock
     private Logger logger;
@@ -75,11 +78,12 @@ public class AddStatementsClientTest {
 
     @BeforeEach
     void setup() throws ApiErrorResponseException, URIValidationException {
-        statementsList.add(statementOne);
-        statementsList.add(statementTwo);
+        statementsList = new ArrayList<>();
+        statementsList.add(new Statement());
 
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
         when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
+        when(internalApiClient.privateDeltaResourceHandler()).thenReturn(deltaResourceHandler);
         when(resourceHandler.addPscStatementsCompanyLink(anyString())).thenReturn(pscStatementsLinkAddHandler);
         when(deltaResourceHandler.getPscStatements(COMPANY_NUMBER)).thenReturn(getAll);
         when(getAll.execute()).thenReturn(response);
@@ -90,7 +94,6 @@ public class AddStatementsClientTest {
     @Test
     void testUpsert() throws ApiErrorResponseException, URIValidationException {
         //given
-        
         when(pscStatementsLinkAddHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
         
         //when
@@ -98,15 +101,13 @@ public class AddStatementsClientTest {
 
         //then
         verify(resourceHandler).addPscStatementsCompanyLink(PATH);
+        verify(deltaResourceHandler).getPscStatements(COMPANY_NUMBER);
         verify(pscStatementsLinkAddHandler).execute();
     }
 
     @Test
     void testThrowNonRetryableExceptionIfClientErrorReturned() throws ApiErrorResponseException, URIValidationException {
         //given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.addPscStatementsCompanyLink(anyString())).thenReturn(pscStatementsLinkAddHandler);
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
           
         //when
@@ -114,6 +115,7 @@ public class AddStatementsClientTest {
  
         //then
         verify(resourceHandler).addPscStatementsCompanyLink(PATH);
+        verify(deltaResourceHandler).getPscStatements(COMPANY_NUMBER);
         verify(pscStatementsLinkAddHandler).execute();
         verify(logger).info("HTTP 404 Not Found returned; company profile does not exist");
     }
@@ -121,14 +123,6 @@ public class AddStatementsClientTest {
     @Test
     void testThrowsNonRetryableExceptionIf409Returned() throws ApiErrorResponseException, URIValidationException {
         //given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(internalApiClient.privateDeltaResourceHandler()).thenReturn(deltaResourceHandler);
-        when(deltaResourceHandler.getPscStatements(COMPANY_NUMBER)).thenReturn(getAll);
-        when(getAll.execute()).thenReturn(response);
-        when(response.getData()).thenReturn(getData);
-        when(getData.getItems()).thenReturn(statementsList);
-        when(resourceHandler.addPscStatementsCompanyLink(anyString())).thenReturn(pscStatementsLinkAddHandler);
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
           
         //when
@@ -136,6 +130,7 @@ public class AddStatementsClientTest {
  
         //then
         verify(resourceHandler).addPscStatementsCompanyLink(PATH);
+        verify(deltaResourceHandler).getPscStatements(COMPANY_NUMBER);
         verify(pscStatementsLinkAddHandler).execute();
         verify(logger).info("HTTP 409 Conflict returned; company profile already has a PSC statements link");
     }
@@ -143,9 +138,6 @@ public class AddStatementsClientTest {
     @Test
     void testThrowRetryableExceptionIfServerErrorReturned() throws ApiErrorResponseException, URIValidationException {
         //given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.addPscStatementsCompanyLink(anyString())).thenReturn(pscStatementsLinkAddHandler);
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
           
         //when
@@ -160,9 +152,6 @@ public class AddStatementsClientTest {
     @Test
     void testThrowRetryableExceptionIfIllegalArgumentExceptionIsCaught() throws ApiErrorResponseException, URIValidationException {
         //given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.addPscStatementsCompanyLink(anyString())).thenReturn(pscStatementsLinkAddHandler);
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
           
         //when
@@ -175,12 +164,10 @@ public class AddStatementsClientTest {
     }
     
     @Test
-    void testThrowNonRetryableExceptionIfComapnyNumberInvalid() throws ApiErrorResponseException, URIValidationException {
+    void testThrowNonRetryableExceptionIfCompanyNumberInvalid() throws ApiErrorResponseException, URIValidationException {
     //given
-    when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-    when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-    when(resourceHandler.addPscStatementsCompanyLink(anyString())).thenReturn(pscStatementsLinkAddHandler);
-    when(pscStatementsLinkAddHandler.execute()).thenThrow(new URIValidationException("Invalid URI"));
+    when(deltaResourceHandler.getPscStatements("invalid/path")).thenReturn(getAll);
+    when(pscStatementsLinkAddHandler.execute()).thenThrow(new URIValidationException("Invalid/URI"));
       
     //when
     Executable actual = () -> client.patchLink("invalid/path");
@@ -189,5 +176,17 @@ public class AddStatementsClientTest {
     assertThrows(NonRetryableErrorException.class, actual);
     verify(resourceHandler).addPscStatementsCompanyLink("/company/invalid/path/links/persons-with-significant-control-statements");
     verify(pscStatementsLinkAddHandler).execute();          
+    }
+
+    @Test
+    void testNoStatements() throws ApiErrorResponseException, URIValidationException {
+        //given
+        statementsList.remove(0);
+
+        //when
+        client.patchLink(COMPANY_NUMBER);
+
+        //then
+        verify(pscStatementsLinkAddHandler, times(0)).execute();
     }
 }

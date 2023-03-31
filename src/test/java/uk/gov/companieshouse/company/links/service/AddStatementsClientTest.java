@@ -77,7 +77,7 @@ public class AddStatementsClientTest {
     private AddStatementsClient client;
 
     @BeforeEach
-    void setup() throws ApiErrorResponseException, URIValidationException {
+    void setUp() throws ApiErrorResponseException, URIValidationException {
         statementsList = new ArrayList<>();
         statementsList.add(new Statement());
 

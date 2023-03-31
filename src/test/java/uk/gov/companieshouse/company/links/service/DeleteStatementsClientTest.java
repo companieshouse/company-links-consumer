@@ -2,18 +2,24 @@ package uk.gov.companieshouse.company.links.service;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
@@ -22,13 +28,18 @@ import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.company.PrivateCompanyLinksResourceHandler;
 import uk.gov.companieshouse.api.handler.company.links.request.PrivatePscStatementsLinksDelete;
+import uk.gov.companieshouse.api.handler.delta.PrivateDeltaResourceHandler;
+import uk.gov.companieshouse.api.handler.delta.pscstatements.request.PscStatementsGetAll;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
+import uk.gov.companieshouse.api.psc.Statement;
+import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.logging.Logger;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class DeleteStatementsClientTest {
 
     private static final String COMPANY_NUMBER = "12345678";
@@ -44,7 +55,21 @@ public class DeleteStatementsClientTest {
     private PrivateCompanyLinksResourceHandler resourceHandler;
 
     @Mock
+    private PrivateDeltaResourceHandler deltaResourceHandler;
+
+    @Mock
     private PrivatePscStatementsLinksDelete statementsLinksDeleteHandler;
+
+    @Mock
+    private PscStatementsGetAll getAll;
+
+    @Mock
+    private ApiResponse<StatementList> response;
+
+    @Mock
+    private StatementList getData;
+
+    private List<Statement> statementsList;
 
     @Mock
     private Logger logger;
@@ -52,12 +77,24 @@ public class DeleteStatementsClientTest {
     @InjectMocks
     private DeleteStatementsClient client;
 
+    @BeforeEach
+    void setUp() throws ApiErrorResponseException, URIValidationException {
+        statementsList = new ArrayList<>();
+
+        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
+        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
+        when(internalApiClient.privateDeltaResourceHandler()).thenReturn(deltaResourceHandler);
+        when(resourceHandler.deletePscStatementsCompanyLink(anyString())).thenReturn(statementsLinksDeleteHandler);
+        when(deltaResourceHandler.getPscStatements(COMPANY_NUMBER)).thenReturn(getAll);
+        when(getAll.execute()).thenReturn(response);
+        when(response.getData()).thenReturn(getData);
+        when(getData.getItems()).thenReturn(statementsList);
+        
+    }
+
     @Test
     void testUpsert() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.deletePscStatementsCompanyLink(anyString())).thenReturn(statementsLinksDeleteHandler);
         when(statementsLinksDeleteHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
 
         // when
@@ -65,21 +102,20 @@ public class DeleteStatementsClientTest {
 
         // then
         verify(resourceHandler).deletePscStatementsCompanyLink(PATH);
+        verify(deltaResourceHandler).getPscStatements(COMPANY_NUMBER);
         verify(statementsLinksDeleteHandler).execute();
     }
 
     @Test
     void testThrowNonRetryableExceptionIfClientErrorReturned() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.deletePscStatementsCompanyLink(anyString())).thenReturn(statementsLinksDeleteHandler);
         when(statementsLinksDeleteHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
 
         // when
         client.patchLink(COMPANY_NUMBER);
 
         // then
+        verify(deltaResourceHandler).getPscStatements(COMPANY_NUMBER);
         verify(resourceHandler).deletePscStatementsCompanyLink(PATH);
         verify(statementsLinksDeleteHandler).execute();
         verify(logger).info("HTTP 404 Not Found returned; company profile does not exist");
@@ -88,15 +124,13 @@ public class DeleteStatementsClientTest {
     @Test
     void testThrowNonRetryableExceptionIf409Returned() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.deletePscStatementsCompanyLink(anyString())).thenReturn(statementsLinksDeleteHandler);
         when(statementsLinksDeleteHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
 
         // when
         client.patchLink(COMPANY_NUMBER);
 
         // then
+        verify(deltaResourceHandler).getPscStatements(COMPANY_NUMBER);
         verify(resourceHandler).deletePscStatementsCompanyLink(PATH);
         verify(statementsLinksDeleteHandler).execute();
         verify(logger).info("HTTP 409 Conflict returned; company profile does not have an statements link already");
@@ -105,9 +139,6 @@ public class DeleteStatementsClientTest {
     @Test
     void testThrowRetryableExceptionIfServerErrorReturned() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.deletePscStatementsCompanyLink(anyString())).thenReturn(statementsLinksDeleteHandler);
         when(statementsLinksDeleteHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
 
         // when
@@ -122,9 +153,6 @@ public class DeleteStatementsClientTest {
     @Test
     void testThrowRetryableExceptionIfIllegalArgumentExceptionIsCaught() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.deletePscStatementsCompanyLink(anyString())).thenReturn(statementsLinksDeleteHandler);
         when(statementsLinksDeleteHandler.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
 
         // when
@@ -137,11 +165,9 @@ public class DeleteStatementsClientTest {
     }
 
     @Test
-    void testThrowNonRetryableExceptionIfComapnyNumberInvalid() throws ApiErrorResponseException, URIValidationException {
+    void testThrowNonRetryableExceptionIfCompanyNumberInvalid() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.deletePscStatementsCompanyLink(anyString())).thenReturn(statementsLinksDeleteHandler);
+        when(deltaResourceHandler.getPscStatements("invalid/path")).thenReturn(getAll);
         when(statementsLinksDeleteHandler.execute()).thenThrow(new URIValidationException("Invalid URI"));
 
         // when
@@ -151,5 +177,17 @@ public class DeleteStatementsClientTest {
         assertThrows(NonRetryableErrorException.class, actual);
         verify(resourceHandler).deletePscStatementsCompanyLink("/company/invalid/path/links/persons-with-significant-control-statements/delete");
         verify(statementsLinksDeleteHandler).execute();
+    }
+
+    @Test
+    void testWhenStatementsListPopulated() throws ApiErrorResponseException, URIValidationException {
+        //given
+        statementsList.add(new Statement());
+
+        //when
+        client.patchLink(COMPANY_NUMBER);
+
+        //then
+        verify(statementsLinksDeleteHandler, times(0)).execute();
     }
 }

@@ -51,7 +51,7 @@ company-links:
     statements:
       enable: ${COMPANY_LINKS_CONSUMER_STATEMENTS_ENABLED:true}
       group-id: ${COMPANY_LINKS_CONSUMER_STATEMENTS_GROUP_ID:company-links-consumer}
-      topic: ${COMPANY_LINKS_CONSUMER_STATEMENTS_TOPIC:stream-company-officers}
+      topic: ${COMPANY_LINKS_CONSUMER_STATEMENTS_TOPIC:stream-psc-statements}
       attempts: ${COMPANY_LINKS_CONSUMER_STATEMENTS_ATTEMPTS:4}
       backoff-delay: ${COMPANY_LINKS_CONSUMER_STATEMENTS_BACKOFF_DELAY:100}
 

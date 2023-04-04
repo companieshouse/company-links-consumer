@@ -1,9 +1,13 @@
 package uk.gov.companieshouse.company.links.steps;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import java.io.UncheckedIOException;
+import java.util.UUID;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -12,8 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
+import uk.gov.companieshouse.api.appointment.ItemLinkTypes;
+import uk.gov.companieshouse.api.appointment.OfficerList;
+import uk.gov.companieshouse.api.appointment.OfficerSummary;
 import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
-import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
@@ -25,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.patch;
 import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
@@ -45,7 +52,6 @@ public class StreamConsumerSteps {
     private String topicPrefix;
     private String deltaType;
     private String resourceUri;
-    private Logger logger;
 
     @Autowired
     public KafkaTemplate<String, Object> kafkaTemplate;
@@ -55,6 +61,9 @@ public class StreamConsumerSteps {
 
     @Autowired
     private ResettableCountDownLatch resettableCountDownLatch;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Given("Company links consumer is available")
     public void companyLinksConsumerIsRunning() {
@@ -113,6 +122,11 @@ public class StreamConsumerSteps {
         verify(1, patchRequestedFor(urlEqualTo(patchUrl)));
     }
 
+    @Then("A PATCH request is NOT sent to the API")
+    public void verifyAddPatchEndpointIsNotCalled() {
+        verify(0, patchRequestedFor(urlEqualTo(patchUrl)));
+    }
+
     @Then("No messages are placed on the invalid, error or retry topics")
     public void verifyConsumerRecordsAreEmpty() {
         ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer, GET_RECORDS_TIMEOUT);
@@ -141,7 +155,7 @@ public class StreamConsumerSteps {
                 List<Header> retryList = StreamSupport.stream(errorRecord.headers().spliterator(), false)
                         .filter(header -> header.key().equalsIgnoreCase(RETRY_TOPIC_ATTEMPTS_KEY))
                         .collect(Collectors.toList());
-                assertThat(retryList.size()).isEqualTo(RETRY_ATTEMPTS);
+                assertThat(retryList).hasSize(RETRY_ATTEMPTS);
                 break;
             default:
                 throw new IllegalArgumentException(String.format("Suffix: '%s' is not a valid topic suffix. " +
@@ -212,5 +226,45 @@ public class StreamConsumerSteps {
         mainTopic = String.format("stream-company-%s", deltaType);
         topicPrefix = String.format("%s-company-links-consumer", mainTopic);
         resourceUri = String.format("company/%s/%s", COMPANY_NUMBER, deltaType);
+    }
+
+    @And("The number of officers remaining in the company is {int}")
+    public void theNumberOfOfficersInTheCompanyIs(int officerCount) {
+        String officersUrl = String.format("/company/%s/officers-test", COMPANY_NUMBER);
+
+        if (officerCount == 0) {
+            stubFor(
+                    get(urlEqualTo(officersUrl))
+                            .willReturn(aResponse()
+                                    .withStatus(HttpStatus.NOT_FOUND.value())));
+        } else {
+            OfficerList officerList = new OfficerList()
+                    .totalResults(officerCount);
+            for (int i = 0; i < officerCount; i++) {
+                officerList.getItems().add(new OfficerSummary()
+                        .links(new ItemLinkTypes()
+                                .self(String.format("/company/%s/%s",
+                                        COMPANY_NUMBER, UUID.randomUUID()))));
+            }
+
+            try {
+                stubFor(
+                        get(urlEqualTo(officersUrl))
+                                .willReturn(aResponse()
+                                        .withBody(objectMapper.writeValueAsString(officerList))
+                                        .withStatus(HttpStatus.OK.value())));
+            } catch (JsonProcessingException ex) {
+                throw new UncheckedIOException(ex);
+            }
+        }
+    }
+
+    @And("The company appointments api is unavailable")
+    public void stubCompanyAppointmentsApiUnavailable() {
+        stubFor(
+                get(urlEqualTo(String.format("/company/%s/officers-test", COMPANY_NUMBER)))
+                        .willReturn(aResponse()
+                                .withBody("{}")
+                                .withStatus(HttpStatus.NOT_FOUND.value())));
     }
 }

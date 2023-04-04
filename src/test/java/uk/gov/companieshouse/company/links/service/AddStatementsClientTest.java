@@ -2,7 +2,6 @@ package uk.gov.companieshouse.company.links.service;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +35,7 @@ import uk.gov.companieshouse.api.psc.Statement;
 import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
 @ExtendWith(MockitoExtension.class)
@@ -97,11 +97,10 @@ public class AddStatementsClientTest {
         when(pscStatementsLinkAddHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
         
         //when
-        client.patchLink(COMPANY_NUMBER);
+        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
 
         //then
         verify(resourceHandler).addPscStatementsCompanyLink(PATH);
-        verify(deltaResourceHandler).getPscStatements(COMPANY_NUMBER);
         verify(pscStatementsLinkAddHandler).execute();
     }
 
@@ -111,11 +110,10 @@ public class AddStatementsClientTest {
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
           
         //when
-        client.patchLink(COMPANY_NUMBER);
+        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
  
         //then
         verify(resourceHandler).addPscStatementsCompanyLink(PATH);
-        verify(deltaResourceHandler).getPscStatements(COMPANY_NUMBER);
         verify(pscStatementsLinkAddHandler).execute();
         verify(logger).info("HTTP 404 Not Found returned; company profile does not exist");
     }
@@ -126,11 +124,10 @@ public class AddStatementsClientTest {
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
           
         //when
-        client.patchLink(COMPANY_NUMBER);
+        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
  
         //then
         verify(resourceHandler).addPscStatementsCompanyLink(PATH);
-        verify(deltaResourceHandler).getPscStatements(COMPANY_NUMBER);
         verify(pscStatementsLinkAddHandler).execute();
         verify(logger).info("HTTP 409 Conflict returned; company profile already has a PSC statements link");
     }
@@ -141,7 +138,7 @@ public class AddStatementsClientTest {
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
           
         //when
-        Executable actual = () -> client.patchLink(COMPANY_NUMBER);
+        Executable actual = () -> client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
  
         //then
         assertThrows(RetryableErrorException.class, actual);
@@ -155,7 +152,7 @@ public class AddStatementsClientTest {
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
           
         //when
-        Executable actual = () -> client.patchLink(COMPANY_NUMBER);
+        Executable actual = () -> client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
  
         //then
         assertThrows(RetryableErrorException.class, actual);
@@ -170,23 +167,11 @@ public class AddStatementsClientTest {
     when(pscStatementsLinkAddHandler.execute()).thenThrow(new URIValidationException("Invalid/URI"));
       
     //when
-    Executable actual = () -> client.patchLink("invalid/path");
+    Executable actual = () -> client.patchLink(new PatchLinkRequest("invalid/path"));
 
     //then
     assertThrows(NonRetryableErrorException.class, actual);
     verify(resourceHandler).addPscStatementsCompanyLink("/company/invalid/path/links/persons-with-significant-control-statements");
     verify(pscStatementsLinkAddHandler).execute();          
-    }
-
-    @Test
-    void testNoStatements() throws ApiErrorResponseException, URIValidationException {
-        //given
-        statementsList.remove(0);
-
-        //when
-        client.patchLink(COMPANY_NUMBER);
-
-        //then
-        verify(pscStatementsLinkAddHandler, times(0)).execute();
     }
 }

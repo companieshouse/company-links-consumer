@@ -23,6 +23,7 @@ import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,6 +50,7 @@ class AddExemptionsClientTest {
     @InjectMocks
     private AddExemptionsClient client;
 
+    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER);
 
     @Test
     void testUpsert() throws ApiErrorResponseException, URIValidationException {
@@ -59,7 +61,7 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
 
         // when
-        client.patchLink(COMPANY_NUMBER);
+        client.patchLink(linkRequest);
 
         // then
         verify(resourceHandler).addExemptionsCompanyLink(PATH);
@@ -75,7 +77,7 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
 
         // when
-        client.patchLink(COMPANY_NUMBER);
+        client.patchLink(linkRequest);
 
         // then
         verify(resourceHandler).addExemptionsCompanyLink(PATH);
@@ -92,7 +94,7 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
 
         // when
-        client.patchLink(COMPANY_NUMBER);
+        client.patchLink(linkRequest);
 
         // then
         verify(resourceHandler).addExemptionsCompanyLink(PATH);
@@ -109,7 +111,7 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
 
         // when
-        Executable actual = () -> client.patchLink(COMPANY_NUMBER);
+        Executable actual = () -> client.patchLink(linkRequest);
 
         // then
         assertThrows(RetryableErrorException.class, actual);
@@ -126,7 +128,7 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
 
         // when
-        Executable actual = () -> client.patchLink(COMPANY_NUMBER);
+        Executable actual = () -> client.patchLink(linkRequest);
 
         // then
         assertThrows(RetryableErrorException.class, actual);
@@ -143,7 +145,7 @@ class AddExemptionsClientTest {
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new URIValidationException("Invalid URI"));
 
         // when
-        Executable actual = () -> client.patchLink("invalid/path");
+        Executable actual = () -> client.patchLink(new PatchLinkRequest("invalid/path"));
 
         // then
         assertThrows(NonRetryableErrorException.class, actual);

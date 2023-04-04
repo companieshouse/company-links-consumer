@@ -1,8 +1,6 @@
 package uk.gov.companieshouse.company.links.config;
 
-import java.util.HashMap;
 import java.util.Map;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import uk.gov.companieshouse.company.links.service.LinkClient;
@@ -10,38 +8,31 @@ import uk.gov.companieshouse.company.links.service.LinkClient;
 @Configuration
 public class LinkClientConfig {
 
-    @Autowired
-    private LinkClient addExemptionsClient;
-    @Autowired
-    private LinkClient deleteExemptionsClient;
-    @Autowired
-    private LinkClient addOfficersClient;
-    @Autowired
-    private LinkClient removeOfficersClient;
-    @Autowired
-    private LinkClient addStatementsClient;
-    @Autowired
-    private LinkClient deleteStatementsClient;
+    private static final String EXEMPTIONS = "exemptions";
+    private static final String CHANGED = "changed";
+    private static final String DELETED = "deleted";
+    private static final String OFFICERS = "officers";
+    private static final String STATEMENTS = "statements";
 
     @Bean
-    Map<String, Map<String, LinkClient>> linkClientMap() {
-        Map<String, Map<String, LinkClient>> linkClientConfig = new HashMap<>();
+    Map<String, Map<String, LinkClient>> linkClientMap(
+            LinkClient addExemptionsClient,
+            LinkClient deleteExemptionsClient,
+            LinkClient addOfficersClient,
+            LinkClient removeOfficersClient,
+            LinkClient addStatementsClient,
+            LinkClient deleteStatementsClient) {
 
-        Map<String, LinkClient> exemptionsClientConfig = new HashMap<>();
-        exemptionsClientConfig.put("changed", addExemptionsClient);
-        exemptionsClientConfig.put("deleted", deleteExemptionsClient);
-        linkClientConfig.put("exemptions", exemptionsClientConfig);
+        return Map.of(
+                EXEMPTIONS, Map.of(
+                        CHANGED, addExemptionsClient,
+                        DELETED, deleteExemptionsClient),
+                OFFICERS, Map.of(
+                        CHANGED, addOfficersClient,
+                        DELETED, removeOfficersClient),
+                STATEMENTS, Map.of(
+                    CHANGED, addStatementsClient,
+                    DELETED, deleteStatementsClient));
 
-        Map<String, LinkClient> officersClientConfig = new HashMap<>();
-        officersClientConfig.put("changed", addOfficersClient);
-        officersClientConfig.put("deleted", removeOfficersClient);
-        linkClientConfig.put("officers", officersClientConfig);
-
-        Map<String, LinkClient> statementsClientConfig = new HashMap<>();
-        statementsClientConfig.put("changed", addStatementsClient);
-        statementsClientConfig.put("deleted", deleteStatementsClient);
-        linkClientConfig.put("statements", statementsClientConfig);
-
-        return linkClientConfig;
     }
 }

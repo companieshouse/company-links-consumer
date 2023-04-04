@@ -1,66 +1,55 @@
 package uk.gov.companieshouse.company.links.service;
 
-import java.util.function.Supplier;
-
 import org.springframework.stereotype.Component;
-import uk.gov.companieshouse.api.InternalApiClient;
-import uk.gov.companieshouse.api.error.ApiErrorResponseException;
-import uk.gov.companieshouse.api.handler.exception.URIValidationException;
-import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
 @Component
 public class RemoveOfficersClient implements LinkClient {
-    private final Logger logger;
-    private final Supplier<InternalApiClient> internalApiClientFactory;
 
+    private final Logger logger;
+    private final AppointmentsListClient appointmentsListClient;
+    private final RemoveOfficersLinkClient removeOfficersLinkClient;
+
+    /**
+     * Constructs a RemoveOfficersClient.
+     *
+     * @param logger                   Logger
+     * @param appointmentsListClient   AppointmentsListClient
+     * @param removeOfficersLinkClient RemoveOfficersLinkClient
+     */
     public RemoveOfficersClient(Logger logger,
-                                Supplier<InternalApiClient> internalApiClientFactory) {
+            AppointmentsListClient appointmentsListClient,
+            RemoveOfficersLinkClient removeOfficersLinkClient) {
         this.logger = logger;
-        this.internalApiClientFactory = internalApiClientFactory;
+        this.appointmentsListClient = appointmentsListClient;
+        this.removeOfficersLinkClient = removeOfficersLinkClient;
     }
 
     /**
-     * Sends a patch request to the remove officers link endpoint in the
-     * company profile api and handles any error responses.
+     * Sends a patch request to the remove officers link endpoint in the company profile api and
+     * handles any error responses.
      *
-     * @param companyNumber The companyNumber of the patch request
+     * @param linkRequest PatchLinkRequest
      */
     @Override
-    public void patchLink(String companyNumber) {
-        InternalApiClient client = internalApiClientFactory.get();
-        try {
-            client.privateCompanyLinksResourceHandler()
-                    .removeOfficersCompanyLink(
-                            String.format("/company/%s/links/officers/delete", companyNumber))
-                    .execute();
-        } catch (ApiErrorResponseException ex) {
-            if (ex.getStatusCode() / 100 == 5) {
-                logger.error(String.format("Server error returned with status code: [%s] "
-                        + "processing remove officers link request", ex.getStatusCode()));
-                throw new RetryableErrorException("Server error returned when processing "
-                        + "remove officers link request", ex);
-            } else if (ex.getStatusCode() == 409) {
-                logger.info("HTTP 409 Conflict returned; "
-                        + "company profile does not have an officers link already");
-            } else if (ex.getStatusCode() == 404) {
-                logger.info("HTTP 404 Not Found returned; "
-                        + "company profile does not exist");
+    public void patchLink(PatchLinkRequest linkRequest) {
+        OfficerList officerList = appointmentsListClient.getAppointmentsList(
+                linkRequest.getCompanyNumber());
+        if (officerList.getTotalResults() == 0) {
+            removeOfficersLinkClient.patchLink(linkRequest);
+        } else {
+            if (officerList.getItems().stream()
+                    .anyMatch(officerSummary -> officerSummary.getLinks().getSelf()
+                            .endsWith(linkRequest.getResourceId()))) {
+                throw new RetryableErrorException(String.format("Officer with id: %s is still not "
+                        + "deleted", linkRequest.getResourceId()));
             } else {
-                logger.error(String.format("remove officers client error returned with "
-                          + "status code: [%s] when processing remove officers link request",
-                        ex.getStatusCode()));
-                throw new NonRetryableErrorException("Client error returned when "
-                        + "processing remove officers link request", ex);
+                logger.debug(String.format("Officers for company number [%s] still exist",
+                        linkRequest.getCompanyNumber()));
             }
-        } catch (IllegalArgumentException ex) {
-            logger.error("Illegal argument exception caught when handling API response");
-            throw new RetryableErrorException("Server error returned when processing remove "
-                    + "officers link request", ex);
-        } catch (URIValidationException ex) {
-            logger.error("Invalid companyNumber specified when handling API request");
-            throw new NonRetryableErrorException("Invalid companyNumber specified", ex);
         }
     }
 }

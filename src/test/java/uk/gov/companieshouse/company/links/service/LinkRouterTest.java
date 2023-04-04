@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.companieshouse.company.links.processor.LinkRouter;
+import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.company.links.type.ResourceChange;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -19,7 +20,7 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 class LinkRouterTest {
 
     @Mock
-    private CompanyNumberExtractable extractor;
+    private PatchLinkRequestExtractable extractor;
 
     @Mock
     private LinkClientFactory factory;
@@ -34,7 +35,7 @@ class LinkRouterTest {
     private AddOfficersClient addOfficersClient;
 
     @Mock
-    private RemoveOfficersClient removeOfficersClient;
+    private RemoveOfficersLinkClient removeOfficersLinkClient;
 
     private LinkRouter router;
 
@@ -46,6 +47,9 @@ class LinkRouterTest {
 
     @Mock
     private EventRecord event;
+
+    @Mock
+    private PatchLinkRequest linkRequest;
 
     @BeforeEach
     void setup() {
@@ -60,15 +64,15 @@ class LinkRouterTest {
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("changed");
         when(data.getResourceUri()).thenReturn("company/12345678/exemptions");
-        when(extractor.extractCompanyNumber(any())).thenReturn("12345678");
+        when(extractor.extractPatchLinkRequest(any())).thenReturn(linkRequest);
         when(factory.getLinkClient(any(), any())).thenReturn(addExemptionsClient);
 
         // when
         router.route(message, "deltaType");
 
         // then
-        verify(extractor).extractCompanyNumber("company/12345678/exemptions");
-        verify(addExemptionsClient).patchLink("12345678");
+        verify(extractor).extractPatchLinkRequest("company/12345678/exemptions");
+        verify(addExemptionsClient).patchLink(linkRequest);
     }
 
     @Test
@@ -79,15 +83,15 @@ class LinkRouterTest {
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("deleted");
         when(data.getResourceUri()).thenReturn("company/12345678/exemptions");
-        when(extractor.extractCompanyNumber(any())).thenReturn("12345678");
+        when(extractor.extractPatchLinkRequest(any())).thenReturn(linkRequest);
         when(factory.getLinkClient(any(), any())).thenReturn(deleteExemptionsClient);
 
         // when
         router.route(message, "deltaType");
 
         // then
-        verify(extractor).extractCompanyNumber("company/12345678/exemptions");
-        verify(deleteExemptionsClient).patchLink("12345678");
+        verify(extractor).extractPatchLinkRequest("company/12345678/exemptions");
+        verify(deleteExemptionsClient).patchLink(linkRequest);
     }
 
     @Test
@@ -98,15 +102,15 @@ class LinkRouterTest {
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("changed");
         when(data.getResourceUri()).thenReturn("company/12345678/officers");
-        when(extractor.extractCompanyNumber(any())).thenReturn("12345678");
+        when(extractor.extractPatchLinkRequest(any())).thenReturn(linkRequest);
         when(factory.getLinkClient(any(), any())).thenReturn(addOfficersClient);
 
         // when
         router.route(message, "deltaType");
 
         // then
-        verify(extractor).extractCompanyNumber("company/12345678/officers");
-        verify(addOfficersClient).patchLink("12345678");
+        verify(extractor).extractPatchLinkRequest("company/12345678/officers");
+        verify(addOfficersClient).patchLink(linkRequest);
     }
 
     @Test
@@ -117,14 +121,14 @@ class LinkRouterTest {
         when(data.getEvent()).thenReturn(event);
         when(event.getType()).thenReturn("deleted");
         when(data.getResourceUri()).thenReturn("company/12345678/officers");
-        when(extractor.extractCompanyNumber(any())).thenReturn("12345678");
-        when(factory.getLinkClient(any(), any())).thenReturn(removeOfficersClient);
+        when(extractor.extractPatchLinkRequest(any())).thenReturn(linkRequest);
+        when(factory.getLinkClient(any(), any())).thenReturn(removeOfficersLinkClient);
 
         // when
         router.route(message, "deltaType");
 
         // then
-        verify(extractor).extractCompanyNumber("company/12345678/officers");
-        verify(removeOfficersClient).patchLink("12345678");
+        verify(extractor).extractPatchLinkRequest("company/12345678/officers");
+        verify(removeOfficersLinkClient).patchLink(linkRequest);
     }
 }

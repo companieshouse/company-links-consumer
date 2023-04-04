@@ -86,7 +86,7 @@ public class StreamConsumerSteps {
     @When("A valid {string} message is consumed from the {string} stream")
     public void consumeValidMessage(String eventType, String deltaType) throws InterruptedException {
         this.deltaType = deltaType;
-        initialiseVariablesToDeltaType();
+        initialiseVariablesUsingDeltaType();
 
         stubPatchLink(statusCode, eventType);
         kafkaTemplate.send(mainTopic, createValidMessage(eventType));
@@ -98,7 +98,7 @@ public class StreamConsumerSteps {
     @When("An invalid message is consumed from the {string} stream")
     public void consumeInvalidMessage(String deltaType) throws InterruptedException {
         this.deltaType = deltaType;
-        initialiseVariablesToDeltaType();
+        initialiseVariablesUsingDeltaType();
 
         kafkaTemplate.send(mainTopic, "invalid message");
         kafkaTemplate.flush();
@@ -109,7 +109,7 @@ public class StreamConsumerSteps {
     @When("A message is consumed with invalid event type from the {string} stream")
     public void consumeValidMessageWithInvalidEventType(String deltaType) throws InterruptedException {
         this.deltaType = deltaType;
-        initialiseVariablesToDeltaType();
+        initialiseVariablesUsingDeltaType();
 
         kafkaTemplate.send(mainTopic, createMessageWithInvalidEventType());
         kafkaTemplate.flush();
@@ -228,7 +228,7 @@ public class StreamConsumerSteps {
                 .build();
     }
 
-    private void initialiseVariablesToDeltaType() {
+    private void initialiseVariablesUsingDeltaType() {
         if (deltaType.equals("statements")) {
             mainTopic = "stream-psc-statements";
             resourceUri = String.format("company/%s/persons-with-significant-control-statements", COMPANY_NUMBER);

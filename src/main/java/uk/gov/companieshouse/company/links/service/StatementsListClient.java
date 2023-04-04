@@ -26,7 +26,7 @@ public class StatementsListClient {
     }
 
     /**
-     * Retrieves a list of officers appointed to a company.
+     * Retrieves a list of statements for a given company number.
      *
      * @param companyNumber The companyNumber
      * @return StatementList

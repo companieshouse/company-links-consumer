@@ -36,12 +36,12 @@ public class DeleteStatementsClient implements LinkClient {
      */
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
-        StatementList officerList = statementsListClient.getStatementsList(
+        StatementList statementList = statementsListClient.getStatementsList(
                 linkRequest.getCompanyNumber());
-        if (officerList.getItems().size() == 0) {
+        if (statementList.getItems().size() == 0) {
             deleteStatementsLinkClient.patchLink(linkRequest);
         } else {
-            if (officerList.getItems().stream()
+            if (statementList.getItems().stream()
                     .anyMatch(officerSummary -> officerSummary.getLinks().getSelf()
                             .endsWith(linkRequest.getResourceId()))) {
                 throw new RetryableErrorException(String.format("Statement with id: %s not "

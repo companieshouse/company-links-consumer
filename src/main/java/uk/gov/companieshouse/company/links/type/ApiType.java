@@ -3,7 +3,8 @@ package uk.gov.companieshouse.company.links.type;
 public enum ApiType {
     COMPANY_PROFILE("company-profile-api"),
     INSOLVENCY("insolvency-data-api"),
-    CHARGES("charges-data-api");
+    CHARGES("charges-data-api"),
+    PSC_STATEMENTS("psc-statement-data-api");
 
     private final String apiName;
 

@@ -125,7 +125,10 @@ public class KafkaTestContainerConfig {
                 "stream-company-exemptions-company-links-consumer-retry",
                 "stream-company-officers-company-links-consumer-error",
                 "stream-company-officers-company-links-consumer-invalid",
-                "stream-company-officers-company-links-consumer-retry"));
+                "stream-company-officers-company-links-consumer-retry",
+                "stream-psc-statements-company-links-consumer-error",
+                "stream-psc-statements-company-links-consumer-invalid",
+                "stream-psc-statements-company-links-consumer-retry"));
 
         return consumer;
     }

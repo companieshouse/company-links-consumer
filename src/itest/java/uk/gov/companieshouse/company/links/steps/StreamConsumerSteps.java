@@ -86,7 +86,7 @@ public class StreamConsumerSteps {
     @When("A valid {string} message is consumed from the {string} stream")
     public void consumeValidMessage(String eventType, String deltaType) throws InterruptedException {
         this.deltaType = deltaType;
-        initialiseVariablesToDeltaType();
+        initialiseVariablesUsingDeltaType();
 
         stubPatchLink(statusCode, eventType);
         kafkaTemplate.send(mainTopic, createValidMessage(eventType));
@@ -98,7 +98,7 @@ public class StreamConsumerSteps {
     @When("An invalid message is consumed from the {string} stream")
     public void consumeInvalidMessage(String deltaType) throws InterruptedException {
         this.deltaType = deltaType;
-        initialiseVariablesToDeltaType();
+        initialiseVariablesUsingDeltaType();
 
         kafkaTemplate.send(mainTopic, "invalid message");
         kafkaTemplate.flush();
@@ -109,7 +109,7 @@ public class StreamConsumerSteps {
     @When("A message is consumed with invalid event type from the {string} stream")
     public void consumeValidMessageWithInvalidEventType(String deltaType) throws InterruptedException {
         this.deltaType = deltaType;
-        initialiseVariablesToDeltaType();
+        initialiseVariablesUsingDeltaType();
 
         kafkaTemplate.send(mainTopic, createMessageWithInvalidEventType());
         kafkaTemplate.flush();
@@ -164,12 +164,18 @@ public class StreamConsumerSteps {
     }
 
     private void stubPatchLink(int responseCode, String eventType) {
+        String apiCall;
+        if (deltaType.equals("statements")) {
+            apiCall = "persons-with-significant-control-statements";
+        } else {
+            apiCall = deltaType;
+        }
         switch (eventType) {
             case "changed":
-                patchUrl = String.format("/company/%s/links/%s", COMPANY_NUMBER, deltaType);
+                patchUrl = String.format("/company/%s/links/%s", COMPANY_NUMBER, apiCall);
                 break;
             case "deleted":
-                patchUrl = String.format("/company/%s/links/%s/delete", COMPANY_NUMBER, deltaType);
+                patchUrl = String.format("/company/%s/links/%s/delete", COMPANY_NUMBER, apiCall);
                 break;
             default:
                 throw new IllegalArgumentException(String.format("Event type: '%s' is not a valid event type, " +
@@ -222,25 +228,41 @@ public class StreamConsumerSteps {
                 .build();
     }
 
-    private void initialiseVariablesToDeltaType() {
-        mainTopic = String.format("stream-company-%s", deltaType);
+    private void initialiseVariablesUsingDeltaType() {
+        if (deltaType.equals("statements")) {
+            mainTopic = "stream-psc-statements";
+            resourceUri = String.format("company/%s/persons-with-significant-control-statements", COMPANY_NUMBER);
+        } else {
+            mainTopic = String.format("stream-company-%s", deltaType);
+            resourceUri = String.format("company/%s/%s", COMPANY_NUMBER, deltaType);
+        }
         topicPrefix = String.format("%s-company-links-consumer", mainTopic);
-        resourceUri = String.format("company/%s/%s", COMPANY_NUMBER, deltaType);
     }
 
-    @And("The number of officers remaining in the company is {int}")
-    public void theNumberOfOfficersInTheCompanyIs(int officerCount) {
-        String officersUrl = String.format("/company/%s/officers-test", COMPANY_NUMBER);
+    @And("The number of {string} remaining in the company is {int}")
+    public void theNumberOfOfficersInTheCompanyIs(String payloadType, int count) {
+        String apiCall;
+        switch (payloadType) {
+            case "officers":
+                apiCall = "officers-test";
+                break;
+            case "statements":
+                apiCall = "persons-with-significant-control-statements";
+                break;
+            default:
+                throw new IllegalArgumentException(String.format("payloadType passed in is invalid"));
+        }
+        String url = String.format("/company/%s/%s", COMPANY_NUMBER, apiCall);
 
-        if (officerCount == 0) {
+        if (count == 0) {
             stubFor(
-                    get(urlEqualTo(officersUrl))
+                    get(urlEqualTo(url))
                             .willReturn(aResponse()
                                     .withStatus(HttpStatus.NOT_FOUND.value())));
         } else {
             OfficerList officerList = new OfficerList()
-                    .totalResults(officerCount);
-            for (int i = 0; i < officerCount; i++) {
+                    .totalResults(count);
+            for (int i = 0; i < count; i++) {
                 officerList.getItems().add(new OfficerSummary()
                         .links(new ItemLinkTypes()
                                 .self(String.format("/company/%s/%s",
@@ -249,7 +271,7 @@ public class StreamConsumerSteps {
 
             try {
                 stubFor(
-                        get(urlEqualTo(officersUrl))
+                        get(urlEqualTo(url))
                                 .willReturn(aResponse()
                                         .withBody(objectMapper.writeValueAsString(officerList))
                                         .withStatus(HttpStatus.OK.value())));

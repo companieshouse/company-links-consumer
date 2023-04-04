@@ -12,13 +12,16 @@ public class LinkClientConfig {
     private static final String CHANGED = "changed";
     private static final String DELETED = "deleted";
     private static final String OFFICERS = "officers";
+    private static final String STATEMENTS = "statements";
 
     @Bean
     Map<String, Map<String, LinkClient>> linkClientMap(
             LinkClient addExemptionsClient,
             LinkClient deleteExemptionsClient,
             LinkClient addOfficersClient,
-            LinkClient removeOfficersClient) {
+            LinkClient removeOfficersClient,
+            LinkClient addStatementsClient,
+            LinkClient deleteStatementsClient) {
 
         return Map.of(
                 EXEMPTIONS, Map.of(
@@ -26,7 +29,10 @@ public class LinkClientConfig {
                         DELETED, deleteExemptionsClient),
                 OFFICERS, Map.of(
                         CHANGED, addOfficersClient,
-                        DELETED, removeOfficersClient));
+                        DELETED, removeOfficersClient),
+                STATEMENTS, Map.of(
+                    CHANGED, addStatementsClient,
+                    DELETED, deleteStatementsClient));
 
     }
 }

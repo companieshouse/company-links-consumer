@@ -1,5 +1,7 @@
 package uk.gov.companieshouse.company.links.consumer;
 
+import java.time.Duration;
+import java.time.Instant;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.retrytopic.DltStrategy;
@@ -15,8 +17,6 @@ import uk.gov.companieshouse.company.links.type.ResourceChange;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
-import java.time.Duration;
-import java.time.Instant;
 
 @Component
 public class PscStreamConsumer {

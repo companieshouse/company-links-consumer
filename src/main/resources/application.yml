@@ -55,6 +55,13 @@ company-links:
       attempts: ${COMPANY_LINKS_CONSUMER_STATEMENTS_ATTEMPTS:4}
       backoff-delay: ${COMPANY_LINKS_CONSUMER_STATEMENTS_BACKOFF_DELAY:100}
 
+    pscs:
+      enable: ${COMPANY_LINKS_CONSUMER_PSCS_ENABLED:true}
+      group-id: ${COMPANY_LINKS_CONSUMER_PSCS_GROUP_ID:company-links-consumer}
+      topic: ${COMPANY_LINKS_CONSUMER_PSCS_TOPIC:stream-company-psc}
+      attempts: ${COMPANY_LINKS_CONSUMER_PSCS_ATTEMPTS:4}
+      backoff-delay: ${COMPANY_LINKS_CONSUMER_PSCS_BACKOFF_DELAY:100}
+
 management:
   endpoints:
     enabled-by-default: false

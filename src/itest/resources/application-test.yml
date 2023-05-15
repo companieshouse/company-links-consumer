@@ -51,6 +51,13 @@ company-links:
       attempts: 4
       backoff-delay: 10
 
+    pscs:
+      enable: true
+      group-id: company-links-consumer
+      topic: stream-company-psc
+      attempts: 4
+      backoff-delay: 10
+
 wiremock:
   server:
   port: 8888

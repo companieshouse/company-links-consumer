@@ -23,8 +23,7 @@ public class LinkClientConfig {
             LinkClient removeOfficersClient,
             LinkClient addStatementsClient,
             LinkClient deleteStatementsClient,
-            LinkClient addPscsClient,
-            LinkClient deletePscClient) {
+            LinkClient addPscClient) {
 
         return Map.of(
                 EXEMPTIONS, Map.of(
@@ -37,7 +36,6 @@ public class LinkClientConfig {
                     CHANGED, addStatementsClient,
                     DELETED, deleteStatementsClient),
                 PSCS, Map.of(
-                        CHANGED, addPscsClient,
-                        DELETED, deletePscClient));
+                        CHANGED, addPscClient));
     }
 }

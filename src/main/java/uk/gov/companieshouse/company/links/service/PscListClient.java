@@ -54,13 +54,14 @@ public class PscListClient {
                 // In the meantime, a zero length response body is seen when a resource is not
                 // found (case 1), and a non-zero response body is seen when a service is
                 // unavailable (case 2).
-                if ((ex.getHeaders().containsKey(HttpHeaders.CONTENT_LENGTH)
-                        && ex.getHeaders().getContentLength() > 0)
-                        || (ex.getContent() != null && ex.getContent().length() > 0
-                        && !ex.getContent().contains("company-psc-not-found"))) {
-                    logger.error("psc-data-api service is not available");
-                    throw new RetryableErrorException(
+                if (!ex.getContent().contains("company-psc-not-found")) {
+                    if ((ex.getHeaders().containsKey(HttpHeaders.CONTENT_LENGTH)
+                            && ex.getHeaders().getContentLength() > 0)
+                            || (ex.getContent() != null && ex.getContent().length() > 0)) {
+                        logger.error("psc-data-api service is not available");
+                        throw new RetryableErrorException(
                             "psc-data-api service is not available", ex);
+                    }
                 }
                 // *** End HACK ALERT!!!
 

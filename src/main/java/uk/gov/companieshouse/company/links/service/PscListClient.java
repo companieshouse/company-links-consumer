@@ -54,13 +54,14 @@ public class PscListClient {
                 // In the meantime, a zero length response body is seen when a resource is not
                 // found (case 1), and a non-zero response body is seen when a service is
                 // unavailable (case 2).
-                if (!ex.getContent().contains("company-psc-not-found")) {
+                if (ex.getContent() != null
+                        && !ex.getContent().contains("company-psc-not-found")) {
                     if ((ex.getHeaders().containsKey(HttpHeaders.CONTENT_LENGTH)
                             && ex.getHeaders().getContentLength() > 0)
                             || (ex.getContent() != null && ex.getContent().length() > 0)) {
-                        logger.error("psc-data-api service is not available");
+                        logger.error("endpoint not found");
                         throw new RetryableErrorException(
-                            "psc-data-api service is not available", ex);
+                            "endpoint not found", ex);
                     }
                 }
                 // *** End HACK ALERT!!!

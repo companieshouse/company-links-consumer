@@ -5,6 +5,7 @@ import uk.gov.companieshouse.company.links.service.LinkClientFactory;
 import uk.gov.companieshouse.company.links.service.PatchLinkRequestExtractable;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.company.links.type.ResourceChange;
+import uk.gov.companieshouse.logging.Logger;
 
 @Component
 public class LinkRouter implements LinkRoutable {

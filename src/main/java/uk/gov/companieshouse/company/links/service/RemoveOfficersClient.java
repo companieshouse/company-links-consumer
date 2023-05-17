@@ -2,6 +2,7 @@ package uk.gov.companieshouse.company.links.service;
 
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.appointment.OfficerList;
+import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
@@ -33,9 +34,10 @@ public class RemoveOfficersClient implements LinkClient {
      * handles any error responses.
      *
      * @param linkRequest PatchLinkRequest
+     * @return PscList
      */
     @Override
-    public void patchLink(PatchLinkRequest linkRequest) {
+    public PscList patchLink(PatchLinkRequest linkRequest) {
         OfficerList officerList = appointmentsListClient.getAppointmentsList(
                 linkRequest.getCompanyNumber());
         if (officerList.getTotalResults() == 0) {
@@ -51,5 +53,6 @@ public class RemoveOfficersClient implements LinkClient {
                         linkRequest.getCompanyNumber()));
             }
         }
+        return null;
     }
 }

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
+import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
@@ -26,9 +27,11 @@ public class AddStatementsClient implements LinkClient {
     /**
      * Sends a patch request to the add statements link endpoint in
      * the company profile api and handles any error responses.
+     *
+     * @return PscList
      */
     @Override
-    public void patchLink(PatchLinkRequest linkRequest) {
+    public PscList patchLink(PatchLinkRequest linkRequest) {
         InternalApiClient client = internalApiClientFactory.get();
         try {
             client.privateCompanyLinksResourceHandler().addPscStatementsCompanyLink(
@@ -61,5 +64,6 @@ public class AddStatementsClient implements LinkClient {
             logger.error("Invalid companyNumber specified when handling API request");
             throw new NonRetryableErrorException("Invalid companyNumber specified", ex);
         }
+        return null;
     }
 }

@@ -58,6 +58,28 @@ class LinkClientFactoryTest {
     }
 
     @Test
+    @DisplayName("Link factory correctly returns a remove psc client")
+    void getRemovePscsClient() {
+        // given
+        // when
+        LinkClient linkClient = factory.getLinkClient("pscs", "deleted");
+
+        // then
+        assertTrue(linkClient instanceof DeletePscClient);
+    }
+
+    @Test
+    @DisplayName("Link factory correctly returns a add psc client")
+    void getAddPscsClient() {
+        // given
+        // when
+        LinkClient linkClient = factory.getLinkClient("pscs", "changed");
+
+        // then
+        assertTrue(linkClient instanceof AddPscClient);
+    }
+
+    @Test
     @DisplayName("Link factory correctly returns a null link client when deltaType mismatch")
     void getDefaultLinkClientDeltaType() {
         // given

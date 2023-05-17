@@ -57,7 +57,7 @@ public class PscStreamConsumer {
                         + "partition: %s and offest %s with contextId: %s",
                 topic, partition, offset, contextId));
         try {
-            pscRouter.route(new ResourceChange(payload), "psc");
+            pscRouter.route(new ResourceChange(payload), "pscs");
             logger.info(String.format("PSC message with contextId: %s is "
                             + "successfully processed in %d milliseconds",
                     contextId, Duration.between(startTime, Instant.now()).toMillis()));

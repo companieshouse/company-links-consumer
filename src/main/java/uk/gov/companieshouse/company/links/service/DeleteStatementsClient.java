@@ -1,6 +1,7 @@
 package uk.gov.companieshouse.company.links.service;
 
 import org.springframework.stereotype.Component;
+import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
@@ -33,9 +34,10 @@ public class DeleteStatementsClient implements LinkClient {
      * handles any error responses.
      *
      * @param linkRequest PatchLinkRequest
+     * @return Psclist
      */
     @Override
-    public void patchLink(PatchLinkRequest linkRequest) {
+    public PscList patchLink(PatchLinkRequest linkRequest) {
         StatementList statementList = statementsListClient.getStatementsList(
                 linkRequest.getCompanyNumber());
         if (statementList.getItems().size() == 0) {
@@ -51,6 +53,7 @@ public class DeleteStatementsClient implements LinkClient {
                         linkRequest.getCompanyNumber()));
             }
         }
+        return null;
     }
 }
 

@@ -1,7 +1,6 @@
 package uk.gov.companieshouse.company.links.service;
 
 import org.springframework.stereotype.Component;
-import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;

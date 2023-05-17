@@ -7,10 +7,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.companieshouse.api.psc.ListSummary;
 import uk.gov.companieshouse.api.psc.PscList;
+import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,7 +35,7 @@ public class DeletePscClientTest {
 
     @Test
     void shouldRemovePscLinkWhenZeroPscsFound() {
-        when(pscListClient.patchLink(linkRequest)).thenReturn(
+        when(pscListClient.getPscs(linkRequest)).thenReturn(
                 new PscList()
                         .totalResults(0));
 
@@ -44,14 +46,14 @@ public class DeletePscClientTest {
 
     @Test
     void shouldNotRemovePscLinkWhenPscListContainsOtherPscs() {
-        when(pscListClient.patchLink(linkRequest)).thenReturn(
+        when(pscListClient.getPscs(linkRequest)).thenReturn(
                 new PscList()
                         .totalResults(1).items(List.of(new ListSummary()
                                 .links(String.format("/company/%s/persons-with-significant-control/%s",
                                         COMPANY_NUMBER, RESOURCE_ID)))));
 
-        deletePscClient.patchLink(linkRequest);
-
+        assertThrows(RetryableErrorException.class,
+                () -> deletePscClient.patchLink(linkRequest));
         verifyNoInteractions(deletePscLinkClient);
     }
 }

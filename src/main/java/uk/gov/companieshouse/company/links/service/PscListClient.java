@@ -14,7 +14,7 @@ import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
 @Component
-public class PscListClient implements LinkClient {
+public class PscListClient {
 
     private final Logger logger;
     private final Supplier<InternalApiClient> internalApiClientFactory;
@@ -30,8 +30,7 @@ public class PscListClient implements LinkClient {
      * @param linkRequest LinkRequest
      * @return StatementList
      */
-    @Override
-    public PscList patchLink(PatchLinkRequest linkRequest) {
+    public PscList getPscs(PatchLinkRequest linkRequest) {
         InternalApiClient internalApiClient = internalApiClientFactory.get();
         try {
             return internalApiClient.privateDeltaResourceHandler()

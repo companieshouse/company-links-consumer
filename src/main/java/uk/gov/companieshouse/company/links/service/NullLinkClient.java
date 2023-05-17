@@ -16,7 +16,7 @@ public class NullLinkClient implements LinkClient {
     }
 
     @Override
-    public PscList patchLink(PatchLinkRequest linkRequest) {
+    public void patchLink(PatchLinkRequest linkRequest) {
         logger.error(String.format(
                 "Invalid delta type and/or event type for company number %s",
                 linkRequest.getCompanyNumber()));

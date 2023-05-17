@@ -27,10 +27,9 @@ public class AddOfficersClient implements LinkClient {
      * handles any error responses.
      *
      * @param linkRequest PatchLinkRequest
-     * @return  PscList
      */
     @Override
-    public PscList patchLink(PatchLinkRequest linkRequest) {
+    public void patchLink(PatchLinkRequest linkRequest) {
         InternalApiClient client = internalApiClientFactory.get();
         try {
             client.privateCompanyLinksResourceHandler()
@@ -65,6 +64,5 @@ public class AddOfficersClient implements LinkClient {
             logger.error("Invalid companyNumber specified when handling API request");
             throw new NonRetryableErrorException("Invalid companyNumber specified", ex);
         }
-        return null;
     }
 }

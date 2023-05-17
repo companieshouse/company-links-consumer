@@ -32,11 +32,10 @@ public class DeletePscClient implements LinkClient {
      * handles any error responses.
      *
      * @param linkRequest PatchLinkRequest
-     * @return PscList
      */
     @Override
-    public PscList patchLink(PatchLinkRequest linkRequest) {
-        PscList pscList = pscListClient.patchLink(linkRequest);
+    public void patchLink(PatchLinkRequest linkRequest) {
+        PscList pscList = pscListClient.getPscs(linkRequest);
         if (pscList.getTotalResults() == 0) {
             deletePscLinkClient.patchLink(linkRequest);
         } else {
@@ -50,6 +49,5 @@ public class DeletePscClient implements LinkClient {
                         linkRequest.getCompanyNumber()));
             }
         }
-        return null;
     }
 }

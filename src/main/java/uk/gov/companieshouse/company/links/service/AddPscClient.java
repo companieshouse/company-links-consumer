@@ -30,10 +30,10 @@ public class AddPscClient implements LinkClient {
      * Sends a patch request to the add PSCs link endpoint in
      * the company profile api and handles any error responses.
      *
-     * @return PscList
+     * @param linkRequest PatchLinkRequest
      */
     @Override
-    public PscList patchLink(PatchLinkRequest linkRequest) {
+    public void patchLink(PatchLinkRequest linkRequest) {
         InternalApiClient client = internalApiClientFactory.get();
         try {
             client.privateCompanyLinksResourceHandler().addPscCompanyLink(
@@ -66,6 +66,5 @@ public class AddPscClient implements LinkClient {
             logger.error("Invalid companyNumber specified when handling API request");
             throw new NonRetryableErrorException("Invalid companyNumber specified", ex);
         }
-        return null;
     }
 }

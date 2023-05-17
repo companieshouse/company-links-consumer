@@ -34,10 +34,9 @@ public class DeleteStatementsClient implements LinkClient {
      * handles any error responses.
      *
      * @param linkRequest PatchLinkRequest
-     * @return Psclist
      */
     @Override
-    public PscList patchLink(PatchLinkRequest linkRequest) {
+    public void patchLink(PatchLinkRequest linkRequest) {
         StatementList statementList = statementsListClient.getStatementsList(
                 linkRequest.getCompanyNumber());
         if (statementList.getItems().size() == 0) {
@@ -53,7 +52,6 @@ public class DeleteStatementsClient implements LinkClient {
                         linkRequest.getCompanyNumber()));
             }
         }
-        return null;
     }
 }
 

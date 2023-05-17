@@ -34,10 +34,9 @@ public class RemoveOfficersClient implements LinkClient {
      * handles any error responses.
      *
      * @param linkRequest PatchLinkRequest
-     * @return PscList
      */
     @Override
-    public PscList patchLink(PatchLinkRequest linkRequest) {
+    public void patchLink(PatchLinkRequest linkRequest) {
         OfficerList officerList = appointmentsListClient.getAppointmentsList(
                 linkRequest.getCompanyNumber());
         if (officerList.getTotalResults() == 0) {
@@ -53,6 +52,5 @@ public class RemoveOfficersClient implements LinkClient {
                         linkRequest.getCompanyNumber()));
             }
         }
-        return null;
     }
 }

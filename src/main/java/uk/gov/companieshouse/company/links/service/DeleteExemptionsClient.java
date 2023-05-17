@@ -27,10 +27,9 @@ public class DeleteExemptionsClient implements LinkClient {
      * handles any error responses.
      *
      * @param linkRequest PatchLinkRequest
-     * @return Psclist
      */
     @Override
-    public PscList patchLink(PatchLinkRequest linkRequest) {
+    public void patchLink(PatchLinkRequest linkRequest) {
         InternalApiClient client = internalApiClientFactory.get();
         try {
             client.privateCompanyLinksResourceHandler()
@@ -65,6 +64,5 @@ public class DeleteExemptionsClient implements LinkClient {
             logger.error("Invalid company number specified when handling API request");
             throw new NonRetryableErrorException("Invalid company number specified", ex);
         }
-        return null;
     }
 }

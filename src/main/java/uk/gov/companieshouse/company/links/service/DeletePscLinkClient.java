@@ -28,10 +28,9 @@ public class DeletePscLinkClient implements LinkClient {
      * handles any error responses.
      *
      * @param linkRequest PatchLinkRequest
-     * @return PscList
      */
     @Override
-    public PscList patchLink(PatchLinkRequest linkRequest) {
+    public void patchLink(PatchLinkRequest linkRequest) {
         InternalApiClient internalApiClient = internalApiClientFactory.get();
         try {
             internalApiClient.privateCompanyLinksResourceHandler()
@@ -66,6 +65,5 @@ public class DeletePscLinkClient implements LinkClient {
             logger.error("Invalid uri specified when handling API request");
             throw new NonRetryableErrorException("Invalid uri specified", ex);
         }
-        return null;
     }
 }

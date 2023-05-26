@@ -56,7 +56,6 @@ class AddExemptionsClientTest {
 
     @Test
     void testUpsert() throws ApiErrorResponseException, URIValidationException {
-        Assertions.fail();
         // given
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
         when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);

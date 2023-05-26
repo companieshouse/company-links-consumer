@@ -13,7 +13,7 @@ import uk.gov.companieshouse.logging.Logger;
 @Component
 public class AddExemptionsClient implements LinkClient {
     private final Logger logger;
-    //private final Supplier<InternalApiClient> internalApiClientFactory;
+    private final Supplier<InternalApiClient> internalApiClientFactory;
 
     public AddExemptionsClient(Logger logger,
             Supplier<InternalApiClient> internalApiClientFactory) {

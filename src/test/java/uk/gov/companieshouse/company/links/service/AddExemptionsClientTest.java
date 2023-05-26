@@ -9,6 +9,8 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import java.util.Collections;
 import java.util.function.Supplier;
+
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
@@ -54,6 +56,7 @@ class AddExemptionsClientTest {
 
     @Test
     void testUpsert() throws ApiErrorResponseException, URIValidationException {
+        Assertions.fail();
         // given
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
         when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);

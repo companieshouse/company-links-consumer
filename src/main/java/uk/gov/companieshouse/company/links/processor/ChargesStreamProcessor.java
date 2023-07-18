@@ -52,6 +52,9 @@ public class ChargesStreamProcessor extends StreamResponseProcessor {
         final String logContext = payload.getContextId();
         final String resourceUri = payload.getResourceUri();
         final String companyNumber = extractCompanyNumber(resourceUri);
+        DataMapHolder.get()
+                .companyNumber(companyNumber);
+
         final ApiResponse<CompanyProfile> response =
                 getCompanyProfile(payload, companyNumber);
         var data = response.getData().getData();

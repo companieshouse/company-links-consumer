@@ -1,6 +1,7 @@
 package uk.gov.companieshouse.company.links.processor;
 
 import org.springframework.stereotype.Component;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.service.LinkClientFactory;
 import uk.gov.companieshouse.company.links.service.PatchLinkRequestExtractable;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
@@ -22,6 +23,8 @@ public class LinkRouter implements LinkRoutable {
         String eventType = message.getData().getEvent().getType();
         PatchLinkRequest request = extractor.extractPatchLinkRequest(
                 message.getData().getResourceUri());
+        DataMapHolder.get()
+                .companyNumber(request.getCompanyNumber());
         factory.getLinkClient(deltaType, eventType).patchLink(request);
     }
 }

@@ -3,6 +3,7 @@ package uk.gov.companieshouse.company.links.service;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
@@ -16,8 +17,8 @@ public class DeleteStatementsClient implements LinkClient {
     /**
      * Constructs a DeleteStatementsClient.
      *
-     * @param logger                   Logger
-     * @param statementsListClient   StatementsListClient
+     * @param logger                     Logger
+     * @param statementsListClient       StatementsListClient
      * @param deleteStatementsLinkClient DeleteStatementsLinkClient
      */
     public DeleteStatementsClient(Logger logger,
@@ -38,7 +39,7 @@ public class DeleteStatementsClient implements LinkClient {
     public void patchLink(PatchLinkRequest linkRequest) {
         StatementList statementList = statementsListClient.getStatementsList(
                 linkRequest.getCompanyNumber());
-        if (statementList.getItems().size() == 0) {
+        if (statementList.getItems().isEmpty()) {
             deleteStatementsLinkClient.patchLink(linkRequest);
         } else {
             if (statementList.getItems().stream()
@@ -48,7 +49,7 @@ public class DeleteStatementsClient implements LinkClient {
                         + "deleted", linkRequest.getResourceId()));
             } else {
                 logger.debug(String.format("Statements for company number [%s] still exist",
-                        linkRequest.getCompanyNumber()));
+                        linkRequest.getCompanyNumber()), DataMapHolder.getLogMap());
             }
         }
     }

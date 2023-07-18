@@ -1,7 +1,5 @@
 package uk.gov.companieshouse.company.links.processor;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,6 +12,7 @@ import uk.gov.companieshouse.api.insolvency.CompanyInsolvency;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.service.CompanyInsolvencyService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.company.links.type.ApiType;
@@ -45,12 +44,13 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
     public void processDelete(Message<ResourceChangedData> resourceChangedMessage) {
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
-        final Map<String, Object> logMap = new HashMap<>();
 
         // the resource_id field returned represents the insolvency record's company number
         final String companyNumber = payload.getResourceId();
-        final ApiResponse<CompanyProfile> response =
-                getCompanyProfile(payload, logContext, logMap, companyNumber);
+        DataMapHolder.get()
+                .companyNumber(companyNumber);
+        final ApiResponse<CompanyProfile> response = getCompanyProfile(payload, logContext,
+                companyNumber);
 
         var data = response.getData().getData();
         var links = data.getLinks();
@@ -58,7 +58,7 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
         if (links == null || links.getInsolvency() == null) {
             logger.trace(String.format("Company profile with company number %s,"
                     + " does not contain insolvency links, will not perform patch"
-                    + " for contextId %s", companyNumber, logContext));
+                    + " for contextId %s", companyNumber, logContext), DataMapHolder.getLogMap());
             return;
         }
 
@@ -70,11 +70,11 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
             data.hasInsolvencyHistory(false);
             data.setLinks(links);
 
-            patchCompanyProfile(data, logContext, companyNumber, logMap);
+            patchCompanyProfile(data, logContext, companyNumber);
         } else {
             String message = "Response from insolvency-data-api service, main delta is not "
                     + "yet deleted, throwing retry-able exception to check again";
-            logger.errorContext(logContext, message, null, logMap);
+            logger.errorContext(logContext, message, null, DataMapHolder.getLogMap());
             throw new RetryableErrorException(message);
         }
     }
@@ -85,12 +85,12 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
     public void processDelta(Message<ResourceChangedData> resourceChangedMessage) {
         final var payload = resourceChangedMessage.getPayload();
         final String logContext = payload.getContextId();
-        final Map<String, Object> logMap = new HashMap<>();
 
         // the resource_id field returned represents the insolvency record's company number
         final String companyNumber = payload.getResourceId();
+        DataMapHolder.get().companyNumber(companyNumber);
         final ApiResponse<CompanyProfile> response =
-                getCompanyProfile(payload, logContext, logMap, companyNumber);
+                getCompanyProfile(payload, logContext, companyNumber);
 
         var data = response.getData().getData();
         var links = data.getLinks();
@@ -98,7 +98,7 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
         if (links != null && !StringUtils.isBlank(links.getInsolvency())) {
             logger.trace(String.format("Company profile with company number %s,"
                     + " contains insolvency links, will not perform PATCH"
-                    + " for contextId %s", companyNumber, logContext));
+                    + " for contextId %s", companyNumber, logContext), DataMapHolder.getLogMap());
             return;
         }
 
@@ -116,30 +116,28 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
             data.setLinks(links);
             data.setHasInsolvencyHistory(true);
 
-            patchCompanyProfile(data, logContext, companyNumber, logMap);
+            patchCompanyProfile(data, logContext, companyNumber);
         } else {
             String message = "Response from companyInsolvencyService, main delta update not"
                     + " yet completed, Re-Trying";
-            logger.errorContext(logContext, message, null, logMap);
+            logger.errorContext(logContext, message, null, DataMapHolder.getLogMap());
             throw new RetryableErrorException(message);
         }
     }
 
-    private void patchCompanyProfile(Data data, String logContext, String companyNumber,
-                                     Map<String, Object> logMap) {
+    private void patchCompanyProfile(Data data, String logContext, String companyNumber) {
         var companyProfile = new CompanyProfile();
         companyProfile.setData(data);
 
         final ApiResponse<Void> patchResponse = companyProfileService.patchCompanyProfile(
                 logContext, companyNumber, companyProfile);
         handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                "PATCH", ApiType.COMPANY_PROFILE, companyNumber, logMap);
+                "PATCH", ApiType.COMPANY_PROFILE, companyNumber);
     }
 
     private ApiResponse<CompanyProfile> getCompanyProfile(ResourceChangedData payload,
-                                                          String logContext,
-                                                          Map<String, Object> logMap,
-                                                          String companyNumber) {
+            String logContext,
+            String companyNumber) {
         if (StringUtils.isEmpty(companyNumber)) {
             throw new NonRetryableErrorException(String.format(
                     "Company number is empty or null in message with contextId %s", logContext));
@@ -147,13 +145,12 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
 
         logger.trace(String.format("Resource changed message with contextId %s of kind %s "
                         + "for company number %s retrieved",
-                logContext, payload.getResourceKind(), companyNumber));
+                logContext, payload.getResourceKind(), companyNumber), DataMapHolder.getLogMap());
 
         final ApiResponse<CompanyProfile> response =
                 companyProfileService.getCompanyProfile(logContext, companyNumber);
         handleCompanyProfileResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "GET", ApiType.COMPANY_PROFILE, companyNumber, logMap);
+                "GET", ApiType.COMPANY_PROFILE, companyNumber);
         return response;
     }
-
 }

@@ -23,7 +23,9 @@ import java.util.Collections;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -100,7 +102,7 @@ class DeleteExemptionsClientTest {
         // then
         verify(resourceHandler).deleteExemptionsCompanyLink(PATH);
         verify(exemptionsLinksDelete).execute();
-        verify(logger).info("HTTP 409 Conflict returned; company profile does not have an exemptions link already");
+        verify(logger).info(eq("HTTP 409 Conflict returned; company profile does not have an exemptions link already"), any());
     }
 
     @Test

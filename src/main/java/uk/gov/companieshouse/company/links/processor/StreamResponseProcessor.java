@@ -2,11 +2,11 @@ package uk.gov.companieshouse.company.links.processor;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Map;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.type.ApiType;
 import uk.gov.companieshouse.logging.Logger;
 
@@ -18,7 +18,6 @@ public class StreamResponseProcessor {
         this.logger = logger;
     }
 
-
     /**
      * Common response handler.
      */
@@ -27,22 +26,19 @@ public class StreamResponseProcessor {
             final String logContext,
             String requestType,
             ApiType apiType,
-            String companyNumber,
-            final Map<String, Object> logMap)
+            String companyNumber)
             throws NonRetryableErrorException, RetryableErrorException {
         var message = String.format("Response from %s %s", requestType, apiType.toString());
-        logMap.put("status", httpStatus.toString());
-        logMap.put("company_number", companyNumber);
 
         if (HttpStatus.BAD_REQUEST == httpStatus) {
-            logger.errorContext(logContext, message, null, logMap);
+            logger.errorContext(logContext, message, null, DataMapHolder.getLogMap());
             throw new NonRetryableErrorException(message);
         } else if (httpStatus.is2xxSuccessful()) {
             logger.info(String.format("Successfully invoked %s %s endpoint"
                             + " for message with contextId %s and company number %s",
-                    requestType, apiType, logContext, companyNumber));
+                    requestType, apiType, logContext, companyNumber), DataMapHolder.getLogMap());
         } else {
-            logger.errorContext(logContext, message, null, logMap);
+            logger.errorContext(logContext, message, null, DataMapHolder.getLogMap());
             throw new RetryableErrorException(message);
         }
     }
@@ -55,26 +51,23 @@ public class StreamResponseProcessor {
             final String logContext,
             String requestType,
             ApiType apiType,
-            String companyNumber,
-            final Map<String, Object> logMap)
+            String companyNumber)
             throws NonRetryableErrorException, RetryableErrorException {
         var message = String.format("Response from %s %s", requestType, apiType.toString());
-        logMap.put("status", httpStatus.toString());
-        logMap.put("company_number", companyNumber);
 
         Set<HttpStatus> nonRetryableStatuses =
                 Collections.unmodifiableSet(EnumSet.of(
                         HttpStatus.BAD_REQUEST, HttpStatus.GONE));
 
         if (nonRetryableStatuses.contains(httpStatus)) {
-            logger.errorContext(logContext, message, null, logMap);
+            logger.errorContext(logContext, message, null, DataMapHolder.getLogMap());
             throw new NonRetryableErrorException(message);
         } else if (httpStatus.is2xxSuccessful()) {
             logger.info(String.format("Successfully invoked %s %s endpoint"
                             + " for message with contextId %s and company number %s",
-                    requestType, apiType, logContext, companyNumber));
+                    requestType, apiType, logContext, companyNumber), DataMapHolder.getLogMap());
         } else {
-            logger.errorContext(logContext, message, null, logMap);
+            logger.errorContext(logContext, message, null, DataMapHolder.getLogMap());
             throw new RetryableErrorException(message);
         }
     }

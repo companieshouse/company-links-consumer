@@ -23,7 +23,9 @@ import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -82,7 +84,8 @@ class AddOfficersClientTest {
         // then
         verify(resourceHandler).addOfficersCompanyLink(PATH);
         verify(officersLinksAddHandler).execute();
-        verify(logger).info("HTTP 404 Not Found returned; company profile does not exist");
+        verify(logger).info(eq("HTTP 404 Not Found returned; company profile does not exist"),
+                any());
     }
 
     @Test
@@ -99,7 +102,8 @@ class AddOfficersClientTest {
         // then
         verify(resourceHandler).addOfficersCompanyLink(PATH);
         verify(officersLinksAddHandler).execute();
-        verify(logger).info("HTTP 409 Conflict returned; company profile already has an officers link");
+        verify(logger).info(eq("HTTP 409 Conflict returned; company profile already has an officers link"),
+                any());
     }
 
     @Test

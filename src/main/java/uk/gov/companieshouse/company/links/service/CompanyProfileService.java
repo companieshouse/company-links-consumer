@@ -8,27 +8,22 @@ import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
-import uk.gov.companieshouse.company.links.type.ApiType;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.logging.Logger;
 
 @Service
 public class CompanyProfileService extends BaseApiClientService {
 
-    private Supplier<InternalApiClient> internalApiClientSupplier;
-
-    @Value("${api.api-key}")
-    private String companyProfileApiKey;
-
-    @Value("${api.api-url}")
-    private String companyProfileApiUrl;
+    private final Supplier<InternalApiClient> internalApiClientSupplier;
 
     /**
      * Construct a company profile service - used to retrieve a company profile record.
+     *
      * @param logger the CH logger
      */
     @Autowired
     public CompanyProfileService(Logger logger,
-                                 Supplier<InternalApiClient> internalApiClientSupplier) {
+            Supplier<InternalApiClient> internalApiClientSupplier) {
         super(logger);
         this.internalApiClientSupplier = internalApiClientSupplier;
     }
@@ -42,39 +37,37 @@ public class CompanyProfileService extends BaseApiClientService {
     public ApiResponse<CompanyProfile> getCompanyProfile(String contextId, String companyNumber)
             throws RetryableErrorException {
         logger.trace(String.format("Call to GET company profile with contextId %s "
-                        + "and company number %s", contextId, companyNumber));
+                + "and company number %s", contextId, companyNumber), DataMapHolder.getLogMap());
 
         String uri = String.format("/company/%s/links", companyNumber);
 
         InternalApiClient internalApiClient = internalApiClientSupplier.get();
         internalApiClient.getHttpClient().setRequestId(contextId);
 
-        return executeOp(contextId, "GET", ApiType.COMPANY_PROFILE, uri,
-                internalApiClient
-                        .privateCompanyResourceHandler()
-                        .getCompanyProfile(uri));
+        return executeOp(contextId, internalApiClient
+                .privateCompanyResourceHandler()
+                .getCompanyProfile(uri));
     }
 
     /**
      * Update a company profile given a company number using PATCH from company-profile-api.
      *
-     * @param companyNumber the company's company number
+     * @param companyNumber  the company's company number
      * @param companyProfile the company profile
      * @return an ApiResponse
      */
     public ApiResponse<Void> patchCompanyProfile(String contextId, String companyNumber,
-                                                 CompanyProfile companyProfile) {
+            CompanyProfile companyProfile) {
         logger.trace(String.format("Call to PATCH company profile with contextId %s "
-                + "and company number %s", contextId, companyNumber));
+                + "and company number %s", contextId, companyNumber), DataMapHolder.getLogMap());
 
         String uri = String.format("/company/%s/links", companyNumber);
 
         InternalApiClient internalApiClient = internalApiClientSupplier.get();
         internalApiClient.getHttpClient().setRequestId(contextId);
 
-        return executeOp(contextId, "PATCH", ApiType.COMPANY_PROFILE, uri,
-                internalApiClient
-                        .privateCompanyResourceHandler()
-                        .patchCompanyProfile(uri, companyProfile));
+        return executeOp(contextId, internalApiClient
+                .privateCompanyResourceHandler()
+                .patchCompanyProfile(uri, companyProfile));
     }
 }

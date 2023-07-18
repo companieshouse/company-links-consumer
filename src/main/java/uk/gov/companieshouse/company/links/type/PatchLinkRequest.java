@@ -1,6 +1,7 @@
 package uk.gov.companieshouse.company.links.type;
 
 public class PatchLinkRequest {
+
     private final String companyNumber;
     private final String resourceId;
 

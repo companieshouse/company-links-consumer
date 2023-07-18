@@ -1,7 +1,9 @@
 package uk.gov.companieshouse.company.links.service;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -82,7 +84,7 @@ class AddExemptionsClientTest {
         // then
         verify(resourceHandler).addExemptionsCompanyLink(PATH);
         verify(exemptionsLinksPatchHandler).execute();
-        verify(logger).info("HTTP 404 Not Found returned; company profile does not exist");
+        verify(logger).info(eq("HTTP 404 Not Found returned; company profile does not exist"), any());
     }
 
     @Test
@@ -99,7 +101,7 @@ class AddExemptionsClientTest {
         // then
         verify(resourceHandler).addExemptionsCompanyLink(PATH);
         verify(exemptionsLinksPatchHandler).execute();
-        verify(logger).info("HTTP 409 Conflict returned; company profile already has an exemptions link");
+        verify(logger).info(eq("HTTP 409 Conflict returned; company profile already has an exemptions link"), any());
     }
 
     @Test

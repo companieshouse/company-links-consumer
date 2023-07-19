@@ -30,10 +30,12 @@ public class AppointmentsListClient {
      * Retrieves a list of officers appointed to a company.
      *
      * @param companyNumber The companyNumber
+     * @param requestId The requestID from the initial Kafka message
      * @return OfficerList
      */
-    public OfficerList getAppointmentsList(String companyNumber) {
+    public OfficerList getAppointmentsList(String companyNumber, String requestId) {
         InternalApiClient client = internalApiClientFactory.get();
+        client.getHttpClient().setRequestId(requestId);
         try {
             return client.privateCompanyAppointmentsListHandler()
                     .getCompanyAppointmentsList(

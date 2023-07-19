@@ -14,6 +14,7 @@ import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.company.PrivateCompanyLinksResourceHandler;
 import uk.gov.companieshouse.api.handler.company.links.request.PrivateCompanyOfficersLinksRemove;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
+import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
@@ -33,6 +34,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class RemoveOfficersLinkClientTest {
     private static final String COMPANY_NUMBER = "12345678";
+    private static final String REQUEST_ID = "request_id";
     private static final String PATH = String.format("/company/%s/links/officers/delete", COMPANY_NUMBER);
 
     @Mock
@@ -48,16 +50,20 @@ class RemoveOfficersLinkClientTest {
     private PrivateCompanyOfficersLinksRemove officersLinksRemoveHandler;
 
     @Mock
+    private HttpClient httpClient;
+
+    @Mock
     private Logger logger;
 
     @InjectMocks
     private RemoveOfficersLinkClient client;
 
-    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER);
+    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID);
 
     @BeforeEach
     void setup() {
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
+        when(internalApiClient.getHttpClient()).thenReturn(httpClient);
         when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
         when(resourceHandler.removeOfficersCompanyLink(anyString())).thenReturn(officersLinksRemoveHandler);
     }
@@ -137,7 +143,8 @@ class RemoveOfficersLinkClientTest {
         when(officersLinksRemoveHandler.execute()).thenThrow(new URIValidationException("Invalid URI"));
 
         // when
-        Executable actual = () -> client.patchLink(new PatchLinkRequest("OC401invalid/companyNumber"));
+        Executable actual = () -> client.patchLink(new PatchLinkRequest("OC401invalid/companyNumber",
+                REQUEST_ID));
 
         // then
         assertThrows(NonRetryableErrorException.class, actual);

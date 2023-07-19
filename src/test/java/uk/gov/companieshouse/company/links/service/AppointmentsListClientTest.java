@@ -26,6 +26,7 @@ import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.appointment.PrivateCompanyAppointmentsList;
 import uk.gov.companieshouse.api.handler.appointment.PrivateCompanyAppointmentsListHandler;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
+import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
@@ -35,7 +36,7 @@ import uk.gov.companieshouse.logging.Logger;
 class AppointmentsListClientTest {
 
     private static final String COMPANY_NUMBER = "12345678";
-
+    private static final String REQUEST_ID = "request_id";
     private static final String PATH = String.format("/company/%s/officers-test", COMPANY_NUMBER);
 
     @Mock
@@ -51,6 +52,9 @@ class AppointmentsListClientTest {
     private PrivateCompanyAppointmentsList privateCompanyAppointmentsList;
 
     @Mock
+    private HttpClient httpClient;
+
+    @Mock
     private Logger logger;
 
     @InjectMocks
@@ -59,6 +63,7 @@ class AppointmentsListClientTest {
     @BeforeEach
     void setup() {
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
+        when(internalApiClient.getHttpClient()).thenReturn(httpClient);
         when(internalApiClient.privateCompanyAppointmentsListHandler()).thenReturn(resourceHandler);
         when(resourceHandler.getCompanyAppointmentsList(anyString())).thenReturn(
                 privateCompanyAppointmentsList);
@@ -73,7 +78,7 @@ class AppointmentsListClientTest {
                                 .totalResults(0)));
 
         // when
-        OfficerList officerList = client.getAppointmentsList(COMPANY_NUMBER);
+        OfficerList officerList = client.getAppointmentsList(COMPANY_NUMBER, REQUEST_ID);
 
         // then
         verify(resourceHandler).getCompanyAppointmentsList(PATH);
@@ -91,7 +96,7 @@ class AppointmentsListClientTest {
                                 .Builder(INTERNAL_SERVER_ERROR.value(),
                                 "Internal server error", new HttpHeaders())));
 
-        Executable actual = () -> client.getAppointmentsList(COMPANY_NUMBER);
+        Executable actual = () -> client.getAppointmentsList(COMPANY_NUMBER, REQUEST_ID);
 
         Exception ex = assertThrows(RetryableErrorException.class, actual);
         assertThat(ex.getMessage())
@@ -109,7 +114,7 @@ class AppointmentsListClientTest {
                                 "Not found", new HttpHeaders()
                                 .setContentLength(0L))));
 
-        OfficerList officerList = client.getAppointmentsList(COMPANY_NUMBER);
+        OfficerList officerList = client.getAppointmentsList(COMPANY_NUMBER, REQUEST_ID);
 
         verify(resourceHandler).getCompanyAppointmentsList(PATH);
         verify(privateCompanyAppointmentsList).execute();
@@ -128,7 +133,7 @@ class AppointmentsListClientTest {
                                 .setContentLength(2L))
                                 .setContent("{}")));
 
-        Executable actual = () -> client.getAppointmentsList(COMPANY_NUMBER);
+        Executable actual = () -> client.getAppointmentsList(COMPANY_NUMBER, REQUEST_ID);
 
         Exception ex = assertThrows(RetryableErrorException.class, actual);
         assertThat(ex.getMessage())
@@ -144,7 +149,7 @@ class AppointmentsListClientTest {
                                 .Builder(BAD_REQUEST.value(),
                                 "Bad request", new HttpHeaders())));
 
-        Executable actual = () -> client.getAppointmentsList(COMPANY_NUMBER);
+        Executable actual = () -> client.getAppointmentsList(COMPANY_NUMBER, REQUEST_ID);
 
         Exception ex = assertThrows(NonRetryableErrorException.class, actual);
         assertThat(ex.getMessage())
@@ -158,7 +163,7 @@ class AppointmentsListClientTest {
         when(privateCompanyAppointmentsList.execute())
                 .thenThrow(new IllegalArgumentException());
 
-        Executable actual = () -> client.getAppointmentsList(COMPANY_NUMBER);
+        Executable actual = () -> client.getAppointmentsList(COMPANY_NUMBER, REQUEST_ID);
 
         Exception ex = assertThrows(RetryableErrorException.class, actual);
         assertThat(ex.getMessage())
@@ -171,7 +176,7 @@ class AppointmentsListClientTest {
         when(privateCompanyAppointmentsList.execute())
                 .thenThrow(new URIValidationException("URI wrong"));
 
-        Executable actual = () -> client.getAppointmentsList(COMPANY_NUMBER);
+        Executable actual = () -> client.getAppointmentsList(COMPANY_NUMBER, REQUEST_ID);
 
         Exception ex = assertThrows(NonRetryableErrorException.class, actual);
         assertThat(ex.getMessage())

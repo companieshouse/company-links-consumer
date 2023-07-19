@@ -11,6 +11,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import java.util.Collections;
 import java.util.function.Supplier;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
@@ -22,6 +23,7 @@ import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.company.PrivateCompanyLinksResourceHandler;
 import uk.gov.companieshouse.api.handler.company.links.request.PrivateCompanyExemptionsLinksPatch;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
+import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
@@ -32,6 +34,7 @@ import uk.gov.companieshouse.logging.Logger;
 class AddExemptionsClientTest {
 
     private static final String COMPANY_NUMBER = "12345678";
+    private static final String REQUEST_ID = "request_id";
     private static final String PATH = String.format("/company/%s/links/exemptions", COMPANY_NUMBER);
 
     @Mock
@@ -47,19 +50,27 @@ class AddExemptionsClientTest {
     private PrivateCompanyExemptionsLinksPatch exemptionsLinksPatchHandler;
 
     @Mock
+    private HttpClient httpClient;
+
+    @Mock
     private Logger logger;
 
     @InjectMocks
     private AddExemptionsClient client;
 
-    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER);
+    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID);
+
+    @BeforeEach
+    void setup() {
+        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
+        when(internalApiClient.getHttpClient()).thenReturn(httpClient);
+        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
+        when(resourceHandler.addExemptionsCompanyLink(anyString())).thenReturn(exemptionsLinksPatchHandler);
+    }
 
     @Test
     void testUpsert() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.addExemptionsCompanyLink(anyString())).thenReturn(exemptionsLinksPatchHandler);
         when(exemptionsLinksPatchHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
 
         // when
@@ -73,9 +84,6 @@ class AddExemptionsClientTest {
     @Test
     void testThrowNonRetryableExceptionIfClientErrorReturned() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.addExemptionsCompanyLink(anyString())).thenReturn(exemptionsLinksPatchHandler);
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
 
         // when
@@ -90,9 +98,6 @@ class AddExemptionsClientTest {
     @Test
     void testThrowNonRetryableExceptionIf409Returned() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.addExemptionsCompanyLink(anyString())).thenReturn(exemptionsLinksPatchHandler);
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
 
         // when
@@ -107,9 +112,6 @@ class AddExemptionsClientTest {
     @Test
     void testThrowRetryableExceptionIfServerErrorReturned() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.addExemptionsCompanyLink(anyString())).thenReturn(exemptionsLinksPatchHandler);
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
 
         // when
@@ -124,9 +126,6 @@ class AddExemptionsClientTest {
     @Test
     void testThrowRetryableExceptionIfIllegalArgumentExceptionIsCaught() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.addExemptionsCompanyLink(anyString())).thenReturn(exemptionsLinksPatchHandler);
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
 
         // when
@@ -141,13 +140,10 @@ class AddExemptionsClientTest {
     @Test
     void testThrowNonRetryableExceptionIfComapnyNumberInvalid() throws ApiErrorResponseException, URIValidationException {
         // given
-        when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
-        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
-        when(resourceHandler.addExemptionsCompanyLink(anyString())).thenReturn(exemptionsLinksPatchHandler);
         when(exemptionsLinksPatchHandler.execute()).thenThrow(new URIValidationException("Invalid URI"));
 
         // when
-        Executable actual = () -> client.patchLink(new PatchLinkRequest("invalid/path"));
+        Executable actual = () -> client.patchLink(new PatchLinkRequest("invalid/path", REQUEST_ID));
 
         // then
         assertThrows(NonRetryableErrorException.class, actual);

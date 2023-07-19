@@ -30,6 +30,7 @@ public class AddStatementsClient implements LinkClient {
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
         InternalApiClient client = internalApiClientFactory.get();
+        client.getHttpClient().setRequestId(linkRequest.getRequestId());
         try {
             client.privateCompanyLinksResourceHandler()
                     .addPscStatementsCompanyLink(

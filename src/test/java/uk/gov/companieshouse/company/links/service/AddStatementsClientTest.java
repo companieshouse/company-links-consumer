@@ -32,6 +32,7 @@ import uk.gov.companieshouse.api.handler.company.links.request.PrivatePscStateme
 import uk.gov.companieshouse.api.handler.delta.PrivateDeltaResourceHandler;
 import uk.gov.companieshouse.api.handler.delta.pscstatements.request.PscStatementsGetAll;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
+import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.Statement;
 import uk.gov.companieshouse.api.psc.StatementList;
@@ -44,6 +45,7 @@ import uk.gov.companieshouse.logging.Logger;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AddStatementsClientTest {
     private static final String COMPANY_NUMBER = "12345678";
+    private static final String REQUEST_ID = "request_id";
     private static final String PATH = String.format("/company/%s/links/persons-with-significant-control-statements", COMPANY_NUMBER);
 
     @Mock
@@ -73,6 +75,9 @@ class AddStatementsClientTest {
     private List<Statement> statementsList;
 
     @Mock
+    private HttpClient httpClient;
+
+    @Mock
     private Logger logger;
 
     @InjectMocks
@@ -84,6 +89,7 @@ class AddStatementsClientTest {
         statementsList.add(new Statement());
 
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
+        when(internalApiClient.getHttpClient()).thenReturn(httpClient);
         when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(resourceHandler);
         when(internalApiClient.privateDeltaResourceHandler()).thenReturn(deltaResourceHandler);
         when(resourceHandler.addPscStatementsCompanyLink(anyString())).thenReturn(pscStatementsLinkAddHandler);
@@ -99,7 +105,7 @@ class AddStatementsClientTest {
         when(pscStatementsLinkAddHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
         
         //when
-        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
+        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID));
 
         //then
         verify(resourceHandler).addPscStatementsCompanyLink(PATH);
@@ -112,7 +118,7 @@ class AddStatementsClientTest {
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
           
         //when
-        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
+        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID));
  
         //then
         verify(resourceHandler).addPscStatementsCompanyLink(PATH);
@@ -126,7 +132,7 @@ class AddStatementsClientTest {
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
           
         //when
-        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
+        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID));
  
         //then
         verify(resourceHandler).addPscStatementsCompanyLink(PATH);
@@ -140,7 +146,7 @@ class AddStatementsClientTest {
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
           
         //when
-        Executable actual = () -> client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
+        Executable actual = () -> client.patchLink(new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID));
  
         //then
         assertThrows(RetryableErrorException.class, actual);
@@ -154,7 +160,7 @@ class AddStatementsClientTest {
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
           
         //when
-        Executable actual = () -> client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
+        Executable actual = () -> client.patchLink(new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID));
  
         //then
         assertThrows(RetryableErrorException.class, actual);
@@ -169,7 +175,7 @@ class AddStatementsClientTest {
     when(pscStatementsLinkAddHandler.execute()).thenThrow(new URIValidationException("Invalid/URI"));
       
     //when
-    Executable actual = () -> client.patchLink(new PatchLinkRequest("invalid/path"));
+    Executable actual = () -> client.patchLink(new PatchLinkRequest("invalid/path", REQUEST_ID));
 
     //then
     assertThrows(NonRetryableErrorException.class, actual);

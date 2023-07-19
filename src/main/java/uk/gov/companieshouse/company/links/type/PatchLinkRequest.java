@@ -4,15 +4,16 @@ public class PatchLinkRequest {
 
     private final String companyNumber;
     private final String resourceId;
+    private final String requestId;
 
-    public PatchLinkRequest(String companyNumber, String resourceId) {
+    public PatchLinkRequest(String companyNumber, String resourceId, String requestId) {
         this.companyNumber = companyNumber;
         this.resourceId = resourceId;
+        this.requestId = requestId;
     }
 
-    public PatchLinkRequest(String companyNumber) {
-        this.companyNumber = companyNumber;
-        this.resourceId = null;
+    public PatchLinkRequest(String companyNumber, String requestId) {
+        this(companyNumber, requestId, null);
     }
 
     public String getCompanyNumber() {
@@ -21,5 +22,9 @@ public class PatchLinkRequest {
 
     public String getResourceId() {
         return resourceId;
+    }
+
+    public String getRequestId() {
+        return requestId;
     }
 }

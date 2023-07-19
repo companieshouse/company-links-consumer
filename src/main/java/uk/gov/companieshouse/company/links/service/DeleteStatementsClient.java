@@ -38,7 +38,7 @@ public class DeleteStatementsClient implements LinkClient {
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
         StatementList statementList = statementsListClient.getStatementsList(
-                linkRequest.getCompanyNumber());
+                linkRequest.getCompanyNumber(), linkRequest.getRequestId());
         if (statementList.getItems().isEmpty()) {
             deleteStatementsLinkClient.patchLink(linkRequest);
         } else {

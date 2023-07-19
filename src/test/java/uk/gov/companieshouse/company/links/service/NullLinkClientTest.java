@@ -16,6 +16,7 @@ import uk.gov.companieshouse.logging.Logger;
 class NullLinkClientTest {
 
     private static final String COMPANY_NUMBER = "12345678";
+    private static final String REQUEST_ID = "request_id";
 
     @Mock
     private Logger logger;
@@ -23,7 +24,7 @@ class NullLinkClientTest {
     @InjectMocks
     private NullLinkClient client;
 
-    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER);
+    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID);
 
     @Test
     void shouldThrowNonRetryableErrorExceptionWhenPatchLinkInvoked() {

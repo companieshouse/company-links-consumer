@@ -38,7 +38,7 @@ public class RemoveOfficersClient implements LinkClient {
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
         OfficerList officerList = appointmentsListClient.getAppointmentsList(
-                linkRequest.getCompanyNumber());
+                linkRequest.getCompanyNumber(), linkRequest.getRequestId());
         if (officerList.getTotalResults() == 0) {
             removeOfficersLinkClient.patchLink(linkRequest);
         } else {

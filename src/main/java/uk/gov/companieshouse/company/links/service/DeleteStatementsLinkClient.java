@@ -32,6 +32,7 @@ public class DeleteStatementsLinkClient implements LinkClient {
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
         InternalApiClient client = internalApiClientFactory.get();
+        client.getHttpClient().setRequestId(linkRequest.getRequestId());
         try {
             client.privateCompanyLinksResourceHandler()
                     .deletePscStatementsCompanyLink(String.format(

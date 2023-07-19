@@ -30,10 +30,12 @@ public class StatementsListClient {
      * Retrieves a list of statements for a given company number.
      *
      * @param companyNumber The companyNumber
+     * @param requestId The requestID from the initial Kafka message
      * @return StatementList
      */
-    public StatementList getStatementsList(String companyNumber) {
+    public StatementList getStatementsList(String companyNumber, String requestId) {
         InternalApiClient client = internalApiClientFactory.get();
+        client.getHttpClient().setRequestId(requestId);
         try {
             return client.privateDeltaResourceHandler()
                     .getPscStatements(

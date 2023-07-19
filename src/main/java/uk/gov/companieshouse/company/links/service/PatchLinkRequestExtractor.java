@@ -24,7 +24,7 @@ public class PatchLinkRequestExtractor implements PatchLinkRequestExtractable {
     }
 
     @Override
-    public PatchLinkRequest extractPatchLinkRequest(String uri) {
+    public PatchLinkRequest extractPatchLinkRequest(String uri, String requestId) {
         if (StringUtils.isBlank(uri)) {
             logger.error("Could not extract company number from empty or null resource uri",
                     DataMapHolder.getLogMap());
@@ -34,7 +34,8 @@ public class PatchLinkRequestExtractor implements PatchLinkRequestExtractable {
         // matches up to 10 digits between company/ and /
         Matcher matcher = EXTRACT_COMPANY_NUMBER_PATTERN.matcher(uri);
         if (matcher.find()) {
-            return new PatchLinkRequest(matcher.group(), substringAfterLast(uri, "/"));
+            return new PatchLinkRequest(matcher.group(), substringAfterLast(uri, "/"),
+                    requestId);
         } else {
             logger.error(String.format("Could not extract company number from uri "
                     + "%s ", uri), DataMapHolder.getLogMap());

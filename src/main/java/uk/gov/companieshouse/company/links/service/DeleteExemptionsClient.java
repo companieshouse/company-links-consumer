@@ -51,8 +51,8 @@ public class DeleteExemptionsClient implements LinkClient {
                                 + "company profile does not have an exemptions link already",
                         DataMapHolder.getLogMap());
             } else if (ex.getStatusCode() == 404) {
-                logger.info("HTTP 404 Not Found returned; "
-                        + "company profile does not exist");
+                logger.info("HTTP 404 Not Found returned; company profile does not exist",
+                        DataMapHolder.getLogMap());
             } else {
                 logger.error(String.format("Delete exemptions client error returned with status"
                                 + " code: [%s] when processing delete exemptions link request",

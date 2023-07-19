@@ -2,7 +2,6 @@ package uk.gov.companieshouse.company.links.service;
 
 import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.insolvency.CompanyInsolvency;

@@ -72,7 +72,7 @@ public class AppointmentsListClient {
                 // *** End HACK ALERT!!!
 
                 logger.debug(String.format("HTTP 404 Not Found returned for company number %s",
-                        companyNumber));
+                        companyNumber), DataMapHolder.getLogMap());
                 return new OfficerList()
                         .totalResults(0);
             } else {

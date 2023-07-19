@@ -20,7 +20,7 @@ public class PatchLinkRequest {
     }
 
     public PatchLinkRequest(String companyNumber, String requestId) {
-        this(companyNumber, requestId, null);
+        this(companyNumber, null, requestId);
     }
 
     public String getCompanyNumber() {

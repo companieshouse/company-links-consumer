@@ -95,7 +95,7 @@ class DeleteExemptionsClientTest {
         // then
         verify(resourceHandler).deleteExemptionsCompanyLink(PATH);
         verify(exemptionsLinksDelete).execute();
-        verify(logger).info("HTTP 404 Not Found returned; company profile does not exist");
+        verify(logger).info(eq("HTTP 404 Not Found returned; company profile does not exist"), any());
     }
 
     @Test

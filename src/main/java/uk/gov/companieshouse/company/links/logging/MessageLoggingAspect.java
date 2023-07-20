@@ -1,10 +1,12 @@
 package uk.gov.companieshouse.company.links.logging;
 
+import java.util.Optional;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
+import uk.gov.companieshouse.delta.ChsDelta;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
@@ -22,14 +24,13 @@ class MessageLoggingAspect {
         this.logger = logger;
     }
 
-    @Around("@annotation(LogKafkaConsumerMessage)")
-    public Object logConsumerMessage(ProceedingJoinPoint joinPoint) throws Throwable {
+    @Around("@annotation(org.springframework.kafka.annotation.KafkaListener)")
+    public Object manageStructuredLogging(ProceedingJoinPoint joinPoint) throws Throwable {
 
         try {
             Message<?> message = (Message<?>) joinPoint.getArgs()[0];
-            ResourceChangedData payload = (ResourceChangedData) message.getPayload();
-            String contextId = payload.getContextId();
-            DataMapHolder.initialise(contextId);
+            DataMapHolder.initialise(extractContextId(message.getPayload())
+                    .orElseGet(() -> "unknown"));
 
             String topic = (String) joinPoint.getArgs()[1];
             String partition = (String) joinPoint.getArgs()[2];
@@ -53,5 +54,14 @@ class MessageLoggingAspect {
         } finally {
             DataMapHolder.clear();
         }
+    }
+
+    private Optional<String> extractContextId(Object payload) {
+        if (payload instanceof ChsDelta) {
+            return Optional.of(((ChsDelta)payload).getContextId());
+        } else if (payload instanceof ResourceChangedData) {
+            return Optional.of(((ResourceChangedData)payload).getContextId());
+        }
+        return Optional.empty();
     }
 }

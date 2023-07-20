@@ -16,7 +16,6 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
-import uk.gov.companieshouse.company.links.logging.LogKafkaConsumerMessage;
 import uk.gov.companieshouse.company.links.processor.InsolvencyStreamProcessor;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -52,7 +51,6 @@ public class InsolvencyStreamConsumer {
             groupId = "${company-links.consumer.insolvency.group-id}",
             autoStartup = "${company-links.consumer.insolvency.enable}",
             containerFactory = "listenerContainerFactory")
-    @LogKafkaConsumerMessage
     public void receive(Message<ResourceChangedData> resourceChangedMessage,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,

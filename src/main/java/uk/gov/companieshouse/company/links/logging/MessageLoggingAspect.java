@@ -1,6 +1,7 @@
 package uk.gov.companieshouse.company.links.logging;
 
 import java.util.Optional;
+import java.util.UUID;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -30,7 +31,7 @@ class MessageLoggingAspect {
         try {
             Message<?> message = (Message<?>) joinPoint.getArgs()[0];
             DataMapHolder.initialise(extractContextId(message.getPayload())
-                    .orElseGet(() -> "unknown"));
+                    .orElse(UUID.randomUUID().toString()));
 
             String topic = (String) joinPoint.getArgs()[1];
             String partition = (String) joinPoint.getArgs()[2];

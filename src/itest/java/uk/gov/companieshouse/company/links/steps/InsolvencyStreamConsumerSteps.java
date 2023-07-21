@@ -1,5 +1,7 @@
 package uk.gov.companieshouse.company.links.steps;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +23,7 @@ import org.apache.kafka.common.header.Header;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
+import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
 import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
 import uk.gov.companieshouse.company.links.service.CompanyInsolvencyService;
@@ -63,6 +66,9 @@ public class InsolvencyStreamConsumerSteps {
 
     @Autowired
     private ResettableCountDownLatch resettableCountDownLatch;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Before
     public void beforeEach() {
@@ -187,13 +193,16 @@ public class InsolvencyStreamConsumerSteps {
     }
 
     @Then("verify the company link is removed from company profile")
-    public void verify_the_company_link_is_removed_from_company_profile() {
+    public void verify_the_company_link_is_removed_from_company_profile()
+            throws JsonProcessingException {
         ServeEvent serveEvent = findServeEvents()
                 .orElseThrow()
                 .get(0);
         String actual = serveEvent.getRequest().getBodyAsString();
         String expected = WiremockTestConfig.loadFile("profile-with-insolvency-links-delete.json");
-        assertThat(expected).isEqualTo(actual);
+        CompanyProfile expectedCompanyProfile = objectMapper.readValue(expected, CompanyProfile.class);
+        CompanyProfile actualCompanyProfile = objectMapper.readValue(actual, CompanyProfile.class);
+        assertThat(expectedCompanyProfile).isEqualTo(actualCompanyProfile);
     }
 
     @Then("verify the patch endpoint is never invoked to delete company links")

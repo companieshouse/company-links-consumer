@@ -31,8 +31,8 @@ public class LinkClientConfig {
                         CHANGED, addOfficersClient,
                         DELETED, removeOfficersClient),
                 STATEMENTS, Map.of(
-                    CHANGED, addStatementsClient,
-                    DELETED, deleteStatementsClient));
+                        CHANGED, addStatementsClient,
+                        DELETED, deleteStatementsClient));
 
     }
 }

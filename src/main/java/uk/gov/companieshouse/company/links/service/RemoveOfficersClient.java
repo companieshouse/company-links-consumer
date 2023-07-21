@@ -3,6 +3,7 @@ package uk.gov.companieshouse.company.links.service;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
@@ -37,7 +38,7 @@ public class RemoveOfficersClient implements LinkClient {
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
         OfficerList officerList = appointmentsListClient.getAppointmentsList(
-                linkRequest.getCompanyNumber());
+                linkRequest.getCompanyNumber(), linkRequest.getRequestId());
         if (officerList.getTotalResults() == 0) {
             removeOfficersLinkClient.patchLink(linkRequest);
         } else {
@@ -48,7 +49,7 @@ public class RemoveOfficersClient implements LinkClient {
                         + "deleted", linkRequest.getResourceId()));
             } else {
                 logger.debug(String.format("Officers for company number [%s] still exist",
-                        linkRequest.getCompanyNumber()));
+                        linkRequest.getCompanyNumber()), DataMapHolder.getLogMap());
             }
         }
     }

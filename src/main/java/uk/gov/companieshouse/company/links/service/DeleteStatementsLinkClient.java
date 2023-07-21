@@ -7,11 +7,13 @@ import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
 @Component
 public class DeleteStatementsLinkClient implements LinkClient {
+
     private final Logger logger;
     private final Supplier<InternalApiClient> internalApiClientFactory;
 
@@ -30,37 +32,42 @@ public class DeleteStatementsLinkClient implements LinkClient {
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
         InternalApiClient client = internalApiClientFactory.get();
+        client.getHttpClient().setRequestId(linkRequest.getRequestId());
         try {
             client.privateCompanyLinksResourceHandler()
                     .deletePscStatementsCompanyLink(String.format(
-                        "/company/%s/links/persons-with-significant-control-statements/delete",
+                            "/company/%s/links/persons-with-significant-control-statements/delete",
                             linkRequest.getCompanyNumber()))
                     .execute();
         } catch (ApiErrorResponseException ex) {
             if (ex.getStatusCode() / 100 == 5) {
                 logger.error(String.format("Server error returned with status code: [%s] "
-                        + "processing remove statements link request", ex.getStatusCode()));
+                                + "processing remove statements link request", ex.getStatusCode()),
+                        DataMapHolder.getLogMap());
                 throw new RetryableErrorException("Server error returned when processing "
                         + "remove statements link request", ex);
             } else if (ex.getStatusCode() == 409) {
                 logger.info("HTTP 409 Conflict returned; "
-                        + "company profile does not have an statements link already");
+                                + "company profile does not have an statements link already",
+                        DataMapHolder.getLogMap());
             } else if (ex.getStatusCode() == 404) {
                 logger.info("HTTP 404 Not Found returned; "
-                        + "company profile does not exist");
+                        + "company profile does not exist", DataMapHolder.getLogMap());
             } else {
                 logger.error(String.format("remove statements client error returned with "
-                        + "status code: [%s] when processing remove statements link request",
-                        ex.getStatusCode()));
+                                + "status code: [%s] when processing remove statements link "
+                                + "request", ex.getStatusCode()), DataMapHolder.getLogMap());
                 throw new NonRetryableErrorException("Client error returned when "
                         + "processing remove statements link request", ex);
             }
         } catch (IllegalArgumentException ex) {
-            logger.error("Illegal argument exception caught when handling API response");
+            logger.error("Illegal argument exception caught when handling API response",
+                    DataMapHolder.getLogMap());
             throw new RetryableErrorException("Server error returned when processing remove "
                     + "statements link request", ex);
         } catch (URIValidationException ex) {
-            logger.error("Invalid companyNumber specified when handling API request");
+            logger.error("Invalid companyNumber specified when handling API request",
+                    DataMapHolder.getLogMap());
             throw new NonRetryableErrorException("Invalid companyNumber specified", ex);
         }
     }

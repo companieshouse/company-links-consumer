@@ -24,9 +24,11 @@ import uk.gov.companieshouse.logging.Logger;
 class RemoveOfficersClientTest {
 
     private static final String COMPANY_NUMBER = "12345678";
+    private static final String REQUEST_ID = "request_id";
     private static final String RESOURCE_ID = "abcdefg";
 
-    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, RESOURCE_ID);
+    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, RESOURCE_ID,
+            REQUEST_ID);
 
     @Mock
     private AppointmentsListClient appointmentsListClient;
@@ -42,7 +44,7 @@ class RemoveOfficersClientTest {
 
     @Test
     void shouldRemoveOfficersLinkWhenZeroAppointmentsFound() {
-        when(appointmentsListClient.getAppointmentsList(COMPANY_NUMBER)).thenReturn(
+        when(appointmentsListClient.getAppointmentsList(COMPANY_NUMBER, linkRequest.getRequestId())).thenReturn(
                 new OfficerList()
                         .totalResults(0));
 
@@ -53,7 +55,7 @@ class RemoveOfficersClientTest {
 
     @Test
     void shouldThrowRetryableErrorExceptionWhenOfficerStillPresentInOfficerList() {
-        when(appointmentsListClient.getAppointmentsList(COMPANY_NUMBER)).thenReturn(
+        when(appointmentsListClient.getAppointmentsList(COMPANY_NUMBER, linkRequest.getRequestId())).thenReturn(
                 new OfficerList()
                         .totalResults(1)
                         .items(List.of(new OfficerSummary()
@@ -69,7 +71,7 @@ class RemoveOfficersClientTest {
 
     @Test
     void shouldNotRemoveOfficerLinkWhenOfficerListContainsOtherOfficers() {
-        when(appointmentsListClient.getAppointmentsList(COMPANY_NUMBER)).thenReturn(
+        when(appointmentsListClient.getAppointmentsList(COMPANY_NUMBER, linkRequest.getRequestId())).thenReturn(
                 new OfficerList()
                         .totalResults(1)
                         .links(new LinkTypes().self(String.format("/company/%s/%s",

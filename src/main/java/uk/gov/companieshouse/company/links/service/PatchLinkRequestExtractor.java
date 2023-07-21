@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
@@ -23,19 +24,21 @@ public class PatchLinkRequestExtractor implements PatchLinkRequestExtractable {
     }
 
     @Override
-    public PatchLinkRequest extractPatchLinkRequest(String uri) {
+    public PatchLinkRequest extractPatchLinkRequest(String uri, String requestId) {
         if (StringUtils.isBlank(uri)) {
-            logger.error("Could not extract company number from empty or null resource uri");
+            logger.error("Could not extract company number from empty or null resource uri",
+                    DataMapHolder.getLogMap());
             throw new NonRetryableErrorException(
                     "Could not extract company number from empty or null resource uri");
         }
         // matches up to 10 digits between company/ and /
         Matcher matcher = EXTRACT_COMPANY_NUMBER_PATTERN.matcher(uri);
         if (matcher.find()) {
-            return new PatchLinkRequest(matcher.group(), substringAfterLast(uri, "/"));
+            return new PatchLinkRequest(matcher.group(), substringAfterLast(uri, "/"),
+                    requestId);
         } else {
             logger.error(String.format("Could not extract company number from uri "
-                    + "%s ", uri));
+                    + "%s ", uri), DataMapHolder.getLogMap());
             throw new NonRetryableErrorException(
                     String.format("Could not extract company number from resource URI: %s", uri));
         }

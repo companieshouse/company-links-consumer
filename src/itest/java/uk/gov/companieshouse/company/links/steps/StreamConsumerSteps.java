@@ -250,7 +250,7 @@ public class StreamConsumerSteps {
                 apiCall = "persons-with-significant-control-statements";
                 break;
             default:
-                throw new IllegalArgumentException(String.format("payloadType passed in is invalid"));
+                throw new IllegalArgumentException("payloadType passed in is invalid");
         }
         String url = String.format("/company/%s/%s", COMPANY_NUMBER, apiCall);
 

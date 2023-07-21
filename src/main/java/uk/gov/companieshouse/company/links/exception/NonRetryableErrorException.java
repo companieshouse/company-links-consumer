@@ -1,6 +1,7 @@
 package uk.gov.companieshouse.company.links.exception;
 
 public class NonRetryableErrorException extends RuntimeException {
+
     public NonRetryableErrorException(String message) {
         super(message);
     }

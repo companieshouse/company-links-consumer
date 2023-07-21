@@ -24,9 +24,11 @@ import uk.gov.companieshouse.logging.Logger;
 class DeleteStatementsClientTest {
 
     private static final String COMPANY_NUMBER = "12345678";
+    private static final String REQUEST_ID = "request_id";
     private static final String RESOURCE_ID = "abcdefg";
 
-    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, RESOURCE_ID);
+    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, RESOURCE_ID,
+            REQUEST_ID);
 
     @Mock
     private StatementsListClient statementsListClient;
@@ -42,7 +44,7 @@ class DeleteStatementsClientTest {
 
     @Test
     void shouldRemoveStatementsLinkWhenZeroAppointmentsFound() {
-        when(statementsListClient.getStatementsList(COMPANY_NUMBER)).thenReturn(
+        when(statementsListClient.getStatementsList(COMPANY_NUMBER, linkRequest.getRequestId())).thenReturn(
                 new StatementList()
                         .totalResults(0));
 
@@ -53,7 +55,7 @@ class DeleteStatementsClientTest {
 
     @Test
     void shouldThrowRetryableErrorExceptionWhenStatementStillPresentInStatementList() {
-        when(statementsListClient.getStatementsList(COMPANY_NUMBER)).thenReturn(
+        when(statementsListClient.getStatementsList(COMPANY_NUMBER, linkRequest.getRequestId())).thenReturn(
                 new StatementList()
                         .totalResults(1)
                         .items(List.of(new Statement()
@@ -69,7 +71,7 @@ class DeleteStatementsClientTest {
 
     @Test
     void shouldNotRemoveStatementLinkWhenStatementListContainsOtherStatements() {
-        when(statementsListClient.getStatementsList(COMPANY_NUMBER)).thenReturn(
+        when(statementsListClient.getStatementsList(COMPANY_NUMBER, linkRequest.getRequestId())).thenReturn(
                 new StatementList()
                         .totalResults(1)
                         .items(List.of(new Statement()

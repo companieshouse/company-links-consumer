@@ -14,13 +14,14 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.processor.LinkRouter;
 import uk.gov.companieshouse.company.links.type.ResourceChange;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 @Component
-public class ExemptionsStreamConsumer  {
+public class ExemptionsStreamConsumer {
 
     private final Logger logger;
     private final LinkRouter exemptionsRouter;
@@ -57,16 +58,17 @@ public class ExemptionsStreamConsumer  {
         String contextId = payload.getContextId();
         logger.info(String.format("A new message successfully picked up from topic: %s, "
                         + "partition: %s and offset: %s with contextId: %s",
-                topic, partition, offset, contextId));
+                topic, partition, offset, contextId), DataMapHolder.getLogMap());
 
         try {
             exemptionsRouter.route(new ResourceChange(payload), "exemptions");
             logger.info(format("Company exemptions message with contextId: %s is "
-                            + "successfully processed in %d milliseconds", contextId,
-                    Duration.between(startTime, Instant.now()).toMillis()));
+                                    + "successfully processed in %d milliseconds", contextId,
+                            Duration.between(startTime, Instant.now()).toMillis()),
+                    DataMapHolder.getLogMap());
         } catch (Exception exception) {
             logger.errorContext(contextId, format("Exception occurred while processing "
-                    + "message on the topic: %s", topic), exception, null);
+                    + "message on the topic: %s", topic), exception, DataMapHolder.getLogMap());
             throw exception;
         }
     }

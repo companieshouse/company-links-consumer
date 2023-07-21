@@ -22,6 +22,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @ExtendWith(MockitoExtension.class)
 class CompanyNumberExtractorTest {
 
+    private static final String REQUEST_ID = "request_id";
+
     @Mock
     private Logger logger;
 
@@ -33,7 +35,7 @@ class CompanyNumberExtractorTest {
     void process() {
         // given
         // when
-        PatchLinkRequest actual = extractor.extractPatchLinkRequest("company/OC305127/appointments/-0YatipCW4ZL295N9UVFo1TGyW8");
+        PatchLinkRequest actual = extractor.extractPatchLinkRequest("company/OC305127/appointments/-0YatipCW4ZL295N9UVFo1TGyW8", REQUEST_ID);
 
         // then
         assertEquals("OC305127", actual.getCompanyNumber());
@@ -45,7 +47,7 @@ class CompanyNumberExtractorTest {
         // given
 
         // when
-        Executable executable = () -> extractor.extractPatchLinkRequest(uri);
+        Executable executable = () -> extractor.extractPatchLinkRequest(uri, REQUEST_ID);
 
         // then
         Exception exception = assertThrows(NonRetryableErrorException.class, executable);

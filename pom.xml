@@ -32,7 +32,7 @@
 		<ch-kafka.version>1.4.8</ch-kafka.version>
 		<structured-logging.version>1.9.25</structured-logging.version>
 		<kafka-models.version>1.0.33</kafka-models.version>
-		<private-api-sdk-java.version>2.0.279</private-api-sdk-java.version>
+		<private-api-sdk-java.version>2.0.294</private-api-sdk-java.version>
 		<api-sdk-manager-java-library.version>1.0.11</api-sdk-manager-java-library.version>
 		<jib-maven-plugin.version>3.3.2</jib-maven-plugin.version>
 		<springfox-boot-starter.version>3.0.0</springfox-boot-starter.version>
@@ -70,6 +70,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.yaml</groupId>
+					<artifactId>snakeyaml</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -206,6 +212,14 @@
 				<exclusion>
 					<groupId>com.github.jknack</groupId>
 					<artifactId>handlebars-helpers</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>commons-fileupload</groupId>
+					<artifactId>commons-fileupload</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-xml</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>

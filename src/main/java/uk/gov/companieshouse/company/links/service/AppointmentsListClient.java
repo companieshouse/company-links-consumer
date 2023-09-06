@@ -39,7 +39,7 @@ public class AppointmentsListClient {
         try {
             return client.privateCompanyAppointmentsListHandler()
                     .getCompanyAppointmentsList(
-                            String.format("/company/%s/officers-test", companyNumber))
+                            String.format("/company/%s/officers", companyNumber))
                     .execute()
                     .getData();
         } catch (ApiErrorResponseException ex) {

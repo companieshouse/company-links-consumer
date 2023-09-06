@@ -37,7 +37,7 @@ class AppointmentsListClientTest {
 
     private static final String COMPANY_NUMBER = "12345678";
     private static final String REQUEST_ID = "request_id";
-    private static final String PATH = String.format("/company/%s/officers-test", COMPANY_NUMBER);
+    private static final String PATH = String.format("/company/%s/officers", COMPANY_NUMBER);
 
     @Mock
     private Supplier<InternalApiClient> internalApiClientSupplier;

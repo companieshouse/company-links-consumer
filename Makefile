@@ -73,9 +73,9 @@ endif
 dist: clean build package
 
 .PHONY: sonar-pr-analysis
-sonar-pr-analysis:
+sonar-pr-analysis: clean
 	@# Help: Run sonar scan on a PR
-	mvn verify sonar:sonar -P sonar-pr-analysis
+	mvn verify -Dskip.unit.tests=false -Dskip.integration.tests=false sonar:sonar -P sonar-pr-analysis
 
 .PHONY: sonar
 sonar:

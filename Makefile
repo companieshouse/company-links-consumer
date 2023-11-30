@@ -39,8 +39,9 @@ test: test-integration test-unit
 	@# Help: Run all test-* targets (convenience method for developers)
 
 .PHONY: test-unit
-test-unit: clean
+test-unit:
 	@# Help: Run unit tests
+	mvn clean
 	mvn verify -Dskip.unit.tests=false -Dskip.integration.tests=false
 
 .PHONY: test-integration
@@ -73,14 +74,14 @@ endif
 dist: clean build package
 
 .PHONY: sonar-pr-analysis
-sonar-pr-analysis: clean
+sonar-pr-analysis:
 	@# Help: Run sonar scan on a PR
-	mvn verify -Dskip.unit.tests=false -Dskip.integration.tests=false sonar:sonar -P sonar-pr-analysis
+	mvn sonar:sonar -P sonar-pr-analysis
 
 .PHONY: sonar
 sonar:
 	@# Help: Run sonar scan
-	mvn verify sonar:sonar
+	mvn sonar:sonar
 
 .PHONY: deps
 deps:

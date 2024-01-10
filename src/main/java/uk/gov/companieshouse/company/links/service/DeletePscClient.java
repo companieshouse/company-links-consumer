@@ -39,8 +39,7 @@ public class DeletePscClient implements LinkClient {
         if (pscList.getTotalResults() == 0) {
             deletePscLinkClient.patchLink(linkRequest);
         } else {
-            if (linkRequest.getResourceId() != null &&
-                    pscList.getItems().stream()
+            if (pscList.getItems().stream()
                     .anyMatch(officerSummary -> officerSummary.getLinks().toString()
                             .endsWith(linkRequest.getResourceId()))) {
                 throw new RetryableErrorException(String.format("Psc with id: %s not "

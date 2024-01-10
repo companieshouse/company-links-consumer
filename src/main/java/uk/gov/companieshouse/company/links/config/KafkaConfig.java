@@ -2,7 +2,6 @@ package uk.gov.companieshouse.company.links.config;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -40,9 +39,9 @@ public class KafkaConfig {
      * Constructor.
      */
     public KafkaConfig(ResourceChangedDataDeserializer resourceChangedDataDeserializer,
-                       ResourceChangedDataSerializer resourceChangedDataSerializer,
-                       @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
-                       @Value("${spring.kafka.listener.concurrency}") Integer listenerConcurrency) {
+            ResourceChangedDataSerializer resourceChangedDataSerializer,
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
+            @Value("${spring.kafka.listener.concurrency}") Integer listenerConcurrency) {
         this.resourceChangedDataDeserializer = resourceChangedDataDeserializer;
         this.resourceChangedDataSerializer = resourceChangedDataSerializer;
         this.bootstrapServers = bootstrapServers;

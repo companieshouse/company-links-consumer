@@ -11,6 +11,7 @@ import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.logging.Logger;
 
 @Component
@@ -29,24 +30,25 @@ public class AppointmentsListClient {
      * Retrieves a list of officers appointed to a company.
      *
      * @param companyNumber The companyNumber
+     * @param requestId The requestID from the initial Kafka message
      * @return OfficerList
      */
-    public OfficerList getAppointmentsList(String companyNumber) {
+    public OfficerList getAppointmentsList(String companyNumber, String requestId) {
         InternalApiClient client = internalApiClientFactory.get();
+        client.getHttpClient().setRequestId(requestId);
         try {
             return client.privateCompanyAppointmentsListHandler()
                     .getCompanyAppointmentsList(
-                            String.format("/company/%s/officers-test", companyNumber))
+                            String.format("/company/%s/officers", companyNumber))
                     .execute()
                     .getData();
         } catch (ApiErrorResponseException ex) {
-
             if (HttpStatus.valueOf(ex.getStatusCode()).is5xxServerError()) {
                 String message = String.format("Server error status code: [%s] "
                                 + "while fetching appointments list for company %s",
                         ex.getStatusCode(),
                         companyNumber);
-                logger.error(message);
+                logger.error(message, DataMapHolder.getLogMap());
                 throw new RetryableErrorException(message, ex);
             } else if (ex.getStatusCode() == 404) {
 
@@ -62,29 +64,31 @@ public class AppointmentsListClient {
                 if ((ex.getHeaders().containsKey(CONTENT_LENGTH)
                         && ex.getHeaders().getContentLength() > 0)
                         || (ex.getContent() != null && ex.getContent().length() > 0)) {
-                    logger.error("Company-appointments service is not available");
+                    logger.error("Company-appointments service is not available",
+                            DataMapHolder.getLogMap());
                     throw new RetryableErrorException(
                             "Company-appointments service is not available", ex);
                 }
                 // *** End HACK ALERT!!!
 
                 logger.debug(String.format("HTTP 404 Not Found returned for company number %s",
-                        companyNumber));
+                        companyNumber), DataMapHolder.getLogMap());
                 return new OfficerList()
                         .totalResults(0);
             } else {
                 String message = String.format("Client error status code: [%s] "
                         + "while fetching appointments list", ex.getStatusCode());
-                logger.error(message);
+                logger.error(message, DataMapHolder.getLogMap());
                 throw new NonRetryableErrorException(message, ex);
             }
         } catch (IllegalArgumentException ex) {
-            logger.error("Illegal argument exception caught when handling API response");
+            logger.error("Illegal argument exception caught when handling API response",
+                    DataMapHolder.getLogMap());
             throw new RetryableErrorException("Error returned when fetching appointments", ex);
         } catch (URIValidationException ex) {
             String message = String.format("Invalid companyNumber [%s] when handling API request",
                     companyNumber);
-            logger.error(message);
+            logger.error(message, DataMapHolder.getLogMap());
             throw new NonRetryableErrorException(message, ex);
         }
     }

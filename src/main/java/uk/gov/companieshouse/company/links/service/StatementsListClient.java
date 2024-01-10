@@ -11,6 +11,7 @@ import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.logging.Logger;
 
 @Component
@@ -29,10 +30,12 @@ public class StatementsListClient {
      * Retrieves a list of statements for a given company number.
      *
      * @param companyNumber The companyNumber
+     * @param requestId The requestID from the initial Kafka message
      * @return StatementList
      */
-    public StatementList getStatementsList(String companyNumber) {
+    public StatementList getStatementsList(String companyNumber, String requestId) {
         InternalApiClient client = internalApiClientFactory.get();
+        client.getHttpClient().setRequestId(requestId);
         try {
             return client.privateDeltaResourceHandler()
                     .getPscStatements(
@@ -41,13 +44,11 @@ public class StatementsListClient {
                     .execute()
                     .getData();
         } catch (ApiErrorResponseException ex) {
-
             if (HttpStatus.valueOf(ex.getStatusCode()).is5xxServerError()) {
                 String message = String.format("Server error status code: [%s] "
                                 + "while fetching statements list for company %s",
-                        ex.getStatusCode(),
-                        companyNumber);
-                logger.error(message);
+                        ex.getStatusCode(), companyNumber);
+                logger.error(message, DataMapHolder.getLogMap());
                 throw new RetryableErrorException(message, ex);
             } else if (ex.getStatusCode() == 404) {
 
@@ -63,29 +64,31 @@ public class StatementsListClient {
                 if ((ex.getHeaders().containsKey(CONTENT_LENGTH)
                         && ex.getHeaders().getContentLength() > 0)
                         || (ex.getContent() != null && ex.getContent().length() > 0)) {
-                    logger.error("psc-statements-data-api service is not available");
+                    logger.error("psc-statements-data-api service is not available",
+                            DataMapHolder.getLogMap());
                     throw new RetryableErrorException(
                             "psc-statements-data-api service is not available", ex);
                 }
                 // *** End HACK ALERT!!!
 
                 logger.debug(String.format("HTTP 404 Not Found returned for company number %s",
-                        companyNumber));
+                        companyNumber), DataMapHolder.getLogMap());
                 return new StatementList()
                         .totalResults(0);
             } else {
                 String message = String.format("Client error status code: [%s] "
                         + "while fetching statements list", ex.getStatusCode());
-                logger.error(message);
+                logger.error(message, DataMapHolder.getLogMap());
                 throw new NonRetryableErrorException(message, ex);
             }
         } catch (IllegalArgumentException ex) {
-            logger.error("Illegal argument exception caught when handling API response");
+            logger.error("Illegal argument exception caught when handling API response",
+                    DataMapHolder.getLogMap());
             throw new RetryableErrorException("Error returned when fetching statements", ex);
         } catch (URIValidationException ex) {
             String message = String.format("Invalid companyNumber [%s] when handling API request",
                     companyNumber);
-            logger.error(message);
+            logger.error(message, DataMapHolder.getLogMap());
             throw new NonRetryableErrorException(message, ex);
         }
     }

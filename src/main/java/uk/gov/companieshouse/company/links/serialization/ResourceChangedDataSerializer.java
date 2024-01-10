@@ -8,6 +8,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.kafka.serialization.AvroSerializer;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -24,7 +25,7 @@ public class ResourceChangedDataSerializer implements Serializer<Object> {
 
     @Override
     public byte[] serialize(String topic, Object payload) {
-        logger.trace("Payload serialised: " + payload);
+        logger.trace("Payload serialised: " + payload, DataMapHolder.getLogMap());
 
         try {
             if (payload == null) {
@@ -48,7 +49,8 @@ public class ResourceChangedDataSerializer implements Serializer<Object> {
 
             return payload.toString().getBytes(StandardCharsets.UTF_8);
         } catch (Exception ex) {
-            logger.error("Serialization exception while writing to byte array", ex);
+            logger.error("Serialization exception while writing to byte array", ex,
+                    DataMapHolder.getLogMap());
             throw new NonRetryableErrorException("Serialization exception while "
                     + "writing to byte array", ex);
         }

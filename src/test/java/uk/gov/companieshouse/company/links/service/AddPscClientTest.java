@@ -41,6 +41,9 @@ import static org.mockito.Mockito.when;
 public class AddPscClientTest {
 
     private static final String COMPANY_NUMBER = "12345678";
+    private static final String REQUEST_ID = "request_id";
+
+    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID);
     private static final String PATH = String.format("/company/%s/links/persons-with-significant-control", COMPANY_NUMBER);
 
     @Mock
@@ -96,7 +99,7 @@ public class AddPscClientTest {
         when(pscLinkAddHandler.execute()).thenReturn(new ApiResponse<>(200, Collections.emptyMap()));
 
         //when
-        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
+        client.patchLink(linkRequest);
 
         //then
         verify(resourceHandler).addPscCompanyLink(PATH);
@@ -109,7 +112,7 @@ public class AddPscClientTest {
         when(pscLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
 
         //when
-        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
+        client.patchLink(linkRequest);
 
         //then
         verify(resourceHandler).addPscCompanyLink(PATH);
@@ -123,7 +126,7 @@ public class AddPscClientTest {
         when(pscLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
 
         //when
-        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
+        client.patchLink(linkRequest);
 
         //then
         verify(resourceHandler).addPscCompanyLink(PATH);
@@ -137,7 +140,7 @@ public class AddPscClientTest {
         when(pscLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
 
         //when
-        Executable actual = () -> client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
+        Executable actual = () -> client.patchLink(linkRequest);
 
         //then
         assertThrows(RetryableErrorException.class, actual);
@@ -151,7 +154,7 @@ public class AddPscClientTest {
         when(pscLinkAddHandler.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
 
         //when
-        Executable actual = () -> client.patchLink(new PatchLinkRequest(COMPANY_NUMBER));
+        Executable actual = () -> client.patchLink(linkRequest);
 
         //then
         assertThrows(RetryableErrorException.class, actual);
@@ -166,7 +169,7 @@ public class AddPscClientTest {
         when(pscLinkAddHandler.execute()).thenThrow(new URIValidationException("Invalid/URI"));
 
         //when
-        Executable actual = () -> client.patchLink(new PatchLinkRequest("invalid/path"));
+        Executable actual = () -> client.patchLink(new PatchLinkRequest("invalid/path", "invalid-id"));
 
         //then
         assertThrows(NonRetryableErrorException.class, actual);

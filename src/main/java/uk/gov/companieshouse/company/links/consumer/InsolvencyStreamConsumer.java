@@ -4,7 +4,6 @@ import static java.lang.String.format;
 
 import java.time.Duration;
 import java.time.Instant;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
@@ -16,6 +15,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.processor.InsolvencyStreamProcessor;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -52,15 +52,15 @@ public class InsolvencyStreamConsumer {
             autoStartup = "${company-links.consumer.insolvency.enable}",
             containerFactory = "listenerContainerFactory")
     public void receive(Message<ResourceChangedData> resourceChangedMessage,
-                        @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-                        @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
-                        @Header(KafkaHeaders.OFFSET) String offset) {
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
+            @Header(KafkaHeaders.OFFSET) String offset) {
         Instant startTime = Instant.now();
         ResourceChangedData payload = resourceChangedMessage.getPayload();
         String contextId = payload.getContextId();
         logger.info(String.format("A new message successfully picked up from topic: %s, "
                         + "partition: %s and offset: %s with contextId: %s",
-                topic, partition, offset, contextId));
+                topic, partition, offset, contextId), DataMapHolder.getLogMap());
 
         try {
             final boolean deleteEventType = "deleted"
@@ -69,19 +69,20 @@ public class InsolvencyStreamConsumer {
             if (deleteEventType) {
                 insolvencyProcessor.processDelete(resourceChangedMessage);
                 logger.info(format("Insolvency Links Delete message with contextId: %s is "
-                                + "successfully processed in %d milliseconds", contextId,
-                        Duration.between(startTime, Instant.now()).toMillis()));
+                                        + "successfully processed in %d milliseconds", contextId,
+                                Duration.between(startTime, Instant.now()).toMillis()),
+                        DataMapHolder.getLogMap());
             } else {
                 insolvencyProcessor.processDelta(resourceChangedMessage);
                 logger.info(format("Insolvency Links Delta message with contextId: %s is "
-                                + "successfully processed in %d milliseconds", contextId,
-                        Duration.between(startTime, Instant.now()).toMillis()));
+                                        + "successfully processed in %d milliseconds", contextId,
+                                Duration.between(startTime, Instant.now()).toMillis()),
+                        DataMapHolder.getLogMap());
             }
         } catch (Exception exception) {
             logger.errorContext(contextId, format("Exception occurred while processing "
-                    + "message on the topic: %s", topic), exception, null);
+                    + "message on the topic: %s", topic), exception, DataMapHolder.getLogMap());
             throw exception;
         }
     }
-
 }

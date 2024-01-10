@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>uk.gov.companieshouse</groupId>
@@ -23,25 +23,23 @@
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-		<spring.boot.version>2.7.9</spring.boot.version>
-		<assertj-core.version>3.22.0</assertj-core.version>
-		<test-containers.version>1.16.2</test-containers.version>
+		<spring.boot.version>2.7.13</spring.boot.version>
+		<test-containers.version>1.18.3</test-containers.version>
 		<map-struct.version>1.4.2.Final</map-struct.version>
-		<maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-		<maven-build-helper-plugin.version>3.2.0</maven-build-helper-plugin.version>
-		<maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
-		<docker-maven-plugin.version>1.0.0</docker-maven-plugin.version>
-		<ch-kafka.version>1.4.2</ch-kafka.version>
-		<structured-logging.version>1.9.12</structured-logging.version>
-		<kafka-models.version>1.0.27</kafka-models.version>
-		<private-api-sdk-java.version>2.0.260</private-api-sdk-java.version>
-		<api-sdk-manager-java-library.version>1.0.4</api-sdk-manager-java-library.version>
-		<jib-maven-plugin.version>3.1.1</jib-maven-plugin.version>
+		<maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
+		<maven-build-helper-plugin.version>3.4.0</maven-build-helper-plugin.version>
+		<maven-failsafe-plugin.version>3.1.2</maven-failsafe-plugin.version>
+		<ch-kafka.version>1.4.8</ch-kafka.version>
+		<structured-logging.version>1.9.25</structured-logging.version>
+		<kafka-models.version>1.0.33</kafka-models.version>
+		<private-api-sdk-java.version>2.0.294</private-api-sdk-java.version>
+		<api-sdk-manager-java-library.version>1.0.11</api-sdk-manager-java-library.version>
+		<jib-maven-plugin.version>3.3.2</jib-maven-plugin.version>
 		<springfox-boot-starter.version>3.0.0</springfox-boot-starter.version>
 		<skip.integration.tests>false</skip.integration.tests>
 		<skip.unit.tests>false</skip.unit.tests>
 		<cucumber.version>7.2.3</cucumber.version>
-		<wiremock.standalone.version>2.32.0</wiremock.standalone.version>
+		<wiremock.standalone.version>2.35.0</wiremock.standalone.version>
 		<!--sonar configuration-->
 		<sonar-maven-plugin.version>3.7.0.1746</sonar-maven-plugin.version>
 		<maven-resources-plugin.version>3.2.0</maven-resources-plugin.version>
@@ -72,6 +70,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.yaml</groupId>
+					<artifactId>snakeyaml</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -146,12 +150,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.assertj</groupId>
-			<artifactId>assertj-core</artifactId>
-			<version>${assertj-core.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers</artifactId>
 			<version>${test-containers.version}</version>
@@ -214,6 +212,14 @@
 				<exclusion>
 					<groupId>com.github.jknack</groupId>
 					<artifactId>handlebars-helpers</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>commons-fileupload</groupId>
+					<artifactId>commons-fileupload</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-xml</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -376,7 +382,6 @@
 						<arg>-Xlint</arg>
 						<arg>-Xlint:-processing</arg>
 						<arg>-Xlint:-serial</arg>
-						<arg>-Werror</arg>
 					</compilerArgs>
 					<annotationProcessorPaths>
 						<path>

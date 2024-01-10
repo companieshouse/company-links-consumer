@@ -21,8 +21,9 @@ import static org.mockito.Mockito.when;
 public class DeletePscClientTest {
     private static final String COMPANY_NUMBER = "12345678";
     private static final String RESOURCE_ID = "abcdefg";
+    private static final String REQUEST_ID = "reqId";
 
-    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, RESOURCE_ID);
+    private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, RESOURCE_ID, REQUEST_ID);
 
     @Mock
     private PscListClient pscListClient;

@@ -1,10 +1,12 @@
 package uk.gov.companieshouse.company.links.processor;
 
 import org.springframework.stereotype.Component;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.service.LinkClientFactory;
 import uk.gov.companieshouse.company.links.service.PatchLinkRequestExtractable;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.company.links.type.ResourceChange;
+import uk.gov.companieshouse.stream.ResourceChangedData;
 
 @Component
 public class LinkRouter implements LinkRoutable {
@@ -19,9 +21,12 @@ public class LinkRouter implements LinkRoutable {
 
     @Override
     public void route(ResourceChange message, String deltaType) {
-        String eventType = message.getData().getEvent().getType();
-        PatchLinkRequest request = extractor.extractPatchLinkRequest(
-                message.getData().getResourceUri());
+        ResourceChangedData data = message.getData();
+        String eventType = data.getEvent().getType();
+        PatchLinkRequest request = extractor.extractPatchLinkRequest(data.getResourceUri(),
+                data.getContextId());
+        DataMapHolder.get()
+                .companyNumber(request.getCompanyNumber());
         factory.getLinkClient(deltaType, eventType).patchLink(request);
     }
 }

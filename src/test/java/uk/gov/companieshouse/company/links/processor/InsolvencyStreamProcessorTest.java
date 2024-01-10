@@ -2,13 +2,23 @@ package uk.gov.companieshouse.company.links.processor;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static uk.gov.companieshouse.company.links.processor.TestData.CONTEXT_ID;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +33,7 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.util.FileCopyUtils;
+import org.springframework.util.StringUtils;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
@@ -30,6 +41,7 @@ import uk.gov.companieshouse.api.insolvency.CompanyInsolvency;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
+import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.service.CompanyInsolvencyService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
@@ -55,6 +67,7 @@ class InsolvencyStreamProcessorTest {
 
     @BeforeEach
     void setUp() {
+        DataMapHolder.initialise(CONTEXT_ID);
         insolvencyProcessor = new InsolvencyStreamProcessor(
                 companyProfileService,
                 logger, companyInsolvencyService);
@@ -74,30 +87,31 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyInsolvency> companyInsolvencyGetApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyInsolvency());
 
-        when(companyProfileService.patchCompanyProfile(any(), any(), any())).thenReturn(new ApiResponse<Void>(200, null, null));
+        when(companyProfileService.patchCompanyProfile(any(), any(), any())).thenReturn(new ApiResponse<>(200, null, null));
 
         when(companyInsolvencyService.getCompanyInsolvency(
                 CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyInsolvencyGetApiResponse);
 
-        when(companyProfileService.patchCompanyProfile(any(), any(), any())).thenReturn(new ApiResponse<Void>(200, null, null));
+        when(companyProfileService.patchCompanyProfile(any(), any(), any())).thenReturn(new ApiResponse<>(200, null, null));
 
         insolvencyProcessor.processDelta(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
-        verify(companyProfileService, times(1)).patchCompanyProfile(
+        verify(companyProfileService).patchCompanyProfile(
                 eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), companyProfileCaptor.capture());
         assertEquals(
                 "/company/" + MOCK_COMPANY_NUMBER + "/insolvency",
                 companyProfileCaptor.getValue().getData().getLinks().getInsolvency());
 
         verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message with contextId context_id of kind company-insolvency"));
-        verify(logger, times(2)).info(anyString());
-        verify(logger, atLeastOnce()).info("Successfully invoked GET company-profile-api endpoint" +
-                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
-        verify(logger, atLeastOnce()).info("Successfully invoked PATCH company-profile-api endpoint" +
-                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
+                contains("Resource changed message with contextId context_id of kind company-insolvency"), any());
+        verify(logger, times(2)).info(anyString(), any());
+        verify(logger, atLeastOnce()).info(eq("Successfully invoked GET company-profile-api endpoint" +
+                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER), any());
+        verify(logger, atLeastOnce()).info(eq("Successfully invoked PATCH company-profile-api endpoint" +
+                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER), any());
+        verifyLoggingDataMap();
     }
 
 
@@ -117,17 +131,17 @@ class InsolvencyStreamProcessorTest {
         verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
         verify(companyProfileService, never()).patchCompanyProfile(anyString(), anyString(), any(CompanyProfile.class));
 
-        verify(logger, times(2)).trace(anyString());
+        verify(logger, times(2)).trace(anyString(), any());
         verify(logger, atLeastOnce()).trace(
-                contains("Resource changed message with contextId context_id of kind company-insolvency"));
+                contains("Resource changed message with contextId context_id of kind company-insolvency"), any());
         verify(logger, atLeastOnce()).trace(contains(
                 String.format("Company profile with company number %s,"
                                 + " contains insolvency links, will not perform PATCH",
-                        MOCK_COMPANY_NUMBER)
-        ));
-        verify(logger, times(1)).info(anyString());
-        verify(logger, atLeastOnce()).info("Successfully invoked GET company-profile-api endpoint" +
-                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
+                        MOCK_COMPANY_NUMBER)), any());
+        verify(logger).info(anyString(), any());
+        verify(logger, atLeastOnce()).info(eq("Successfully invoked GET company-profile-api endpoint" +
+                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER), any());
+        verifyLoggingDataMap();
     }
 
     @Test
@@ -145,15 +159,15 @@ class InsolvencyStreamProcessorTest {
 
         verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
         verify(companyProfileService, never()).patchCompanyProfile(anyString(), anyString(), any(CompanyProfile.class));
-        verify(logger, times(2)).trace(anyString());
-        verify(logger, atLeastOnce()).trace((
-                String.format("Company profile with company number %s, does not contain insolvency links," +
+        verify(logger, times(2)).trace(anyString(), any());
+        verify(logger, atLeastOnce()).trace(
+                eq(String.format("Company profile with company number %s, does not contain insolvency links," +
                                 " will not perform patch for contextId context_id",
-                        MOCK_COMPANY_NUMBER)
-        ));
-        verify(logger, times(1)).info(anyString());
-        verify(logger, atLeastOnce()).info("Successfully invoked GET company-profile-api endpoint" +
-                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
+                        MOCK_COMPANY_NUMBER)), any());
+        verify(logger).info(anyString(), any());
+        verify(logger, atLeastOnce()).info(eq("Successfully invoked GET company-profile-api endpoint" +
+                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER), any());
+        verifyLoggingDataMap();
     }
 
     @Test
@@ -174,20 +188,21 @@ class InsolvencyStreamProcessorTest {
                 CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyInsolvencyGetApiResponse);
 
-        when(companyProfileService.patchCompanyProfile(any(), any(), any())).thenReturn(new ApiResponse<Void>(200, null, null));
+        when(companyProfileService.patchCompanyProfile(any(), any(), any())).thenReturn(new ApiResponse<>(200, null, null));
 
         insolvencyProcessor.processDelete(mockResourceChangedMessage);
 
         verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
-        verify(companyProfileService, times(1)).patchCompanyProfile(
+        verify(companyProfileService).patchCompanyProfile(
                 eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), companyProfileCaptor.capture());
         assertNull(companyProfileCaptor.getValue().getData().getLinks().getInsolvency());
 
-        verify(logger, times(2)).info(anyString());
-        verify(logger, atLeastOnce()).info("Successfully invoked GET company-profile-api endpoint" +
-                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
-        verify(logger, atLeastOnce()).info("Successfully invoked PATCH company-profile-api endpoint" +
-                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER);
+        verify(logger, times(2)).info(anyString(), any());
+        verify(logger, atLeastOnce()).info(eq("Successfully invoked GET company-profile-api endpoint" +
+                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER), any());
+        verify(logger, atLeastOnce()).info(eq("Successfully invoked PATCH company-profile-api endpoint" +
+                " for message with contextId context_id and company number " + MOCK_COMPANY_NUMBER), any());
+        verifyLoggingDataMap();
     }
 
     @Test
@@ -210,9 +225,10 @@ class InsolvencyStreamProcessorTest {
 
         assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelete(mockResourceChangedMessage));
         verify(companyProfileService, never()).patchCompanyProfile(anyString(), anyString(), any(CompanyProfile.class));
-        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger).errorContext(any(), any(), any(), any());
         verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
                 eq("Response from insolvency-data-api service, main delta is not yet deleted, throwing retry-able exception to check again"), eq(null), any());
+        verifyLoggingDataMap();
     }
 
     @Test
@@ -236,6 +252,9 @@ class InsolvencyStreamProcessorTest {
 
         assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
         verifyNoInteractions(companyProfileService);
+        Map<String, Object> dataMap = DataMapHolder.getLogMap();
+        assertEquals(CONTEXT_ID, dataMap.get("request_id"));
+        assertFalse(StringUtils.hasText((String)dataMap.get("company_number")));
 
     }
 
@@ -260,6 +279,9 @@ class InsolvencyStreamProcessorTest {
 
         assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelete(mockResourceChangedMessage));
         verifyNoInteractions(companyProfileService);
+        Map<String, Object> dataMap = DataMapHolder.getLogMap();
+        assertEquals(CONTEXT_ID, dataMap.get("request_id"));
+        assertFalse(StringUtils.hasText((String)dataMap.get("company_number")));
     }
 
     @Test
@@ -274,9 +296,10 @@ class InsolvencyStreamProcessorTest {
                 .thenReturn(companyProfileApiResponse);
 
         assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
-        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger).errorContext(any(), any(), any(), any());
         verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
                 eq("Response from GET company-profile-api"), eq(null), any());
+        verifyLoggingDataMap();
     }
 
     @Test
@@ -291,9 +314,10 @@ class InsolvencyStreamProcessorTest {
                 .thenReturn(companyProfileApiResponse);
 
         assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
-        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger).errorContext(any(), any(), any(), any());
         verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
                 eq("Response from GET company-profile-api"), eq(null), any());
+        verifyLoggingDataMap();
     }
 
     @Test
@@ -308,9 +332,10 @@ class InsolvencyStreamProcessorTest {
                 .thenReturn(companyProfileApiResponse);
 
         assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
-        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger).errorContext(any(), any(), any(), any());
         verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
                 eq("Response from GET company-profile-api"), eq(null), any());
+        verifyLoggingDataMap();
     }
 
     @Test
@@ -325,9 +350,10 @@ class InsolvencyStreamProcessorTest {
                 .thenReturn(companyProfileApiResponse);
 
         assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
-        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger).errorContext(any(), any(), any(), any());
         verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
                 eq("Response from GET company-profile-api"), eq(null), any());
+        verifyLoggingDataMap();
     }
 
     @Test
@@ -355,9 +381,10 @@ class InsolvencyStreamProcessorTest {
                 .thenReturn(companyProfileApiResponse);
 
         assertThrows(NonRetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
-        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger).errorContext(any(), any(), any(), any());
         verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
                 eq("Response from PATCH company-profile-api"), eq(null), any());
+        verifyLoggingDataMap();
     }
 
     @Test
@@ -385,9 +412,10 @@ class InsolvencyStreamProcessorTest {
                 .thenReturn(companyInsolvencyGetApiResponse);
 
         assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
-        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger).errorContext(any(), any(), any(), any());
         verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
                 eq("Response from PATCH company-profile-api"), eq(null), any());
+        verifyLoggingDataMap();
     }
 
     @Test
@@ -415,9 +443,10 @@ class InsolvencyStreamProcessorTest {
                 .thenReturn(companyInsolvencyGetApiResponse);
 
         assertThrows(RetryableErrorException.class, () -> insolvencyProcessor.processDelta(mockResourceChangedMessage));
-        verify(logger, times(1)).errorContext(any(), any(), any(), any());
+        verify(logger).errorContext(any(), any(), any(), any());
         verify(logger, atLeastOnce()).errorContext(eq(CONTEXT_ID),
                 eq("Response from PATCH company-profile-api"), eq(null), any());
+        verifyLoggingDataMap();
     }
 
     private Message<ResourceChangedData> createResourceChangedMessage() throws IOException {
@@ -504,4 +533,9 @@ class InsolvencyStreamProcessorTest {
         return companyProfile;
     }
 
+    private void verifyLoggingDataMap() {
+        Map<String, Object> dataMap = DataMapHolder.getLogMap();
+        assertEquals(CONTEXT_ID, dataMap.get("request_id"));
+        assertEquals(MOCK_COMPANY_NUMBER, dataMap.get("company_number"));
+    }
 }

@@ -249,7 +249,7 @@ public class StreamConsumerSteps {
         String apiCall;
         switch (payloadType) {
             case "officers":
-                apiCall = "officers-test";
+                apiCall = "officers";
                 break;
             case "statements":
                 apiCall = "persons-with-significant-control-statements";
@@ -258,7 +258,7 @@ public class StreamConsumerSteps {
                 apiCall = "persons-with-significant-control";
                 break;
             default:
-                throw new IllegalArgumentException(String.format("payloadType passed in is invalid"));
+                throw new IllegalArgumentException("payloadType passed in is invalid");
         }
         String url = String.format("/company/%s/%s", COMPANY_NUMBER, apiCall);
 
@@ -292,7 +292,7 @@ public class StreamConsumerSteps {
     @And("The company appointments api is unavailable")
     public void stubCompanyAppointmentsApiUnavailable() {
         stubFor(
-                get(urlEqualTo(String.format("/company/%s/officers-test", COMPANY_NUMBER)))
+                get(urlEqualTo(String.format("/company/%s/officers", COMPANY_NUMBER)))
                         .willReturn(aResponse()
                                 .withBody("{}")
                                 .withStatus(HttpStatus.NOT_FOUND.value())));

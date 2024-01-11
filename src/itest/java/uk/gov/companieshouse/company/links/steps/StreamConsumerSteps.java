@@ -167,6 +167,8 @@ public class StreamConsumerSteps {
         String apiCall;
         if (deltaType.equals("statements")) {
             apiCall = "persons-with-significant-control-statements";
+        } else if (deltaType.equals("pscs")) {
+            apiCall = "persons-with-significant-control";
         } else {
             apiCall = deltaType;
         }
@@ -232,6 +234,9 @@ public class StreamConsumerSteps {
         if (deltaType.equals("statements")) {
             mainTopic = "stream-psc-statements";
             resourceUri = String.format("company/%s/persons-with-significant-control-statements", COMPANY_NUMBER);
+        } else if (deltaType.equals("pscs")) {
+            mainTopic = "stream-company-psc";
+            resourceUri = String.format("company/%s/persons-with-significant-control", COMPANY_NUMBER);
         } else {
             mainTopic = String.format("stream-company-%s", deltaType);
             resourceUri = String.format("company/%s/%s", COMPANY_NUMBER, deltaType);
@@ -248,6 +253,9 @@ public class StreamConsumerSteps {
                 break;
             case "statements":
                 apiCall = "persons-with-significant-control-statements";
+                break;
+            case "pscs":
+                apiCall = "persons-with-significant-control";
                 break;
             default:
                 throw new IllegalArgumentException("payloadType passed in is invalid");

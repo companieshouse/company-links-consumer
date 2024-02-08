@@ -1,5 +1,15 @@
 package uk.gov.companieshouse.company.links.steps;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.patch;
+import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.companieshouse.company.links.config.WiremockTestConfig.setupWiremock;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.en.And;
@@ -7,7 +17,13 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import java.io.UncheckedIOException;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -22,23 +38,6 @@ import uk.gov.companieshouse.api.appointment.OfficerSummary;
 import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
-
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.patch;
-import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static org.assertj.core.api.Assertions.assertThat;
-import static uk.gov.companieshouse.company.links.config.WiremockTestConfig.setupWiremock;
 
 public class StreamConsumerSteps {
     private static final int CONSUME_MESSAGE_TIMEOUT = 5;
@@ -169,6 +168,8 @@ public class StreamConsumerSteps {
             apiCall = "persons-with-significant-control-statements";
         } else if (deltaType.equals("pscs")) {
             apiCall = "persons-with-significant-control";
+        } else if (deltaType.equals("filing-history")) {
+            apiCall = "filing-history";
         } else {
             apiCall = deltaType;
         }
@@ -236,7 +237,11 @@ public class StreamConsumerSteps {
             resourceUri = String.format("company/%s/persons-with-significant-control-statements", COMPANY_NUMBER);
         } else if (deltaType.equals("pscs")) {
             mainTopic = "stream-company-psc";
-            resourceUri = String.format("company/%s/persons-with-significant-control", COMPANY_NUMBER);
+            resourceUri = String.format("company/%s/persons-with-significant-control",
+                    COMPANY_NUMBER);
+        } else if (deltaType.equals("filing-history")) {
+            mainTopic = "stream-filing-history";
+            resourceUri = String.format("company/%s/filing-history", COMPANY_NUMBER);
         } else {
             mainTopic = String.format("stream-company-%s", deltaType);
             resourceUri = String.format("company/%s/%s", COMPANY_NUMBER, deltaType);
@@ -256,6 +261,9 @@ public class StreamConsumerSteps {
                 break;
             case "pscs":
                 apiCall = "persons-with-significant-control";
+                break;
+            case "filing_history":
+                apiCall = "filing-history";
                 break;
             default:
                 throw new IllegalArgumentException("payloadType passed in is invalid");

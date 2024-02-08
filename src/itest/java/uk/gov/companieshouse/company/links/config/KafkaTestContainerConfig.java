@@ -1,10 +1,11 @@
 package uk.gov.companieshouse.company.links.config;
 
+import static java.time.temporal.ChronoUnit.SECONDS;
+
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -30,8 +31,6 @@ import uk.gov.companieshouse.company.links.exception.RetryableTopicErrorIntercep
 import uk.gov.companieshouse.company.links.serialization.ResourceChangedDataDeserializer;
 import uk.gov.companieshouse.company.links.serialization.ResourceChangedDataSerializer;
 import uk.gov.companieshouse.stream.ResourceChangedData;
-
-import static java.time.temporal.ChronoUnit.SECONDS;
 
 @TestConfiguration
 public class KafkaTestContainerConfig {
@@ -131,8 +130,10 @@ public class KafkaTestContainerConfig {
                 "stream-psc-statements-company-links-consumer-retry",
                 "stream-company-psc-company-links-consumer-error",
                 "stream-company-psc-company-links-consumer-invalid",
-                "stream-company-psc-company-links-consumer-retry"));
-
+                "stream-company-psc-company-links-consumer-retry",
+                "stream-filing-history-company-links-consumer-error",
+                "stream-filing-history-company-links-consumer-invalid",
+                "stream-filing-history-company-links-consumer-retry"));
         return consumer;
     }
 

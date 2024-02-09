@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.service;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
@@ -100,4 +101,16 @@ class LinkClientFactoryTest {
         // then
         assertTrue(linkClient instanceof NullLinkClient);
     }
+
+    @Test
+    @DisplayName("Link factory correctly returns an add filing history client")
+    void getAddFilingHistoryClient() {
+        // given
+        // when
+        LinkClient linkClient = factory.getLinkClient("filing-history", "changed");
+
+        // then
+        assertInstanceOf(AddFilingHistoryClient.class, linkClient);
+    }
+
 }

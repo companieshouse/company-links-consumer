@@ -9,6 +9,7 @@ import uk.gov.companieshouse.company.links.service.LinkClient;
 public class LinkClientConfig {
 
     private static final String EXEMPTIONS = "exemptions";
+    private static final String FILING_HISTORY = "filing-history";
     private static final String CHANGED = "changed";
     private static final String DELETED = "deleted";
     private static final String OFFICERS = "officers";
@@ -24,7 +25,8 @@ public class LinkClientConfig {
             LinkClient addStatementsClient,
             LinkClient deleteStatementsClient,
             LinkClient addPscClient,
-            LinkClient deletePscClient) {
+            LinkClient deletePscClient,
+            LinkClient addFilingHistoryClient) {
 
         return Map.of(
                 EXEMPTIONS, Map.of(
@@ -38,6 +40,8 @@ public class LinkClientConfig {
                     DELETED, deleteStatementsClient),
                 PSCS, Map.of(
                         CHANGED, addPscClient,
-                        DELETED, deletePscClient));
+                        DELETED, deletePscClient),
+                FILING_HISTORY, Map.of(
+                        CHANGED, addFilingHistoryClient));
     }
 }

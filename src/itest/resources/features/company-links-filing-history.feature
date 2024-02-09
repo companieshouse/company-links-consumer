@@ -1,4 +1,4 @@
-Feature: Process company links information for officers
+Feature: Process company links information for filing history
 
   Scenario: PATCH company filing history link successfully - add link
     Given Company links consumer is available

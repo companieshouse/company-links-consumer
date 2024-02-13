@@ -50,11 +50,6 @@ class DeletePscLinkClientTest {
     private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID);
     private static final String PATH = String.format("/company/%s/links/persons-with-significant-control/delete", COMPANY_NUMBER);
 
-
-
-    @Mock
-    private HttpClient httpClient;
-
     @BeforeEach
     void setup() {
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);

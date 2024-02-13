@@ -72,8 +72,6 @@ class AddStatementsClientTest {
     @Mock
     private StatementList getData;
 
-    private List<Statement> statementsList;
-
     @Mock
     private HttpClient httpClient;
 
@@ -85,7 +83,7 @@ class AddStatementsClientTest {
 
     @BeforeEach
     void setUp() throws ApiErrorResponseException, URIValidationException {
-        statementsList = new ArrayList<>();
+        List<Statement> statementsList = new ArrayList<>();
         statementsList.add(new Statement());
 
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);

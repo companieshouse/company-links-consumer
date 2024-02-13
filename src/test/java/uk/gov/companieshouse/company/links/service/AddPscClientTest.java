@@ -70,8 +70,6 @@ class AddPscClientTest {
     @Mock
     private PscList getData;
 
-    private List<ListSummary> pscList;
-
     @Mock
     private Logger logger;
 
@@ -80,7 +78,7 @@ class AddPscClientTest {
 
     @BeforeEach
     void setUp() throws ApiErrorResponseException, URIValidationException {
-        pscList = new ArrayList<>();
+        List<ListSummary> pscList = new ArrayList<>();
         pscList.add(new ListSummary());
 
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);

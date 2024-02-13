@@ -113,14 +113,15 @@ class AddStatementsClientTest {
     }
 
     @Test
-    void testThrowNonRetryableExceptionIfClientErrorReturned() throws ApiErrorResponseException, URIValidationException {
+    void testThrowRetryableExceptionIfClientErrorReturned() throws ApiErrorResponseException, URIValidationException {
         //given
         when(pscStatementsLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
           
         //when
-        client.patchLink(new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID));
+        Executable actual = () -> client.patchLink(new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID));
  
         //then
+        assertThrows(RetryableErrorException.class, actual);
         verify(resourceHandler).addPscStatementsCompanyLink(PATH);
         verify(pscStatementsLinkAddHandler).execute();
         verify(logger).info(eq("HTTP 404 Not Found returned; company profile does not exist"), any());

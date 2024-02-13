@@ -38,7 +38,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class AddPscClientTest {
+class AddPscClientTest {
 
     private static final String COMPANY_NUMBER = "12345678";
     private static final String REQUEST_ID = "request_id";
@@ -107,14 +107,15 @@ public class AddPscClientTest {
     }
 
     @Test
-    void testThrowNonRetryableExceptionIfClientErrorReturned() throws ApiErrorResponseException, URIValidationException {
+    void testThrowRetryableExceptionIfClientErrorReturned() throws ApiErrorResponseException, URIValidationException {
         //given
         when(pscLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
 
         //when
-        client.patchLink(linkRequest);
+        Executable actual = () -> client.patchLink(linkRequest);
 
         //then
+        assertThrows(RetryableErrorException.class, actual);
         verify(resourceHandler).addPscCompanyLink(PATH);
         verify(pscLinkAddHandler).execute();
         verify(logger).info("HTTP 404 Not Found returned; company profile does not exist");

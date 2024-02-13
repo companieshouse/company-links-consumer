@@ -82,14 +82,15 @@ class AddOfficersClientTest {
     }
 
     @Test
-    void testThrowNonRetryableExceptionIfClientErrorReturned() throws ApiErrorResponseException, URIValidationException {
+    void testThrowRetryableExceptionIfClientErrorReturned() throws ApiErrorResponseException, URIValidationException {
         // given
         when(officersLinksAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
 
         // when
-        client.patchLink(linkRequest);
+        Executable actual = () -> client.patchLink(linkRequest);
 
         // then
+        assertThrows(RetryableErrorException.class, actual);
         verify(resourceHandler).addOfficersCompanyLink(PATH);
         verify(officersLinksAddHandler).execute();
         verify(logger).info(eq("HTTP 404 Not Found returned; company profile does not exist"),

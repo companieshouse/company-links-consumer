@@ -52,6 +52,10 @@ public class AddOfficersClient implements LinkClient {
             } else if (ex.getStatusCode() == 404) {
                 logger.info("HTTP 404 Not Found returned; "
                         + "company profile does not exist", DataMapHolder.getLogMap());
+                throw new RetryableErrorException(
+                        String.format("Company profile [%s] does not exist"
+                                        + " when processing add filing history link request",
+                                linkRequest.getCompanyNumber()), ex);
             } else {
                 logger.error(String.format("Add officers client error returned with "
                                 + "status code: [%s] when processing add officers link request",

@@ -58,7 +58,7 @@ public class PscListClient {
                         && !ex.getContent().contains("company-psc-not-found")) {
                     if ((ex.getHeaders().containsKey(HttpHeaders.CONTENT_LENGTH)
                             && ex.getHeaders().getContentLength() > 0)
-                            || (ex.getContent() != null && ex.getContent().length() > 0)) {
+                            || (ex.getContent() != null && !ex.getContent().isEmpty())) {
                         logger.error("endpoint not found");
                         throw new RetryableErrorException(
                             "endpoint not found", ex);

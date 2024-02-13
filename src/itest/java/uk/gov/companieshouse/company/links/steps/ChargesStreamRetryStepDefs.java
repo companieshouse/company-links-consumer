@@ -154,7 +154,7 @@ public class ChargesStreamRetryStepDefs {
         List<Header> retryList = StreamSupport.stream(singleRecord.headers().spliterator(), false)
                 .filter(header -> header.key().equalsIgnoreCase(RETRY_TOPIC_ATTEMPTS))
                 .collect(Collectors.toList());
-        assertThat(retryList.size()).isEqualTo(Integer.parseInt(numberOfAttempts.toString()));
+        assertThat(retryList).hasSize(Integer.parseInt(numberOfAttempts.toString()));
     }
 
     @And("calling the GET insolvency-data-api with companyNumber {string} returns status code {string}")

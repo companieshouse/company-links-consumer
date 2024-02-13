@@ -54,7 +54,7 @@ public class AddStatementsClient implements LinkClient {
                         DataMapHolder.getLogMap());
                 throw new RetryableErrorException(
                         String.format("Company profile [%s] does not exist"
-                                        + " when processing add filing history link request",
+                                        + " when processing add PSC statements link request",
                                 linkRequest.getCompanyNumber()), ex);
             } else {
                 logger.error(String.format("Add PSC statements client error returned with "

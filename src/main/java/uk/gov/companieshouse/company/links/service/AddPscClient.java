@@ -52,7 +52,7 @@ public class AddPscClient implements LinkClient {
                 logger.info("HTTP 404 Not Found returned; company profile does not exist");
                 throw new RetryableErrorException(
                         String.format("Company profile [%s] does not exist"
-                                        + " when processing add filing history link request",
+                                        + " when processing add PSC link request",
                                 linkRequest.getCompanyNumber()), ex);
             } else {
                 logger.error(String.format("Add PSC client error returned with "

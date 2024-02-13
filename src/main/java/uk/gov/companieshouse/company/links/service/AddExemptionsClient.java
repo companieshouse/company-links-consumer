@@ -55,7 +55,7 @@ public class AddExemptionsClient implements LinkClient {
                         + "company profile does not exist", DataMapHolder.getLogMap());
                 throw new RetryableErrorException(
                         String.format("Company profile [%s] does not exist"
-                                        + " when processing add filing history link request",
+                                        + " when processing add exemptions link request",
                                 linkRequest.getCompanyNumber()), ex);
             } else {
                 logger.error(String.format("Add exemptions client error returned with "

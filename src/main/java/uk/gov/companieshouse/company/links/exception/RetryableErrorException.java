@@ -10,13 +10,16 @@ public class RetryableErrorException extends RuntimeException {
         super(message, exception);
     }
 
-    public RetryableErrorException(Exception exception) {
-        super(exception);
-    }
-
+    /**
+     * Additional constructor to avoid code duplication.
+     *
+     * @param companyNumber CompanyNumber
+     */
     public RetryableErrorException(String companyNumber, String linkType, Exception exception) {
-        super(String.format("Company profile [%s] does not exist when processing add %s link request",
-                companyNumber, linkType), exception);
+        super(String.format(
+                "Company profile [%s] does not exist when processing add %s link request",
+                        companyNumber, linkType),
+                exception);
     }
 }
 

@@ -52,10 +52,8 @@ public class AddStatementsClient implements LinkClient {
             } else if (ex.getStatusCode() == 404) {
                 logger.info("HTTP 404 Not Found returned; company profile does not exist",
                         DataMapHolder.getLogMap());
-                throw new RetryableErrorException(
-                        String.format("Company profile [%s] does not exist"
-                                        + " when processing add PSC statements link request",
-                                linkRequest.getCompanyNumber()), ex);
+                throw new RetryableErrorException(linkRequest.getCompanyNumber(),
+                        "PSC statements", ex);
             } else {
                 logger.error(String.format("Add PSC statements client error returned with "
                                 + "status code: [%s] when processing PSC statements link request",

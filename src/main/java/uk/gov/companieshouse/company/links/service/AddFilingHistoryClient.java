@@ -55,10 +55,8 @@ public class AddFilingHistoryClient implements LinkClient {
             } else if (status == 404) {
                 logger.info("HTTP 404 Not Found returned; company profile does not exist",
                         DataMapHolder.getLogMap());
-                throw new RetryableErrorException(
-                        String.format("Company profile [%s] does not exist"
-                                        + " when processing add filing history link request",
-                                linkRequest.getCompanyNumber()), ex);
+                throw new RetryableErrorException(linkRequest.getCompanyNumber(),
+                        "filing history", ex);
             } else {
                 logger.error(String.format("Add officers client error returned with status code: "
                                 + "[%s] when processing add filing_history link request",

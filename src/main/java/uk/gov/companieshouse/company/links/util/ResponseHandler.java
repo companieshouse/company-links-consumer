@@ -22,20 +22,30 @@ public class ResponseHandler {
             + "company profile does not exist";
     private static final String CLIENT_ERROR_MSG = "Add %s client error returned with "
             + "status code: [%s] when processing link request";
-    private static final String ILLEGAL_ARG_MSG = "Illegal argument exception caught when " +
-            "handling API response";
-    private static final String URI_VALIDATION_MSG = "Invalid companyNumber [%s] when " +
-            "handling API request";
+    private static final String ILLEGAL_ARG_MSG = "Illegal argument exception caught when "
+            + "handling API response";
+    private static final String URI_VALIDATION_MSG = "Invalid companyNumber [%s] when "
+            + "handling API request";
 
     public ResponseHandler(Logger logger) {
         this.logger = logger;
     }
 
+    /**
+     * Handler method for uri  validation exceptions.
+     *
+     * @param companyNumber String
+     */
     public void handle(String companyNumber, URIValidationException ex) {
         logger.error(String.format(URI_VALIDATION_MSG, companyNumber), DataMapHolder.getLogMap());
         throw new NonRetryableErrorException(String.format(URI_VALIDATION_MSG, companyNumber), ex);
     }
 
+    /**
+     * Handler method for illegal argument exceptions.
+     *
+     * @param ex IllegalArgumentException
+     */
     public void handle(IllegalArgumentException ex) {
         String causeMessage = ex.getCause() != null
                 ? String.format("; %s", ex.getCause().getMessage()) : "";
@@ -44,6 +54,11 @@ public class ResponseHandler {
         throw new RetryableErrorException(ILLEGAL_ARG_MSG, ex);
     }
 
+    /**
+     * Handler method for api error response exceptions.
+     *
+     * @param ex ApiErrorResponseException
+     */
     public void handle(int statusCode, String linkType, ApiErrorResponseException ex) {
         if (HttpStatus.valueOf(ex.getStatusCode()).is5xxServerError()) {
             logger.info(String.format(SERVER_FAILED_MSG, statusCode, linkType),
@@ -55,7 +70,7 @@ public class ResponseHandler {
                     DataMapHolder.getLogMap());
             throw new NonRetryableErrorException(String.format(CONFLICT_ERROR_MSG,
                     "409 Conflict", linkType), ex);
-        } else if (HttpStatus.valueOf(ex.getStatusCode()).equals(HttpStatus.NOT_FOUND)){
+        } else if (HttpStatus.valueOf(ex.getStatusCode()).equals(HttpStatus.NOT_FOUND)) {
             logger.info(String.format(NOT_FOUND_ERROR_MSG, "404 Not Found"));
             throw new RetryableErrorException(String.format(NOT_FOUND_ERROR_MSG,
                     "404 Not Found"), ex);

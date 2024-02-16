@@ -6,6 +6,9 @@ import static org.mockito.Mockito.when;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
+import java.util.Collections;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,10 +27,6 @@ import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.company.links.util.ResponseHandler;
-import uk.gov.companieshouse.logging.Logger;
-import java.util.Collections;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
 class AddOfficersClientTest {
@@ -50,8 +49,6 @@ class AddOfficersClientTest {
 
     @Mock
     private HttpClient httpClient;
-    @Mock
-    private Logger logger;
 
     @Mock
     private ResponseHandler responseHandler;

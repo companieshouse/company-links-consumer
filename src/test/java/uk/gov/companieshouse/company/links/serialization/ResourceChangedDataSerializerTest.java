@@ -15,7 +15,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
-public class ResourceChangedDataSerializerTest {
+class ResourceChangedDataSerializerTest {
 
     @Mock
     private Logger logger;
@@ -39,7 +39,7 @@ public class ResourceChangedDataSerializerTest {
     @Test
     void When_serialize_null_returns_null() {
         byte[] serialize = serializer.serialize("", null);
-        assertThat(serialize).isEqualTo(null);
+        assertThat(serialize).isNull();
     }
 
     @Test

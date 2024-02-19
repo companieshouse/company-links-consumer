@@ -102,7 +102,7 @@ public class ChargesStreamRetryStepDefs {
             Integer statusCode) {
         WiremockTestConfig.stubGetCompanyProfile(companyNumber, statusCode,
                 "profile-with-insolvency-links");
-        WiremockTestConfig.stubPatchCompanyProfile(companyNumber, statusCode.intValue());
+        WiremockTestConfig.stubPatchCompanyProfile(companyNumber, statusCode);
     }
 
     @Given("Stubbed Company Profile API PATCH endpoint throws an internal exception")
@@ -154,12 +154,11 @@ public class ChargesStreamRetryStepDefs {
         List<Header> retryList = StreamSupport.stream(singleRecord.headers().spliterator(), false)
                 .filter(header -> header.key().equalsIgnoreCase(RETRY_TOPIC_ATTEMPTS))
                 .collect(Collectors.toList());
-        assertThat(retryList.size()).isEqualTo(Integer.parseInt(numberOfAttempts.toString()));
+        assertThat(retryList).hasSize(Integer.parseInt(numberOfAttempts.toString()));
     }
 
     @And("calling the GET insolvency-data-api with companyNumber {string} returns status code {string}")
-    public void call_to_insolvency_data_api_with_company_number_returns_status_code_And(String companyNumber, String statusCode)
-            throws InterruptedException {
+    public void call_to_insolvency_data_api_with_company_number_returns_status_code_And(String companyNumber, String statusCode) {
         this.companyNumber = companyNumber;
         WiremockTestConfig.stubGetInsolvency(companyNumber, Integer.parseInt(statusCode), "");
     }
@@ -184,23 +183,6 @@ public class ChargesStreamRetryStepDefs {
     private void sendMessage(String topicName, ResourceChangedData companyNumber) {
         kafkaTemplate.send(topicName, companyNumber);
         kafkaTemplate.flush();
-    }
-
-    private ResourceChangedData createMessage(String companyNumber, String topicName) {
-        EventRecord event = EventRecord.newBuilder()
-                .setType("changed")
-                .setPublishedAt("2022-02-22T10:51:30")
-                .setFieldsChanged(Arrays.asList("foo", "moo"))
-                .build();
-
-        return ResourceChangedData.newBuilder()
-                .setContextId("context_id")
-                .setResourceId(companyNumber)
-                .setResourceKind(topicName.contains("insolvency") ? "company-insolvency" : "charges-insolvency")
-                .setResourceUri(topicName.contains("insolvency") ? "/company/"+companyNumber+"/links" : "/company/"+companyNumber+"/charges" )
-                .setData("{ \"key\": \"value\" }")
-                .setEvent(event)
-                .build();
     }
 
     private ResourceChangedData deleteMessage(String companyNumber) {

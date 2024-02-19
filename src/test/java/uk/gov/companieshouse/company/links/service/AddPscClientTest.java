@@ -1,11 +1,22 @@
 package uk.gov.companieshouse.company.links.service;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -21,30 +32,19 @@ import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.ListSummary;
 import uk.gov.companieshouse.api.psc.PscList;
-import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
-import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
-import uk.gov.companieshouse.logging.Logger;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Supplier;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import uk.gov.companieshouse.company.links.util.ResponseHandler;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class AddPscClientTest {
+class AddPscClientTest {
 
     private static final String COMPANY_NUMBER = "12345678";
     private static final String REQUEST_ID = "request_id";
 
     private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID);
     private static final String PATH = String.format("/company/%s/links/persons-with-significant-control", COMPANY_NUMBER);
+    private static final String LINK_TYPE = "PSC";
 
     @Mock
     private Supplier<InternalApiClient> internalApiClientSupplier;
@@ -70,17 +70,15 @@ public class AddPscClientTest {
     @Mock
     private PscList getData;
 
-    private List<ListSummary> pscList;
-
     @Mock
-    private Logger logger;
+    private ResponseHandler responseHandler;
 
     @InjectMocks
     private AddPscClient client;
 
     @BeforeEach
     void setUp() throws ApiErrorResponseException, URIValidationException {
-        pscList = new ArrayList<>();
+        List<ListSummary> pscList = new ArrayList<>();
         pscList.add(new ListSummary());
 
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
@@ -106,74 +104,58 @@ public class AddPscClientTest {
         verify(pscLinkAddHandler).execute();
     }
 
-    @Test
-    void testThrowNonRetryableExceptionIfClientErrorReturned() throws ApiErrorResponseException, URIValidationException {
-        //given
-        when(pscLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
+    @ParameterizedTest(name = "Input [{0}] and [{1}] result in output [{2}]")
+    @MethodSource("apiErrorsAndResponses")
+    void testHandleApiErrorResponseExceptionsIfClientErrorsReturned(int inputOne, String inputTwo, int output) throws ApiErrorResponseException, URIValidationException {
+        // given
+        ApiErrorResponseException apiErrorResponseException = new ApiErrorResponseException(new HttpResponseException.Builder(inputOne, inputTwo, new HttpHeaders()));
+        when(pscLinkAddHandler.execute()).thenThrow(apiErrorResponseException);
 
-        //when
+        // when
         client.patchLink(linkRequest);
 
-        //then
+        // then
         verify(resourceHandler).addPscCompanyLink(PATH);
         verify(pscLinkAddHandler).execute();
-        verify(logger).info("HTTP 404 Not Found returned; company profile does not exist");
+        verify(responseHandler).handle(output, LINK_TYPE, apiErrorResponseException);
     }
 
-    @Test
-    void testThrowsNonRetryableExceptionIf409Returned() throws ApiErrorResponseException, URIValidationException {
-        //given
-        when(pscLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
-
-        //when
-        client.patchLink(linkRequest);
-
-        //then
-        verify(resourceHandler).addPscCompanyLink(PATH);
-        verify(pscLinkAddHandler).execute();
-        verify(logger).info("HTTP 409 Conflict returned; company profile already has a PSC link");
-    }
-
-    @Test
-    void testThrowRetryableExceptionIfServerErrorReturned() throws ApiErrorResponseException, URIValidationException {
-        //given
-        when(pscLinkAddHandler.execute()).thenThrow(new ApiErrorResponseException(new HttpResponseException.Builder(500, "Internal server error", new HttpHeaders())));
-
-        //when
-        Executable actual = () -> client.patchLink(linkRequest);
-
-        //then
-        assertThrows(RetryableErrorException.class, actual);
-        verify(resourceHandler).addPscCompanyLink(PATH);
-        verify(pscLinkAddHandler).execute();
+    private static Stream<Arguments> apiErrorsAndResponses() {
+        return Stream.of(
+                Arguments.of(404, "Not Found", 404),
+                Arguments.of(409, "Conflict", 409),
+                Arguments.of(500, "Internal server error", 500)
+        );
     }
 
     @Test
     void testThrowRetryableExceptionIfIllegalArgumentExceptionIsCaught() throws ApiErrorResponseException, URIValidationException {
         //given
-        when(pscLinkAddHandler.execute()).thenThrow(new IllegalArgumentException("Internal server error"));
+        IllegalArgumentException illegalArgumentException = new IllegalArgumentException("Internal server error");
+        when(pscLinkAddHandler.execute()).thenThrow(illegalArgumentException);
 
         //when
-        Executable actual = () -> client.patchLink(linkRequest);
+        client.patchLink(linkRequest);
 
         //then
-        assertThrows(RetryableErrorException.class, actual);
         verify(resourceHandler).addPscCompanyLink(PATH);
         verify(pscLinkAddHandler).execute();
+        verify(responseHandler).handle(illegalArgumentException);
     }
 
     @Test
     void testThrowNonRetryableExceptionIfCompanyNumberInvalid() throws ApiErrorResponseException, URIValidationException {
         //given
         when(deltaResourceHandler.getPscs("invalid/path")).thenReturn(getAll);
-        when(pscLinkAddHandler.execute()).thenThrow(new URIValidationException("Invalid/URI"));
+        URIValidationException uriValidationException = new URIValidationException("Invalid/URI");
+        when(pscLinkAddHandler.execute()).thenThrow(uriValidationException);
 
         //when
-        Executable actual = () -> client.patchLink(new PatchLinkRequest("invalid/path", "invalid-id"));
+        client.patchLink(new PatchLinkRequest("invalid/path", "invalid-id"));
 
         //then
-        assertThrows(NonRetryableErrorException.class, actual);
         verify(resourceHandler).addPscCompanyLink("/company/invalid/path/links/persons-with-significant-control");
         verify(pscLinkAddHandler).execute();
+        verify(responseHandler).handle("invalid/path", uriValidationException);
     }
 }

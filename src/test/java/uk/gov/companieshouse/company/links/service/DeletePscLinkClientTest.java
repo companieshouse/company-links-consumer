@@ -14,7 +14,6 @@ import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.company.PrivateCompanyLinksResourceHandler;
 import uk.gov.companieshouse.api.handler.company.links.request.PrivatePscLinksDelete;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
-import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
@@ -29,7 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class DeletePscLinkClientTest {
+class DeletePscLinkClientTest {
 
     @InjectMocks
     DeletePscLinkClient deletePscLinkClient;
@@ -49,11 +48,6 @@ public class DeletePscLinkClientTest {
     private static final String REQUEST_ID = "request_id";
     private final PatchLinkRequest linkRequest = new PatchLinkRequest(COMPANY_NUMBER, REQUEST_ID);
     private static final String PATH = String.format("/company/%s/links/persons-with-significant-control/delete", COMPANY_NUMBER);
-
-
-
-    @Mock
-    private HttpClient httpClient;
 
     @BeforeEach
     void setup() {

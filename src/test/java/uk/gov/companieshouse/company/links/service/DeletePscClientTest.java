@@ -18,7 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class DeletePscClientTest {
+class DeletePscClientTest {
     private static final String COMPANY_NUMBER = "12345678";
     private static final String RESOURCE_ID = "abcdefg";
     private static final String REQUEST_ID = "reqId";

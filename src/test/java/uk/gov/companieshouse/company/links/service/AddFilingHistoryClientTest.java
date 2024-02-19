@@ -1,9 +1,6 @@
 package uk.gov.companieshouse.company.links.service;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,10 +8,13 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import java.util.Collections;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,10 +25,8 @@ import uk.gov.companieshouse.api.handler.company.links.request.PrivateFilingHist
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.http.HttpClient;
 import uk.gov.companieshouse.api.model.ApiResponse;
-import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
-import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
-import uk.gov.companieshouse.logging.Logger;
+import uk.gov.companieshouse.company.links.util.ResponseHandler;
 
 @ExtendWith(MockitoExtension.class)
 class AddFilingHistoryClientTest {
@@ -37,7 +35,7 @@ class AddFilingHistoryClientTest {
     private static final String REQUEST_ID = "request_id";
     private static final String PATH = String.format("/company/%s/links/filing-history",
             COMPANY_NUMBER);
-
+    private static final String LINK_TYPE = "filing history";
     @Mock
     private Supplier<InternalApiClient> internalApiClientSupplier;
 
@@ -51,8 +49,9 @@ class AddFilingHistoryClientTest {
     private PrivateFilingHistoryLinksAdd filingHistoryLinksAdd;
     @Mock
     private HttpClient httpClient;
+
     @Mock
-    private Logger logger;
+    private ResponseHandler responseHandler;
 
     @InjectMocks
     private AddFilingHistoryClient client;
@@ -84,30 +83,12 @@ class AddFilingHistoryClientTest {
         verify(filingHistoryLinksAdd).execute();
     }
 
-    @Test
-    void testThrowRetryableExceptionIf404Returned()
-            throws ApiErrorResponseException, URIValidationException {
+    @ParameterizedTest(name = "Input [{0}] and [{1}] result in output [{2}]")
+    @MethodSource("apiErrorsAndResponses")
+    void testHandleApiErrorResponseExceptionsIfClientErrorsReturned(int inputOne, String inputTwo, int output) throws ApiErrorResponseException, URIValidationException {
         // given
-        when(filingHistoryLinksAdd.execute())
-                .thenThrow(new ApiErrorResponseException(
-                        new HttpResponseException.Builder(404, "Not found", new HttpHeaders())));
-
-        // when
-        Executable actual = () -> client.patchLink(linkRequest);
-
-        // then
-        assertThrows(RetryableErrorException.class, actual);
-        verify(resourceHandler).addFilingHistoryLink(PATH);
-        verify(filingHistoryLinksAdd).execute();
-    }
-
-    @Test
-    void testThrowNonRetryableExceptionIf409Returned()
-            throws ApiErrorResponseException, URIValidationException {
-        // given
-        when(filingHistoryLinksAdd.execute())
-                .thenThrow(new ApiErrorResponseException(
-                        new HttpResponseException.Builder(409, "Conflict", new HttpHeaders())));
+        ApiErrorResponseException apiErrorResponseException = new ApiErrorResponseException(new HttpResponseException.Builder(inputOne, inputTwo, new HttpHeaders()));
+        when(filingHistoryLinksAdd.execute()).thenThrow(apiErrorResponseException);
 
         // when
         client.patchLink(linkRequest);
@@ -115,58 +96,46 @@ class AddFilingHistoryClientTest {
         // then
         verify(resourceHandler).addFilingHistoryLink(PATH);
         verify(filingHistoryLinksAdd).execute();
-        verify(logger).info(
-                eq("HTTP 409 Conflict returned; company profile already has a filing history link"),
-                anyMap());
+        verify(responseHandler).handle(output, LINK_TYPE, apiErrorResponseException);
     }
 
-    @Test
-    void testThrowRetryableExceptionIfServerErrorReturned()
-            throws ApiErrorResponseException, URIValidationException {
-        // given
-        when(filingHistoryLinksAdd.execute()).thenThrow(
-                new ApiErrorResponseException(
-                        new HttpResponseException.Builder(500, "Internal server error",
-                                new HttpHeaders())));
-
-        // when
-        Executable actual = () -> client.patchLink(linkRequest);
-
-        // then
-        assertThrows(RetryableErrorException.class, actual);
-        verify(resourceHandler).addFilingHistoryLink(PATH);
-        verify(filingHistoryLinksAdd).execute();
+    private static Stream<Arguments> apiErrorsAndResponses() {
+        return Stream.of(
+                Arguments.of(404, "Not Found", 404),
+                Arguments.of(409, "Conflict", 409),
+                Arguments.of(500, "Internal server error", 500)
+        );
     }
 
     @Test
     void testThrowRetryableExceptionIfIllegalArgumentExceptionIsCaught()
             throws ApiErrorResponseException, URIValidationException {
         // given
-        when(filingHistoryLinksAdd.execute()).thenThrow(
-                new IllegalArgumentException("Internal server error"));
+        IllegalArgumentException illegalArgumentException = new IllegalArgumentException("Internal server error");
+        when(filingHistoryLinksAdd.execute()).thenThrow(illegalArgumentException);
 
         // when
-        Executable actual = () -> client.patchLink(linkRequest);
+        client.patchLink(linkRequest);
 
         // then
-        assertThrows(RetryableErrorException.class, actual);
         verify(resourceHandler).addFilingHistoryLink(PATH);
         verify(filingHistoryLinksAdd).execute();
+        verify(responseHandler).handle(illegalArgumentException);
     }
 
     @Test
     void testThrowNonRetryableExceptionIfCompanyNumberInvalid()
             throws ApiErrorResponseException, URIValidationException {
         // given
-        when(filingHistoryLinksAdd.execute()).thenThrow(new URIValidationException("Invalid URI"));
+        URIValidationException uriValidationException = new URIValidationException("Invalid URI");
+        when(filingHistoryLinksAdd.execute()).thenThrow(uriValidationException);
 
         // when
-        Executable actual = () -> client.patchLink(
-                new PatchLinkRequest("invalid/path", REQUEST_ID));
+        client.patchLink(new PatchLinkRequest("invalid/path", REQUEST_ID));
 
         // then
-        assertThrows(NonRetryableErrorException.class, actual);
         verify(resourceHandler).addFilingHistoryLink("/company/invalid/path/links/filing-history");
         verify(filingHistoryLinksAdd).execute();
+        verify(responseHandler).handle("invalid/path", uriValidationException);
     }
 }

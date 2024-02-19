@@ -2,6 +2,7 @@ package uk.gov.companieshouse.company.links.service;
 
 import java.util.function.Supplier;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.InternalApiClient;
@@ -55,14 +56,12 @@ public class PscListClient {
                 // found (case 1), and a non-zero response body is seen when a service is
                 // unavailable (case 2).
                 if (ex.getContent() != null
-                        && !ex.getContent().contains("company-psc-not-found")) {
-                    if ((ex.getHeaders().containsKey(HttpHeaders.CONTENT_LENGTH)
-                            && ex.getHeaders().getContentLength() > 0)
-                            || (ex.getContent() != null && ex.getContent().length() > 0)) {
-                        logger.error("endpoint not found");
-                        throw new RetryableErrorException(
-                            "endpoint not found", ex);
-                    }
+                        && !ex.getContent().contains("company-psc-not-found")
+                        && ((ex.getHeaders().containsKey(HttpHeaders.CONTENT_LENGTH)
+                        && ex.getHeaders().getContentLength() > 0)
+                        || StringUtils.isEmpty(ex.getContent()))) {
+                    logger.error("endpoint not found");
+                    throw new RetryableErrorException("endpoint not found", ex);
                 }
                 // *** End HACK ALERT!!!
 

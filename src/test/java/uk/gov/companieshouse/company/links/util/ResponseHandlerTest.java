@@ -1,7 +1,11 @@
 package uk.gov.companieshouse.company.links.util;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
@@ -90,9 +94,9 @@ class ResponseHandlerTest {
         Executable executable = () -> responseHandler.handle(409, "PSC statements", apiErrorResponseException);
 
         // then
-        NonRetryableErrorException exception = assertThrows(NonRetryableErrorException.class, executable);
-        assertEquals("HTTP 409 Conflict returned; "
-                + "company profile already has a PSC statements link", exception.getMessage());
+        assertDoesNotThrow(executable);
+        verify(logger).info(eq("HTTP 409 Conflict returned; "
+                + "company profile already has a PSC statements link"), any());
     }
 
     @Test

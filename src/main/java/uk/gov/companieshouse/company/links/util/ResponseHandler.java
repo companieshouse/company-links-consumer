@@ -68,8 +68,6 @@ public class ResponseHandler {
         } else if (HttpStatus.valueOf(ex.getStatusCode()).equals(HttpStatus.CONFLICT)) {
             logger.info(String.format(CONFLICT_ERROR_MSG, "409 Conflict", linkType),
                     DataMapHolder.getLogMap());
-            throw new NonRetryableErrorException(String.format(CONFLICT_ERROR_MSG,
-                    "409 Conflict", linkType), ex);
         } else if (HttpStatus.valueOf(ex.getStatusCode()).equals(HttpStatus.NOT_FOUND)) {
             logger.info(String.format(NOT_FOUND_ERROR_MSG, "404 Not Found"));
             throw new RetryableErrorException(String.format(NOT_FOUND_ERROR_MSG,

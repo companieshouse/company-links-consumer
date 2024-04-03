@@ -48,7 +48,7 @@ import static uk.gov.companieshouse.company.links.processor.TestData.CONTEXT_ID;
 import static uk.gov.companieshouse.company.links.processor.TestData.MOCK_COMPANY_NUMBER;
 
 /**
- * Originally this testedthe Charges Stream Processor which was fine whe it had only one method.
+ * Originally this tested the Charges Stream Processor which was fine whe it had only one method.
  * Now it has 2 so we need the make sure to consumer calls the correct method.
  */
 @ExtendWith(MockitoExtension.class)

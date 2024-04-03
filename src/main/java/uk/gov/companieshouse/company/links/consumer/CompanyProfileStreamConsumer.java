@@ -1,6 +1,8 @@
 package uk.gov.companieshouse.company.links.consumer;
 
 import java.time.Instant;
+import java.util.Map;
+
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.retrytopic.DltStrategy;
@@ -12,7 +14,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
-import uk.gov.companieshouse.company.links.processor.LinkRouter;
+import uk.gov.companieshouse.company.links.processor.CompanyProfileStreamProcessor;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
@@ -20,11 +22,12 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 public class CompanyProfileStreamConsumer {
 
     private final Logger logger;
-    private final LinkRouter companyProfileRouter;
+    private final CompanyProfileStreamProcessor companyProfileStreamProcessor;
 
-    public CompanyProfileStreamConsumer(Logger logger, LinkRouter companyProfileRouter) {
+    public CompanyProfileStreamConsumer(CompanyProfileStreamProcessor companyProfileStreamProcessor,
+                                        Logger logger) {
+        this.companyProfileStreamProcessor = companyProfileStreamProcessor;
         this.logger = logger;
-        this.companyProfileRouter = companyProfileRouter;
     }
 
     /**

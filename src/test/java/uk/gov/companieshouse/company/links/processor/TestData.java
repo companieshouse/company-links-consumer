@@ -26,6 +26,8 @@ public class TestData {
     public static final String ALL_COMPANY_CHARGES_LINK = String.format("/company/%s/charges", MOCK_COMPANY_NUMBER);
     public static final String INVALID_COMPANY_CHARGES_LINK = String.format("/company/%s/metrics", MOCK_COMPANY_NUMBER);
     public static final String RESOURCE_ID = "11223344";
+    public static final String COMPANY_PROFILE_LINK = String.format("/company/%s", MOCK_COMPANY_NUMBER);
+
 
     public Message<ResourceChangedData> createResourceChangedMessageWithDelete() throws IOException {
         return createResourceChangedDeleteMessage(COMPANY_CHARGES_LINK);
@@ -33,6 +35,10 @@ public class TestData {
 
     public Message<ResourceChangedData> createResourceChangedMessageWithValidResourceUri() throws IOException {
         return createResourceChangedMessage(COMPANY_CHARGES_LINK);
+    }
+
+    public Message<ResourceChangedData> createCompanyProfileMessageWithValidResourceUri() throws IOException {
+        return createResourceChangedMessage(COMPANY_PROFILE_LINK);
     }
 
     public Message<ResourceChangedData> createResourceChangedMessageWithInValidResourceUri() throws IOException {
@@ -52,6 +58,29 @@ public class TestData {
                 .setResourceUri(resourceUri)
                 .setEvent(new EventRecord())
                 .setData(chargesRecord)
+                .build();
+
+        return MessageBuilder
+                .withPayload(resourceChangedData)
+                .setHeader(KafkaHeaders.RECEIVED_TOPIC, TOPIC)
+                .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, PARTITION)
+                .setHeader(KafkaHeaders.OFFSET, OFFSET)
+                .build();
+    }
+
+    public Message<ResourceChangedData> createCompanyProfileMessage(String resourceUri) throws IOException {
+        InputStreamReader exampleCompanyProfileJsonPayload = new InputStreamReader(
+                Objects.requireNonNull(ClassLoader.getSystemClassLoader()
+                        .getResourceAsStream("company-profile-record.json")));
+        String companyProfileRecord = FileCopyUtils.copyToString(exampleCompanyProfileJsonPayload);
+
+        ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
+                .setContextId(CONTEXT_ID)
+                .setResourceId(RESOURCE_ID)
+                .setResourceKind(RESOURCE_KIND)
+                .setResourceUri(resourceUri)
+                .setEvent(new EventRecord())
+                .setData(companyProfileRecord)
                 .build();
 
         return MessageBuilder

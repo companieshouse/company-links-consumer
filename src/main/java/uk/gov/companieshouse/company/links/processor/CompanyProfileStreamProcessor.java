@@ -11,7 +11,8 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     private final CompanyProfileService companyProfileService;
 
     @Autowired
-    public CompanyProfileStreamProcessor(CompanyProfileService companyProfileService, Logger logger) {
+    public CompanyProfileStreamProcessor(CompanyProfileService companyProfileService,
+                                         Logger logger) {
         super(logger);
         this.companyProfileService = companyProfileService;
     }

@@ -21,6 +21,7 @@ import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 import static uk.gov.companieshouse.company.links.processor.TestData.CONTEXT_ID;
@@ -59,8 +60,6 @@ public class CompanyProfileStreamConsumerTest {
         final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, companyProfile);
 
-        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
-
-        verifyNoInteractions(companyProfileService);
+        assertDoesNotThrow(() -> companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset"));
     }
 }

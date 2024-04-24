@@ -13,6 +13,8 @@ import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.consumer.CompanyProfileStreamConsumer;
+import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
+import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.company.links.service.PscService;
@@ -146,6 +148,78 @@ class CompanyProfileStreamProcessorTest {
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
         verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
         verifyNoMoreInteractions(companyProfileService);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when CompanyProfile service is unavailable")
+    void throwRetryableErrorExceptionWhenCompanyProfileServiceIsUnavailable() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileMessageWithValidResourceUri();
+
+        CompanyProfile companyProfile = testData.createCompanyProfileFromJson();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.SERVICE_UNAVAILABLE.value(), null, companyProfile);
+
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+
+        assertThrows(RetryableErrorException.class, () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+
+        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
+        verify(companyProfileService, never()).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
+                any(CompanyProfile.class));
+        verifyNoMoreInteractions(companyProfileService);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws NonRetryableErrorException when patch CompanyProfile returns Bad Request")
+    void throwNonRetryableErrorExceptionWhenPatchCompanyProfileReturnsBadRequest() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileMessageWithValidResourceUri();
+
+        CompanyProfile companyProfile = testData.createCompanyProfileFromJson();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, companyProfile);
+
+        PscList pscList = testData.createPscList();
+        assertTrue(pscList.getTotalResults() > 0);
+        final ApiResponse<PscList> pscApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, pscList);
+
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+        when(companyProfileService.patchCompanyProfile(any(), any(), any()))
+                .thenReturn(new ApiResponse<>(
+                        HttpStatus.BAD_REQUEST.value(), null, null));
+        when(pscService.getPscList(any(), any())).thenReturn(pscApiResponse);
+        assertThrows(NonRetryableErrorException.class, () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+
+        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
+        verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
+                any(CompanyProfile.class));
+        verifyNoMoreInteractions(companyProfileService);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when Psc Data API returns non successful response !2XX")
+    void throwRetryableErrorExceptionWhenPscDataAPIReturnsNon2XX() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileMessageWithValidResourceUri();
+
+        CompanyProfile companyProfile = testData.createCompanyProfileFromJson();
+
+        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(), null, companyProfile);
+
+        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
+                .thenReturn(companyProfileApiResponse);
+        when(pscService.getPscList(any(), any()))
+                .thenReturn(new ApiResponse<>(
+                        HttpStatus.NOT_FOUND.value(), null, null));
+        assertThrows(RetryableErrorException.class, () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
         verifyLoggingDataMap();
     }
 

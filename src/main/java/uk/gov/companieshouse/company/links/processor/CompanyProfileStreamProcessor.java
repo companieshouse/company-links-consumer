@@ -44,11 +44,11 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         final String contextId = payload.getContextId();
         final String resourceUri = payload.getResourceUri();
         final String companyNumber = payload.getResourceId();
+        DataMapHolder.get()
+                .companyNumber(companyNumber);
         final ApiResponse<CompanyProfile> response =
                 getCompanyProfile(payload, companyNumber);
         var data = response.getData().getData();
-        DataMapHolder.get()
-                .companyNumber(companyNumber);
 
         if (data.getLinks() != null) {
             // If no PSCs in the resource changed and PSCs exist then update company profile
@@ -57,13 +57,14 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                         .getPscList(contextId, companyNumber);
                 HttpStatus httpStatus = HttpStatus.resolve(pscApiResponse.getStatusCode());
 
-                if (httpStatus == null
-                        || (httpStatus != HttpStatus.NOT_FOUND && !httpStatus.is2xxSuccessful())) {
+                if (httpStatus == null || !httpStatus.is2xxSuccessful()) {
                     throw new RetryableErrorException(String.format(
                             "Resource not found for PSCs List for the resource uri %s"
                                     + "with contextId %s", resourceUri, contextId));
-                } else if (httpStatus.is2xxSuccessful()
-                        && pscApiResponse.getData().getTotalResults() > 0) {
+                }
+                if (pscApiResponse.getData() != null
+                        && pscApiResponse.getData().getTotalResults() != null
+                        && pscApiResponse.getData().getTotalResults() > 0){
                     addCompanyPscsLink(contextId, companyNumber, data);
                 }
             }

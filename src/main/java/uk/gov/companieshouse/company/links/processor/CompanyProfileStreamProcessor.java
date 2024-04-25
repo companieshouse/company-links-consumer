@@ -64,7 +64,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                 }
                 if (pscApiResponse.getData() != null
                         && pscApiResponse.getData().getTotalResults() != null
-                        && pscApiResponse.getData().getTotalResults() > 0){
+                        && pscApiResponse.getData().getTotalResults() > 0) {
                     addCompanyPscsLink(contextId, companyNumber, data);
                 }
             }

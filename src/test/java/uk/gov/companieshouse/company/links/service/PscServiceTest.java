@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 class PscServiceTest {
     private static final String MOCK_CONTEXT_ID = "context_id";
     private static final String MOCK_COMPANY_NUMBER = "6146287";
-    private static final String MOCK_COMPANY_LINKS_URI = String.format("/company/%s/links",
+    private static final String PSCS_ENDPOINT = String.format("/company/%s/persons-with-significant-control",
             MOCK_COMPANY_NUMBER);
 
     private PscService pscService;
@@ -65,7 +65,7 @@ class PscServiceTest {
         final ApiResponse<PscList> expected = new ApiResponse<>(
                 HttpStatus.OK.value(), Collections.emptyMap(), pscList);
 
-        when(privateDeltaResourceHandler.getPscs(MOCK_COMPANY_LINKS_URI)).thenReturn(pscGetAll);
+        when(privateDeltaResourceHandler.getPscs(PSCS_ENDPOINT)).thenReturn(pscGetAll);
         when(pscGetAll.execute()).thenReturn(expected);
 
         final ApiResponse<PscList> response = pscService.getPscList(MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER);
@@ -75,7 +75,7 @@ class PscServiceTest {
     @Test
     @DisplayName("Given a bad URI when retrieving PSCs List, return 404 not found")
     void getPscListBadUri() throws ApiErrorResponseException, URIValidationException {
-        when(privateDeltaResourceHandler.getPscs(MOCK_COMPANY_LINKS_URI)).thenReturn(pscGetAll);
+        when(privateDeltaResourceHandler.getPscs(PSCS_ENDPOINT)).thenReturn(pscGetAll);
         when(pscGetAll.execute()).thenThrow(new URIValidationException("expected"));
 
         assertThrows(RetryableErrorException.class,
@@ -90,7 +90,7 @@ class PscServiceTest {
                 HttpStatus.NOT_FOUND.value(), HttpStatus.NOT_FOUND.getReasonPhrase(), new
                 HttpHeaders()).build();
 
-        when(privateDeltaResourceHandler.getPscs(MOCK_COMPANY_LINKS_URI)).thenReturn(pscGetAll);
+        when(privateDeltaResourceHandler.getPscs(PSCS_ENDPOINT)).thenReturn(pscGetAll);
         when(pscGetAll.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
@@ -108,7 +108,7 @@ class PscServiceTest {
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
                 new HttpHeaders()).build();
 
-        when(privateDeltaResourceHandler.getPscs(MOCK_COMPANY_LINKS_URI)).thenReturn(pscGetAll);
+        when(privateDeltaResourceHandler.getPscs(PSCS_ENDPOINT)).thenReturn(pscGetAll);
         when(pscGetAll.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 

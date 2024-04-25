@@ -12,17 +12,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
 public class WiremockTestConfig {
 
-    private static String port = "8888";
-
+    private static final String PORT = "8888";
+    private static final String CHARGE_ID = "123456789000";
     private static WireMockServer wireMockServer;
-
-    private static String chargeId = "123456789000";
 
     public static void setupWiremock() {
         if (wireMockServer == null) {
-            wireMockServer = new WireMockServer(Integer.parseInt(port));
+            wireMockServer = new WireMockServer(Integer.parseInt(PORT));
             wireMockServer.start();
-            configureFor("localhost", Integer.parseInt(port));
+            configureFor("localhost", Integer.parseInt(PORT));
         } else {
             wireMockServer.resetAll();
         }
@@ -98,7 +96,7 @@ public class WiremockTestConfig {
 
     public static void stubForGetChargeDataAPI(String companyNumber) {
         stubFor(
-                get(urlEqualTo("/company/" + companyNumber + "/charges/"+ chargeId))
+                get(urlEqualTo("/company/" + companyNumber + "/charges/"+ CHARGE_ID))
                         .willReturn(aResponse()
                                 .withStatus(200)
                                 .withHeader("Content-Type", "application/json")
@@ -106,6 +104,29 @@ public class WiremockTestConfig {
                                         "    \"_id\": \"AbRiN\",\n" +
                                         "    \"company_number\": \"" + companyNumber +
                                         "\"\n}")));
+    }
+
+    public static void setGetAndPatchStubsFor(String companyNumber, String response){
+        stubFor(
+                get(urlEqualTo("/company/" + companyNumber + "/links"))
+                        .willReturn(aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(response)));
+
+        stubFor(
+                patch(urlEqualTo("/company/" + companyNumber + "/links"))
+                        .willReturn(aResponse()
+                                .withStatus(200)));
+    }
+
+    public static void stubForGetPsc(String companyNumber, String response) {
+        stubFor(
+                get(urlEqualTo("/company/" + companyNumber + "/persons-with-significant-control"))
+                        .willReturn(aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(response)));
     }
 
 }

@@ -108,4 +108,27 @@ public class WiremockTestConfig {
                                         "\"\n}")));
     }
 
+    public static void setGetAndPatchStubsFor(String companyNumber, String response){
+        stubFor(
+                get(urlEqualTo("/company/" + companyNumber + "/links"))
+                        .willReturn(aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(response)));
+
+        stubFor(
+                patch(urlEqualTo("/company/" + companyNumber + "/links"))
+                        .willReturn(aResponse()
+                                .withStatus(200)));
+    }
+
+    public static void stubForGetPsc(String companyNumber, String response) {
+        stubFor(
+                get(urlEqualTo("/company/" + companyNumber + "/persons-with-significant-control"))
+                        .willReturn(aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(response)));
+    }
+
 }

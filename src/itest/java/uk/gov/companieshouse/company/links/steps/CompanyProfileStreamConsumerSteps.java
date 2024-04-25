@@ -1,5 +1,7 @@
 package uk.gov.companieshouse.company.links.steps;
 
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -8,17 +10,21 @@ import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.util.ResourceUtils;
+import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
 import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
+import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CompanyProfileStreamConsumerSteps {
 
@@ -28,17 +34,31 @@ public class CompanyProfileStreamConsumerSteps {
     public KafkaTemplate<String, Object> kafkaTemplate;
 
     @Autowired
+    private CompanyProfileService companyProfileService;
+
+    @Autowired
     private ResettableCountDownLatch resettableCountDownLatch;
+
+    @Before
+    public void beforeEach() {
+        resettableCountDownLatch.resetLatch(4);
+    }
 
     @Given("Company profile exists with no PSC link for company {string}")
     public void company_profile_exists_no_psc_link(String companyNumber) {
         this.companyNumber = companyNumber;
-        setGetAndPatchStubsFor(loadFileForCoNumber("profile-with-out-links.json"));
+        WiremockTestConfig.setGetAndPatchStubsFor(this.companyNumber, loadFileForCoNumber("profile-with-out-links.json"));
+    }
+
+    @Given("Company links consumer service is running")
+    public void company_links_consumer_api_service_is_running() {
+        WiremockTestConfig.setupWiremock();
+        assertThat(companyProfileService).isNotNull();
     }
 
     @And("Psc exists for company {string}")
     public void psc_exists_for_company(String companyNumber) {
-        stubForGetPsc(companyNumber, loadFileForCoNumber("psc-list-record.json"));
+        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileForCoNumber("psc-list-record.json"));
     }
 
     @When("A valid avro Company Profile message is sent to the Kafka topic {string}")
@@ -50,6 +70,8 @@ public class CompanyProfileStreamConsumerSteps {
 
     @Then("The message is successfully consumed and company-profile-api PATCH endpoint is invoked with PSC link payload")
     public void patchEndpointIsCalled() {
+        List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
+        assertEquals(3, events.size());
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/persons-with-significant-control")));
        // verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
@@ -63,28 +85,7 @@ public class CompanyProfileStreamConsumerSteps {
         }
     }
 
-    private void setGetAndPatchStubsFor(String response){
-        stubFor(
-                get(urlEqualTo("/company/" + this.companyNumber + "/links"))
-                        .willReturn(aResponse()
-                                .withStatus(200)
-                                .withHeader("Content-Type", "application/json")
-                                .withBody(response)));
 
-        stubFor(
-                patch(urlEqualTo("/company/" + this.companyNumber + "/links"))
-                        .willReturn(aResponse()
-                                .withStatus(200)));
-    }
-
-    public static void stubForGetPsc(String companyNumber, String response) {
-        stubFor(
-                get(urlEqualTo("/company/" + companyNumber + "/persons-with-significant-control"))
-                        .willReturn(aResponse()
-                                .withStatus(200)
-                                .withHeader("Content-Type", "application/json")
-                                .withBody(response)));
-    }
 
     private ResourceChangedData createCompanyProfileMessage(String companyNumber) {
         EventRecord event = EventRecord.newBuilder()

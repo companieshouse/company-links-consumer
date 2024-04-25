@@ -36,7 +36,7 @@ public class PscService extends BaseApiClientService {
         logger.trace(String.format("Call to GET list of PSCs with contextId %s "
                 + "and company number %s", contextId, companyNumber), DataMapHolder.getLogMap());
 
-        String uri = String.format("/company/%s/links", companyNumber);
+        String uri = String.format("/company/%s/persons-with-significant-control", companyNumber);
 
         InternalApiClient internalApiClient = internalApiClientSupplier.get();
         internalApiClient.getHttpClient().setRequestId(contextId);

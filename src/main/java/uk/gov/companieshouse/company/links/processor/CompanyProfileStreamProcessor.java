@@ -42,31 +42,36 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     public void processDelta(Message<ResourceChangedData> resourceChangedMessage) {
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String contextId = payload.getContextId();
-        final String resourceUri = payload.getResourceUri();
         final String companyNumber = payload.getResourceId();
         DataMapHolder.get()
                 .companyNumber(companyNumber);
-        final ApiResponse<CompanyProfile> response =
-                getCompanyProfile(payload, companyNumber);
+        final ApiResponse<CompanyProfile> response = getCompanyProfile(payload, companyNumber);
         var data = response.getData().getData();
 
         if (data.getLinks() != null) {
-            // If no PSCs in the resource changed and PSCs exist then update company profile
-            if (data.getLinks().getPersonsWithSignificantControl() == null) {
-                ApiResponse<PscList> pscApiResponse = pscService
-                        .getPscList(contextId, companyNumber);
-                HttpStatus httpStatus = HttpStatus.resolve(pscApiResponse.getStatusCode());
+            processPscLink(contextId, companyNumber, data);
+        }
+    }
 
-                if (httpStatus == null || !httpStatus.is2xxSuccessful()) {
-                    throw new RetryableErrorException(String.format(
-                            "Resource not found for PSCs List for the resource uri %s"
-                                    + "with contextId %s", resourceUri, contextId));
-                }
-                if (pscApiResponse.getData() != null
-                        && pscApiResponse.getData().getTotalResults() != null
-                        && pscApiResponse.getData().getTotalResults() > 0) {
-                    addCompanyPscsLink(contextId, companyNumber, data);
-                }
+    /**
+     * Process the PSCs link for a Company Profile ResourceChanged message.
+     * If there is no PSCs link in the ResourceChanged and PSCs exist then add the link
+     */
+    private void processPscLink(String contextId, String companyNumber, Data data) {
+        if (data.getLinks().getPersonsWithSignificantControl() == null) {
+            ApiResponse<PscList> pscApiResponse = pscService
+                    .getPscList(contextId, companyNumber);
+            HttpStatus httpStatus = HttpStatus.resolve(pscApiResponse.getStatusCode());
+
+            if (httpStatus == null || !httpStatus.is2xxSuccessful()) {
+                throw new RetryableErrorException(String.format(
+                        "Resource not found for PSCs List for company number %s"
+                                + "and contextId %s", companyNumber, contextId));
+            }
+            if (pscApiResponse.getData() != null
+                    && pscApiResponse.getData().getTotalResults() != null
+                    && pscApiResponse.getData().getTotalResults() > 0) {
+                addCompanyPscsLink(contextId, companyNumber, data);
             }
         }
     }
@@ -89,9 +94,9 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         return response;
     }
 
-    void addCompanyPscsLink(String logContext, String companyNumber, Data data) {
+    private void addCompanyPscsLink(String logContext, String companyNumber, Data data) {
         logger.trace(String.format("Message with contextId %s and company number %s -"
-                        + "company profile does not contain charges link, attaching charges link",
+                        + "company profile does not contain PSC link, attaching PSC link",
                 logContext, companyNumber), DataMapHolder.getLogMap());
 
         Links links = data.getLinks() == null ? new Links() : data.getLinks();

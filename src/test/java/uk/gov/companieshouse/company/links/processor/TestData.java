@@ -117,12 +117,15 @@ public class TestData {
                         .getResourceAsStream("company-profile-record.json")));
         String companyProfileRecord = FileCopyUtils.copyToString(exampleCompanyProfileJsonPayload);
 
+        EventRecord changedEvent = new EventRecord();
+        changedEvent.setType("changed");
+
         ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
                 .setContextId(CONTEXT_ID)
                 .setResourceId(MOCK_COMPANY_NUMBER)
                 .setResourceKind("company-profile")
                 .setResourceUri(resourceUri)
-                .setEvent(new EventRecord())
+                .setEvent(changedEvent)
                 .setData(companyProfileRecord)
                 .build();
 

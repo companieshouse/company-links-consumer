@@ -7,7 +7,7 @@
       "name_elements": null,
       "kind": "corporate-entity-person-with-significant-control",
       "links": {
-        "self": "/company/34777772/persons-with-significant-control/corporate-entity/ZfTs9WeeqpXTqf6dc6FZ4C0H0ZX"
+        "self": "/company/00006401/persons-with-significant-control/corporate-entity/ZfTs9WeeqpXTqf6dc6FZ4C0H0ZX"
       },
       "nationality": "British",
       "identification": {
@@ -45,7 +45,7 @@
       "etag": "string",
       "name": "two",
       "links": {
-        "self": "/company/34777772/persons-with-significant-control/corporate-entity/ZfTs9WeeqpXTqf6dc6FZ4C0H0Z0"
+        "self": "/company/00006401/persons-with-significant-control/corporate-entity/ZfTs9WeeqpXTqf6dc6FZ4C0H0Z0"
       },
       "kind": "corporate-entity-person-with-significant-control",
       "nationality": "British",
@@ -88,6 +88,6 @@
   "active_count": 1,
   "ceased_count": 1,
   "links": {
-    "self": "/company/34777777/persons-with-significant-control"
+    "self": "/company/00006401/persons-with-significant-control"
   }
 }

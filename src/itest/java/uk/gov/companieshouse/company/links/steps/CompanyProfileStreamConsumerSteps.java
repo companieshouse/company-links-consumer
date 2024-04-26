@@ -51,6 +51,13 @@ public class CompanyProfileStreamConsumerSteps {
                 loadFileForCoNumber("profile-with-out-links.json"));
     }
 
+    @Given("Company profile exists with PSC link for company {string}")
+    public void company_profile_exists_with_psc_link(String companyNumber) {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.setGetAndPatchStubsFor(this.companyNumber,
+                loadFileForCoNumber("profile-with-all-links.json"));
+    }
+
     @Given("Company links consumer service is running")
     public void company_links_consumer_api_service_is_running() {
         WiremockTestConfig.setupWiremock();
@@ -62,21 +69,42 @@ public class CompanyProfileStreamConsumerSteps {
         WiremockTestConfig.stubForGetPsc(companyNumber, loadFileForCoNumber("psc-list-record.json"));
     }
 
+    @And("Psc does not exist for company {string}")
+    public void psc_does_not_exist_for_company(String companyNumber) {
+        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileForCoNumber("psc-list-empty-record.json"));
+    }
+
     @When("A valid avro Company Profile message is sent to the Kafka topic {string}")
-    public void send_kafka_message(String topicName) throws InterruptedException {
+    public void send_company_profile_kafka_message(String topicName) throws InterruptedException {
         kafkaTemplate.send(topicName, createCompanyProfileMessage(companyNumber));
         kafkaTemplate.flush();
 
         assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
     }
 
-    @Then("The message is successfully consumed and company-profile-api PATCH endpoint is invoked with PSC link payload")
-    public void patchEndpointIsCalled() {
+    @When("An invalid avro Company Profile message is sent to the Kafka topic {string}")
+    public void send_company_profile_invalid_kafka_message(String topicName) throws InterruptedException{
+        kafkaTemplate.send(topicName,"invalid message");
+        kafkaTemplate.flush();
+
+        assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with PSC link payload")
+    public void patchCompanyProfileEndpointIsCalled() {
         List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
         assertEquals(3, events.size());
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/persons-with-significant-control")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+    }
+
+    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked and there were {int} total events")
+    public void patchCompanyProfileEndpointNotCalled(Integer numberOfEvents) {
+        List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
+        assertEquals(numberOfEvents, events.size());
+        verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+        verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
     }
 
     private String loadFileForCoNumber(String fileName) {

@@ -61,11 +61,17 @@ public class CompanyProfileStreamConsumer {
                         + "partition: %s and offset: %s with contextId: %s",
                 topic, partition, offset, contextId), DataMapHolder.getLogMap());
         try {
-            companyProfileStreamProcessor.processDelta(resourceChangedMessage);
-            logger.info(format("Company Profile Links Delta message with contextId: %s is "
-                                    + "successfully processed in %d milliseconds", contextId,
-                            Duration.between(startTime, Instant.now()).toMillis()),
-                    DataMapHolder.getLogMap());
+            String eventType = resourceChangedMessage.getPayload().getEvent().getType();
+            if (eventType.equals("changed")) {
+                companyProfileStreamProcessor.processDelta(resourceChangedMessage);
+                logger.info(format("Company Profile Links Delta message with contextId: %s is "
+                                        + "successfully processed in %d milliseconds", contextId,
+                                Duration.between(startTime, Instant.now()).toMillis()),
+                        DataMapHolder.getLogMap());
+            } else {
+                throw new NonRetryableErrorException("Company Profile Links Delta message "
+                        + "with unexpected event type: " + eventType);
+            }
         } catch (Exception exception) {
             logger.errorContext(contextId, format("Exception occurred while processing "
                     + "message on the topic: %s", topic), exception, DataMapHolder.getLogMap());

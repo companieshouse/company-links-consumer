@@ -47,10 +47,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                 .companyNumber(companyNumber);
         final ApiResponse<CompanyProfile> response = getCompanyProfile(payload, companyNumber);
         var data = response.getData().getData();
-
-        if (data.getLinks() != null) {
-            processPscLink(contextId, companyNumber, data);
-        }
+        processPscLink(contextId, companyNumber, data);
     }
 
     /**

@@ -48,14 +48,14 @@ public class CompanyProfileStreamConsumerSteps {
     public void company_profile_exists_no_psc_link(String companyNumber) {
         this.companyNumber = companyNumber;
         WiremockTestConfig.setGetAndPatchStubsFor(this.companyNumber,
-                loadFileForCoNumber("profile-with-out-links.json"));
+                loadFileFromName("profile-with-out-links.json"));
     }
 
     @Given("Company profile exists with PSC link for company {string}")
     public void company_profile_exists_with_psc_link(String companyNumber) {
         this.companyNumber = companyNumber;
         WiremockTestConfig.setGetAndPatchStubsFor(this.companyNumber,
-                loadFileForCoNumber("profile-with-all-links.json"));
+                loadFileFromName("profile-with-all-links.json"));
     }
 
     @Given("Company links consumer service is running")
@@ -66,12 +66,12 @@ public class CompanyProfileStreamConsumerSteps {
 
     @And("Psc exists for company {string}")
     public void psc_exists_for_company(String companyNumber) {
-        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileForCoNumber("psc-list-record.json"));
+        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-record.json"));
     }
 
     @And("Psc does not exist for company {string}")
     public void psc_does_not_exist_for_company(String companyNumber) {
-        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileForCoNumber("psc-list-empty-record.json"));
+        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-empty-record.json"));
     }
 
     @When("A valid avro Company Profile message is sent to the Kafka topic {string}")
@@ -107,7 +107,7 @@ public class CompanyProfileStreamConsumerSteps {
         verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
     }
 
-    private String loadFileForCoNumber(String fileName) {
+    private String loadFileFromName(String fileName) {
         try {
             return FileUtils.readFileToString(ResourceUtils.getFile("classpath:stubs/"+fileName), StandardCharsets.UTF_8);
         } catch (IOException e) {

@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.processor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
@@ -7,9 +8,11 @@ import org.springframework.util.FileCopyUtils;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
+import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Objects;
@@ -37,10 +40,6 @@ public class TestData {
         return createResourceChangedMessage(COMPANY_CHARGES_LINK);
     }
 
-    public Message<ResourceChangedData> createCompanyProfileMessageWithValidResourceUri() throws IOException {
-        return createResourceChangedMessage(COMPANY_PROFILE_LINK);
-    }
-
     public Message<ResourceChangedData> createResourceChangedMessageWithInValidResourceUri() throws IOException {
         return createResourceChangedMessage(INVALID_COMPANY_CHARGES_LINK);
     }
@@ -58,29 +57,6 @@ public class TestData {
                 .setResourceUri(resourceUri)
                 .setEvent(new EventRecord())
                 .setData(chargesRecord)
-                .build();
-
-        return MessageBuilder
-                .withPayload(resourceChangedData)
-                .setHeader(KafkaHeaders.RECEIVED_TOPIC, TOPIC)
-                .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, PARTITION)
-                .setHeader(KafkaHeaders.OFFSET, OFFSET)
-                .build();
-    }
-
-    public Message<ResourceChangedData> createCompanyProfileMessage(String resourceUri) throws IOException {
-        InputStreamReader exampleCompanyProfileJsonPayload = new InputStreamReader(
-                Objects.requireNonNull(ClassLoader.getSystemClassLoader()
-                        .getResourceAsStream("company-profile-record.json")));
-        String companyProfileRecord = FileCopyUtils.copyToString(exampleCompanyProfileJsonPayload);
-
-        ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
-                .setContextId(CONTEXT_ID)
-                .setResourceId(RESOURCE_ID)
-                .setResourceKind(RESOURCE_KIND)
-                .setResourceUri(resourceUri)
-                .setEvent(new EventRecord())
-                .setData(companyProfileRecord)
                 .build();
 
         return MessageBuilder
@@ -133,6 +109,52 @@ public class TestData {
         Links links = new Links();
         links.setCharges(COMPANY_CHARGES_LINK);
         companyProfile.getData().setLinks(links);
+    }
+
+    public Message<ResourceChangedData> createCompanyProfileMessage(String resourceUri) throws IOException {
+        InputStreamReader exampleCompanyProfileJsonPayload = new InputStreamReader(
+                Objects.requireNonNull(ClassLoader.getSystemClassLoader()
+                        .getResourceAsStream("company-profile-record.json")));
+        String companyProfileRecord = FileCopyUtils.copyToString(exampleCompanyProfileJsonPayload);
+
+        EventRecord changedEvent = new EventRecord();
+        changedEvent.setType("changed");
+
+        ResourceChangedData resourceChangedData = ResourceChangedData.newBuilder()
+                .setContextId(CONTEXT_ID)
+                .setResourceId(MOCK_COMPANY_NUMBER)
+                .setResourceKind("company-profile")
+                .setResourceUri(resourceUri)
+                .setEvent(changedEvent)
+                .setData(companyProfileRecord)
+                .build();
+
+        return MessageBuilder
+                .withPayload(resourceChangedData)
+                .setHeader(KafkaHeaders.RECEIVED_TOPIC, TOPIC)
+                .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, PARTITION)
+                .setHeader(KafkaHeaders.OFFSET, OFFSET)
+                .build();
+    }
+
+    public Message<ResourceChangedData> createCompanyProfileMessageWithValidResourceUri() throws IOException {
+        return createCompanyProfileMessage(COMPANY_PROFILE_LINK);
+    }
+
+    public CompanyProfile createCompanyProfileFromJson() throws IOException {
+        String data = FileCopyUtils.copyToString(new InputStreamReader(
+                new FileInputStream("src/test/resources/company-profile-record.json")));
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        return objectMapper.readValue(data, CompanyProfile.class);
+    }
+
+    public PscList createPscList() throws IOException {
+        String data = FileCopyUtils.copyToString(new InputStreamReader(
+                new FileInputStream("src/test/resources/psc-list-record.json")));
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        return objectMapper.readValue(data, PscList.class);
     }
 
 }

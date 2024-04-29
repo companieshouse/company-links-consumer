@@ -185,6 +185,10 @@ public class StreamConsumerSteps {
                         "this will result in the patch url being null. Please use either 'changed' or 'deleted'.", eventType));
         }
 
+        if (deltaType.equals("company-profile") && eventType.equals("changed")){
+            patchUrl = String.format("/company/%s/links", COMPANY_NUMBER);
+        }
+
         stubFor(
                 patch(urlEqualTo(patchUrl))
                         .willReturn(aResponse()
@@ -242,6 +246,9 @@ public class StreamConsumerSteps {
         } else if (deltaType.equals("filing-history")) {
             mainTopic = "stream-filing-history";
             resourceUri = String.format("company/%s/filing-history", COMPANY_NUMBER);
+        } else if (deltaType.equals("company-profile")) {
+            mainTopic = "stream-company-profile";
+            resourceUri = String.format("company/%s/links", COMPANY_NUMBER);
         } else {
             mainTopic = String.format("stream-company-%s", deltaType);
             resourceUri = String.format("company/%s/%s", COMPANY_NUMBER, deltaType);

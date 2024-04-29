@@ -1,0 +1,93 @@
+{
+  "items_per_page": 25,
+  "items": [
+    {
+      "etag": "string",
+      "name": "one",
+      "name_elements": null,
+      "kind": "corporate-entity-person-with-significant-control",
+      "links": {
+        "self": "/company/00006401/persons-with-significant-control/corporate-entity/ZfTs9WeeqpXTqf6dc6FZ4C0H0ZX"
+      },
+      "nationality": "British",
+      "identification": {
+        "legal_form": "string",
+        "legal_authority": "string",
+        "country_registered": "string",
+        "place_registered": "string",
+        "registration_number": "string"
+      },
+      "address": {
+        "address_line_1": "ura_line1",
+        "address_line_2": "ura_line2",
+        "country": "United Kingdom",
+        "locality": "Cardiff",
+        "po_box": "ura_po",
+        "postal_code": "CF2 1B6",
+        "premises": "URA",
+        "region": "ura_region"
+      },
+      "natures_of_control": ["part-right-to-share-surplus-assets-75-to-100-percent"],
+      "is_sanctioned": true,
+      "principal_office_address": {
+        "address_line_1": "ura_line1",
+        "address_line_2": "ura_line2",
+        "country": "United Kingdom",
+        "locality": "Cardiff",
+        "po_box": "ura_po",
+        "postal_code": "CF2 1B6",
+        "premises": "URA",
+        "region": "ura_region"
+      },
+      "ceased": false
+    },
+    {
+      "etag": "string",
+      "name": "two",
+      "links": {
+        "self": "/company/00006401/persons-with-significant-control/corporate-entity/ZfTs9WeeqpXTqf6dc6FZ4C0H0Z0"
+      },
+      "kind": "corporate-entity-person-with-significant-control",
+      "nationality": "British",
+      "identification": {
+        "legal_form": "string",
+        "legal_authority": "string",
+        "country_registered": "string",
+        "place_registered": "string",
+        "registration_number": "string"
+      },
+      "address": {
+        "address_line_1": "ura_line1",
+        "address_line_2": "ura_line2",
+        "country": "United Kingdom",
+        "locality": "Cardiff",
+        "po_box": "ura_po",
+        "postal_code": "CF2 1B6",
+        "premises": "URA",
+        "region": "ura_region"
+      },
+      "natures_of_control": [
+        "part-right-to-share-surplus-assets-25-to-50-percent"
+      ],
+      "is_sanctioned": true,
+      "principal_office_address": {
+        "address_line_1": "ura_line1",
+        "address_line_2": "ura_line2",
+        "country": "United Kingdom",
+        "locality": "Cardiff",
+        "po_box": "ura_po",
+        "postal_code": "CF2 1B6",
+        "premises": "URA",
+        "region": "ura_region"
+      },
+      "ceased": true
+    }
+  ],
+  "start_index": 0,
+  "total_results": 2,
+  "active_count": 1,
+  "ceased_count": 1,
+  "links": {
+    "self": "/company/00006401/persons-with-significant-control"
+  }
+}

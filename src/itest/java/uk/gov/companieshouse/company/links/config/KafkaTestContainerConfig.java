@@ -133,7 +133,10 @@ public class KafkaTestContainerConfig {
                 "stream-company-psc-company-links-consumer-retry",
                 "stream-filing-history-company-links-consumer-error",
                 "stream-filing-history-company-links-consumer-invalid",
-                "stream-filing-history-company-links-consumer-retry"));
+                "stream-filing-history-company-links-consumer-retry",
+                "stream-company-profile-company-links-consumer-error",
+                "stream-company-profile-company-links-consumer-invalid",
+                "stream-company-profile-company-links-consumer-retry"));
         return consumer;
     }
 

@@ -68,7 +68,7 @@ public class CompanyProfileStreamConsumer {
                                         + "successfully processed in %d milliseconds", contextId,
                                 Duration.between(startTime, Instant.now()).toMillis()),
                         DataMapHolder.getLogMap());
-            } else {
+            } else if (!eventType.equals("deleted")) {
                 throw new NonRetryableErrorException("Company Profile Links Delta message "
                         + "with unexpected event type: " + eventType);
             }

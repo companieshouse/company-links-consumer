@@ -115,7 +115,7 @@ public class WiremockTestConfig {
                                 .withBody(response)));
 
         stubFor(
-                patch(urlEqualTo("/company/" + companyNumber + "/links"))
+                patch(urlEqualTo("/company/" + companyNumber + "/links/persons-with-significant-control"))
                         .willReturn(aResponse()
                                 .withStatus(200)));
     }

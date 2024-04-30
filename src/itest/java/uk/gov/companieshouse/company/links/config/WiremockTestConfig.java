@@ -6,9 +6,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.util.ResourceUtils;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.mockito.ArgumentMatchers.anyString;
 
 public class WiremockTestConfig {
 
@@ -120,13 +122,28 @@ public class WiremockTestConfig {
                                 .withStatus(200)));
     }
 
-    public static void stubForGetPsc(String companyNumber, String response) {
+    public static void stubForGetPsc(String companyNumber, String response, Integer responseCode) {
         stubFor(
                 get(urlEqualTo("/company/" + companyNumber + "/persons-with-significant-control"))
                         .willReturn(aResponse()
-                                .withStatus(200)
+                                .withStatus(responseCode)
                                 .withHeader("Content-Type", "application/json")
                                 .withBody(response)));
+    }
+
+    public static void stubForGetPsc(Integer responseCode) {
+        stubFor(
+                get(urlEqualTo("/company/00006400/persons-with-significant-control"))
+                        .willReturn(aResponse()
+                                .withStatus(HttpStatus.UNAUTHORIZED.value())
+                                .withHeader("Content-Type", "application/json")));
+    }
+
+    public static void setPatchStubsFor(String companyNumber, Integer response){
+        stubFor(
+                patch(urlEqualTo("/company/" + companyNumber + "/links/persons-with-significant-control"))
+                        .willReturn(aResponse()
+                                .withStatus(HttpStatus.SERVICE_UNAVAILABLE.value())));
     }
 
 }

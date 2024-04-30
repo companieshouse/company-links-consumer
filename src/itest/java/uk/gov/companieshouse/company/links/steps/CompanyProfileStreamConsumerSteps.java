@@ -66,12 +66,22 @@ public class CompanyProfileStreamConsumerSteps {
 
     @And("Psc exists for company {string}")
     public void psc_exists_for_company(String companyNumber) {
-        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-record.json"));
+        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-record.json"), 200);
     }
 
     @And("Psc does not exist for company {string}")
     public void psc_does_not_exist_for_company(String companyNumber) {
-        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-empty-record.json"));
+        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-empty-record.json"), 200);
+    }
+
+    @And("The user is not authorized")
+    public void user_unauthorized() {
+        WiremockTestConfig.stubForGetPsc(401);
+    }
+
+    @And("The company profile api is not available")
+    public void company_profile_api_not_available() {
+        WiremockTestConfig.setPatchStubsFor("00006400", 404);
     }
 
     @When("A valid avro Company Profile message is sent to the Kafka topic {string}")

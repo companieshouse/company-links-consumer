@@ -69,6 +69,11 @@ public class PscListClient {
                         linkRequest.getCompanyNumber()));
                 return new PscList()
                         .totalResults(0);
+            } else if (ex.getStatusCode() == 401) {
+                logger.error(String.format("get PSCs client error returned with "
+                        + "status code: [%s]", ex.getStatusCode()));
+                throw new RetryableErrorException("Client error returned when "
+                        + "processing get PSCs request", ex);
             } else {
                 logger.error(String.format("get PSCs client error returned with "
                                 + "status code: [%s]", ex.getStatusCode()));

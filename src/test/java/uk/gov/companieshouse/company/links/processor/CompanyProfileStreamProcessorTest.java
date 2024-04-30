@@ -1,5 +1,7 @@
 package uk.gov.companieshouse.company.links.processor;
 
+import com.google.api.client.http.HttpHeaders;
+import com.google.api.client.http.HttpResponseException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
+import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.consumer.CompanyProfileStreamConsumer;
@@ -19,7 +22,7 @@ import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
 import uk.gov.companieshouse.company.links.service.AddPscClient;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
-import uk.gov.companieshouse.company.links.service.PscService;
+import uk.gov.companieshouse.company.links.service.PscListClient;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -40,7 +43,7 @@ class CompanyProfileStreamProcessorTest {
     @Mock
     private CompanyProfileService companyProfileService;
     @Mock
-    PscService pscService;
+    PscListClient pscListClient;
     @Mock
     private Logger logger;
     @Mock
@@ -53,7 +56,7 @@ class CompanyProfileStreamProcessorTest {
     void setUp() {
         companyProfileStreamProcessor = spy(new CompanyProfileStreamProcessor(
                 companyProfileService,
-                pscService,
+                pscListClient,
                 logger,
                 pscClient,
                 companyProfileDeserializer));
@@ -77,23 +80,21 @@ class CompanyProfileStreamProcessorTest {
         final ApiResponse<PscList> pscApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, pscList);
 
-        when(pscService.getPscList(CONTEXT_ID, MOCK_COMPANY_NUMBER))
-                .thenReturn(pscApiResponse);
+        when(pscListClient.getPscs(any()))
+                .thenReturn(new PscList()
+                        .totalResults(1));
 
 
         ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
 
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-        when(pscService.getPscList(CONTEXT_ID, MOCK_COMPANY_NUMBER))
-                .thenReturn(pscApiResponse);
 
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
 
-        PatchLinkRequest patchLinkRequest = new PatchLinkRequest(MOCK_COMPANY_NUMBER, "pscs", CONTEXT_ID);
         verify(pscClient).patchLink(argument.capture());
         assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
         assertEquals(argument.getValue().getResourceId(), "pscs");
@@ -115,8 +116,9 @@ class CompanyProfileStreamProcessorTest {
                 HttpStatus.OK.value(), null, pscList);
 
 
-        when(pscService.getPscList(CONTEXT_ID, MOCK_COMPANY_NUMBER))
-                .thenReturn(pscApiResponse);
+        when(pscListClient.getPscs(any()))
+                .thenReturn(new PscList()
+                        .totalResults(0));
 
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
@@ -150,10 +152,17 @@ class CompanyProfileStreamProcessorTest {
     @DisplayName("throws RetryableErrorException when Psc Data API returns non successful response !2XX")
     void throwRetryableErrorExceptionWhenPscDataAPIReturnsNon2XX() throws IOException {
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileMessageWithValidResourceUri();
-        when(pscService.getPscList(any(), any()))
-                .thenReturn(new ApiResponse<>(
-                        HttpStatus.NOT_FOUND.value(), null, null));
-        assertThrows(RetryableErrorException.class, () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(pscListClient.getPscs(any()))
+                .thenThrow(
+                        new RetryableErrorException("endpoint not found",
+                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
         verifyLoggingDataMap();
     }
 

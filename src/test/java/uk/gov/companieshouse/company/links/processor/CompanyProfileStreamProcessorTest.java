@@ -81,8 +81,7 @@ class CompanyProfileStreamProcessorTest {
                 HttpStatus.OK.value(), null, pscList);
 
         when(pscListClient.getPscs(any()))
-                .thenReturn(new PscList()
-                        .totalResults(1));
+                .thenReturn(pscList);
 
 
         ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);

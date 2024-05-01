@@ -170,6 +170,8 @@ public class StreamConsumerSteps {
             apiCall = "persons-with-significant-control";
         } else if (deltaType.equals("filing-history")) {
             apiCall = "filing-history";
+        } else if (deltaType.equals("company-profile")) {
+            apiCall = "persons-with-significant-control";
         } else {
             apiCall = deltaType;
         }
@@ -183,10 +185,6 @@ public class StreamConsumerSteps {
             default:
                 throw new IllegalArgumentException(String.format("Event type: '%s' is not a valid event type, " +
                         "this will result in the patch url being null. Please use either 'changed' or 'deleted'.", eventType));
-        }
-
-        if (deltaType.equals("company-profile") && eventType.equals("changed")){
-            patchUrl = String.format("/company/%s/links", COMPANY_NUMBER);
         }
 
         stubFor(

@@ -1,39 +1,44 @@
 package uk.gov.companieshouse.company.links.processor;
 
-import org.apache.commons.lang3.StringUtils;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
-import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
-import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
-import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
+import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
+import uk.gov.companieshouse.company.links.service.AddPscClient;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
-import uk.gov.companieshouse.company.links.service.PscService;
-import uk.gov.companieshouse.company.links.type.ApiType;
+import uk.gov.companieshouse.company.links.service.PscListClient;
+import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
+
 
 @Component
 public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
     private final CompanyProfileService companyProfileService;
-    private final PscService pscService;
+    private final PscListClient pscListClient;
+    private final CompanyProfileDeserializer companyProfileDeserializer;
+    private final AddPscClient addPscClient;
 
     /**
      * Construct a Company Profile stream processor.
      */
     @Autowired
     public CompanyProfileStreamProcessor(CompanyProfileService companyProfileService,
-                                         PscService pscService, Logger logger) {
+                                         PscListClient pscListClient, Logger logger,
+                                         AddPscClient addPscClient,
+                                         CompanyProfileDeserializer companyProfileDeserializer) {
         super(logger);
         this.companyProfileService = companyProfileService;
-        this.pscService = pscService;
+        this.pscListClient = pscListClient;
+        this.addPscClient = addPscClient;
+        this.companyProfileDeserializer = companyProfileDeserializer;
     }
 
     /**
@@ -45,9 +50,9 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         final String companyNumber = payload.getResourceId();
         DataMapHolder.get()
                 .companyNumber(companyNumber);
-        final ApiResponse<CompanyProfile> response = getCompanyProfile(payload, companyNumber);
-        var data = response.getData().getData();
-        processPscLink(contextId, companyNumber, data);
+        Data companyProfileData =
+                companyProfileDeserializer.deserialiseCompanyData(payload.getData());
+        processPscLink(contextId, companyNumber, companyProfileData);
     }
 
     /**
@@ -55,58 +60,44 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
      * If there is no PSCs link in the ResourceChanged and PSCs exist then add the link
      */
     private void processPscLink(String contextId, String companyNumber, Data data) {
-        if (data.getLinks().getPersonsWithSignificantControl() == null) {
-            ApiResponse<PscList> pscApiResponse = pscService
-                    .getPscList(contextId, companyNumber);
-            HttpStatus httpStatus = HttpStatus.resolve(pscApiResponse.getStatusCode());
+        Optional<String> pscLink = Optional.ofNullable(data)
+                .map(Data::getLinks)
+                .map(Links::getPersonsWithSignificantControl);
 
-            if (httpStatus == null || !httpStatus.is2xxSuccessful()) {
+        if (pscLink.isEmpty()) {
+            PatchLinkRequest patchLinkRequest = new PatchLinkRequest(companyNumber, contextId);
+            PscList pscList;
+            try {
+                pscList = pscListClient
+                        .getPscs(patchLinkRequest);
+
+            } catch (Exception exception) {
                 throw new RetryableErrorException(String.format(
-                        "Resource not found for PSCs List for company number %s"
-                                + "and contextId %s", companyNumber, contextId));
+                        "Error retrieving PSCs for company number %s", companyNumber),
+                        exception);
             }
-            if (pscApiResponse.getData() != null
-                    && pscApiResponse.getData().getTotalResults() != null
-                    && pscApiResponse.getData().getTotalResults() > 0) {
-                addCompanyPscsLink(contextId, companyNumber, data);
+            if (pscList != null
+                    && pscList.getTotalResults() != null
+                    && pscList.getTotalResults() > 0) {
+                try {
+                    addCompanyPscsLink(contextId, companyNumber, contextId);
+                } catch (Exception exception) {
+                    throw new RetryableErrorException(String.format(
+                            "Error updating PSC link for company number %s",
+                            companyNumber), exception);
+                }
+
             }
         }
     }
 
-    private ApiResponse<CompanyProfile> getCompanyProfile(ResourceChangedData payload,
-                                                          String companyNumber) {
-        final String logContext = payload.getContextId();
-        if (StringUtils.isEmpty(companyNumber)) {
-            throw new NonRetryableErrorException("Company number is empty or null in message");
-        }
-
-        logger.trace(String.format("Resource changed message of kind %s "
-                        + "for company number %s retrieved",
-                payload.getResourceKind(), companyNumber), DataMapHolder.getLogMap());
-
-        final ApiResponse<CompanyProfile> response =
-                companyProfileService.getCompanyProfile(logContext, companyNumber);
-        handleCompanyProfileResponse(HttpStatus.valueOf(response.getStatusCode()), logContext,
-                "GET", ApiType.COMPANY_PROFILE, companyNumber);
-        return response;
-    }
-
-    private void addCompanyPscsLink(String logContext, String companyNumber, Data data) {
+    private void addCompanyPscsLink(String logContext, String companyNumber, String contextId) {
         logger.trace(String.format("Message with contextId %s and company number %s -"
                         + "company profile does not contain PSC link, attaching PSC link",
                 logContext, companyNumber), DataMapHolder.getLogMap());
 
-        Links links = data.getLinks() == null ? new Links() : data.getLinks();
+        PatchLinkRequest linkRequest = new PatchLinkRequest(companyNumber, contextId);
 
-        links.setPersonsWithSignificantControl(
-                String.format("/company/%s/persons-with-significant-control", companyNumber));
-        data.setLinks(links);
-        var companyProfile = new CompanyProfile();
-        companyProfile.setData(data);
-
-        final ApiResponse<Void> patchResponse = companyProfileService.patchCompanyProfile(
-                logContext, companyNumber, companyProfile);
-        handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), logContext,
-                "PATCH", ApiType.COMPANY_PROFILE, companyNumber);
+        addPscClient.patchLink(linkRequest);
     }
 }

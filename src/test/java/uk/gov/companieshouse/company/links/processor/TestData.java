@@ -141,12 +141,12 @@ public class TestData {
         return createCompanyProfileMessage(COMPANY_PROFILE_LINK);
     }
 
-    public CompanyProfile createCompanyProfileFromJson() throws IOException {
+    public Data createCompanyProfileFromJson() throws IOException {
         String data = FileCopyUtils.copyToString(new InputStreamReader(
                 new FileInputStream("src/test/resources/company-profile-record.json")));
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
-        return objectMapper.readValue(data, CompanyProfile.class);
+        return objectMapper.readValue(data, Data.class);
     }
 
     public PscList createPscList() throws IOException {

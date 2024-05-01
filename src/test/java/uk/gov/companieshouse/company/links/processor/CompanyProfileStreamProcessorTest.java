@@ -1,5 +1,7 @@
 package uk.gov.companieshouse.company.links.processor;
 
+import com.google.api.client.http.HttpHeaders;
+import com.google.api.client.http.HttpResponseException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,15 +11,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
-import uk.gov.companieshouse.api.company.CompanyProfile;
+import uk.gov.companieshouse.api.company.Data;
+import uk.gov.companieshouse.api.company.Links;
+import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.consumer.CompanyProfileStreamConsumer;
-import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
+import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
+import uk.gov.companieshouse.company.links.service.AddPscClient;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
-import uk.gov.companieshouse.company.links.service.PscService;
+import uk.gov.companieshouse.company.links.service.PscListClient;
+import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
@@ -37,17 +43,23 @@ class CompanyProfileStreamProcessorTest {
     @Mock
     private CompanyProfileService companyProfileService;
     @Mock
-    PscService pscService;
+    PscListClient pscListClient;
     @Mock
     private Logger logger;
+    @Mock
+    public AddPscClient pscClient;
+    @Mock
+    private CompanyProfileDeserializer companyProfileDeserializer;
     private TestData testData;
 
     @BeforeEach
     void setUp() {
         companyProfileStreamProcessor = spy(new CompanyProfileStreamProcessor(
                 companyProfileService,
-                pscService,
-                logger));
+                pscListClient,
+                logger,
+                pscClient,
+                companyProfileDeserializer));
         testData = new TestData();
         DataMapHolder.initialise(CONTEXT_ID);
         companyProfileStreamConsumer = new CompanyProfileStreamConsumer(companyProfileStreamProcessor, logger);
@@ -60,38 +72,32 @@ class CompanyProfileStreamProcessorTest {
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileMessageWithValidResourceUri();
 
-        CompanyProfile companyProfile = testData.createCompanyProfileFromJson();
-        assertNull(companyProfile.getData().getLinks().getPersonsWithSignificantControl());
-        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
-                HttpStatus.OK.value(), null, companyProfile);
+        Data companyProfile = testData.createCompanyProfileFromJson();
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControl());
 
         PscList pscList = testData.createPscList();
         assertTrue(pscList.getTotalResults() > 0);
         final ApiResponse<PscList> pscApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, pscList);
 
-        final ApiResponse<CompanyProfile> updatedCompanyProfileApiResponse = new ApiResponse<>(
-                HttpStatus.OK.value(), null, null);
+        when(pscListClient.getPscs(any()))
+                .thenReturn(new PscList()
+                        .totalResults(1));
 
-        ArgumentCaptor<CompanyProfile> argument = ArgumentCaptor.forClass(CompanyProfile.class);
-        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), (argument.capture()))).thenAnswer(
-                invocationOnMock -> updatedCompanyProfileApiResponse);
 
-        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
-                .thenReturn(companyProfileApiResponse);
-        when(pscService.getPscList(CONTEXT_ID, MOCK_COMPANY_NUMBER))
-                .thenReturn(pscApiResponse);
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
 
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
+
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
-        verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any(CompanyProfile.class));
-        // Check that the profile has been correctly updated for the call
-        assertEquals(1, argument.getAllValues().size()); // Should have only captured 1 argument
-        assertNotNull(argument.getValue().getData().getLinks()); // We have links
-        String pscLink = argument.getValue().getData().getLinks().getPersonsWithSignificantControl();
-        assertEquals(String.format("/company/%s/persons-with-significant-control", MOCK_COMPANY_NUMBER), pscLink); // And the PSCs link is as expected
+
+        verify(pscClient).patchLink(argument.capture());
+        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
+        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
         verifyNoMoreInteractions(companyProfileService);
         verifyLoggingDataMap();
     }
@@ -103,25 +109,19 @@ class CompanyProfileStreamProcessorTest {
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileMessageWithValidResourceUri();
 
-        CompanyProfile companyProfile = testData.createCompanyProfileFromJson();
-        assertNull(companyProfile.getData().getLinks().getPersonsWithSignificantControl());
-        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
-                HttpStatus.OK.value(), null, companyProfile);
-
         PscList pscList = new PscList();
         pscList.setTotalResults(0);
         final ApiResponse<PscList> pscApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, pscList);
 
-        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
-                .thenReturn(companyProfileApiResponse);
-        when(pscService.getPscList(CONTEXT_ID, MOCK_COMPANY_NUMBER))
-                .thenReturn(pscApiResponse);
+
+        when(pscListClient.getPscs(any()))
+                .thenReturn(new PscList()
+                        .totalResults(0));
 
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
         verifyNoMoreInteractions(companyProfileService);
         verifyLoggingDataMap();
     }
@@ -133,72 +133,16 @@ class CompanyProfileStreamProcessorTest {
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileMessageWithValidResourceUri();
 
-        CompanyProfile companyProfile = testData.createCompanyProfileFromJson();
-        companyProfile.getData().getLinks().setPersonsWithSignificantControl(
-                String.format("/company/%s/persons-with-significant-control", MOCK_COMPANY_NUMBER));
-        assertNotNull(companyProfile.getData().getLinks().getPersonsWithSignificantControl());
-        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
-                HttpStatus.OK.value(), null, companyProfile);
+        Data data = new Data();
+        Links links = new Links();
+        links.setPersonsWithSignificantControl(String.format("/company/%s/persons-with-significant-control", MOCK_COMPANY_NUMBER));;
+        data.setLinks(links);
+        when(companyProfileDeserializer.deserialiseCompanyData(any())).thenReturn(data);
 
-        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
-                .thenReturn(companyProfileApiResponse);
 
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
-        verifyNoMoreInteractions(companyProfileService);
-        verifyLoggingDataMap();
-    }
-
-    @Test
-    @DisplayName("throws RetryableErrorException when CompanyProfile service is unavailable")
-    void throwRetryableErrorExceptionWhenCompanyProfileServiceIsUnavailable() throws IOException {
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileMessageWithValidResourceUri();
-
-        CompanyProfile companyProfile = testData.createCompanyProfileFromJson();
-
-        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
-                HttpStatus.SERVICE_UNAVAILABLE.value(), null, companyProfile);
-
-        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
-                .thenReturn(companyProfileApiResponse);
-
-        assertThrows(RetryableErrorException.class, () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
-
-        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
-        verify(companyProfileService, never()).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
-                any(CompanyProfile.class));
-        verifyNoMoreInteractions(companyProfileService);
-        verifyLoggingDataMap();
-    }
-
-    @Test
-    @DisplayName("throws NonRetryableErrorException when patch CompanyProfile returns Bad Request")
-    void throwNonRetryableErrorExceptionWhenPatchCompanyProfileReturnsBadRequest() throws IOException {
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileMessageWithValidResourceUri();
-
-        CompanyProfile companyProfile = testData.createCompanyProfileFromJson();
-
-        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
-                HttpStatus.OK.value(), null, companyProfile);
-
-        PscList pscList = testData.createPscList();
-        assertTrue(pscList.getTotalResults() > 0);
-        final ApiResponse<PscList> pscApiResponse = new ApiResponse<>(
-                HttpStatus.OK.value(), null, pscList);
-
-        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
-                .thenReturn(companyProfileApiResponse);
-        when(companyProfileService.patchCompanyProfile(any(), any(), any()))
-                .thenReturn(new ApiResponse<>(
-                        HttpStatus.BAD_REQUEST.value(), null, null));
-        when(pscService.getPscList(any(), any())).thenReturn(pscApiResponse);
-        assertThrows(NonRetryableErrorException.class, () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
-
-        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
-        verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER),
-                any(CompanyProfile.class));
         verifyNoMoreInteractions(companyProfileService);
         verifyLoggingDataMap();
     }
@@ -208,18 +152,16 @@ class CompanyProfileStreamProcessorTest {
     void throwRetryableErrorExceptionWhenPscDataAPIReturnsNon2XX() throws IOException {
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileMessageWithValidResourceUri();
 
-        CompanyProfile companyProfile = testData.createCompanyProfileFromJson();
-
-        final ApiResponse<CompanyProfile> companyProfileApiResponse = new ApiResponse<>(
-                HttpStatus.OK.value(), null, companyProfile);
-
-        when(companyProfileService.getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER))
-                .thenReturn(companyProfileApiResponse);
-        when(pscService.getPscList(any(), any()))
-                .thenReturn(new ApiResponse<>(
-                        HttpStatus.NOT_FOUND.value(), null, null));
-        assertThrows(RetryableErrorException.class, () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
-        verify(companyProfileService).getCompanyProfile(CONTEXT_ID, MOCK_COMPANY_NUMBER);
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(pscListClient.getPscs(any()))
+                .thenThrow(
+                        new RetryableErrorException("endpoint not found",
+                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
         verifyLoggingDataMap();
     }
 

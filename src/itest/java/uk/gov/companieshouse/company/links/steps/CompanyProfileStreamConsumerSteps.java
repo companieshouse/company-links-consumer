@@ -66,17 +66,35 @@ public class CompanyProfileStreamConsumerSteps {
 
     @And("Psc exists for company {string}")
     public void psc_exists_for_company(String companyNumber) {
-        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-record.json"));
+        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-record.json"), 200);
     }
 
     @And("Psc does not exist for company {string}")
     public void psc_does_not_exist_for_company(String companyNumber) {
-        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-empty-record.json"));
+        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-empty-record.json"), 200);
+    }
+
+    @And("The user is not authorized")
+    public void user_unauthorized() {
+        WiremockTestConfig.stubForGetPsc(401);
+    }
+
+    @And("The company profile api is not available")
+    public void company_profile_api_not_available() {
+        WiremockTestConfig.setPatchStubsFor("00006400", 404);
     }
 
     @When("A valid avro Company Profile message is sent to the Kafka topic {string}")
     public void send_company_profile_kafka_message(String topicName) throws InterruptedException {
         kafkaTemplate.send(topicName, createCompanyProfileMessage(companyNumber));
+        kafkaTemplate.flush();
+
+        assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @When("A valid avro Company Profile message is sent to the Kafka topic {string} with a psc link")
+    public void send_company_profile_kafka_message_with_psc_link(String topicName) throws InterruptedException {
+        kafkaTemplate.send(topicName, createCompanyProfileMessageWithLinks(companyNumber));
         kafkaTemplate.flush();
 
         assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
@@ -93,18 +111,16 @@ public class CompanyProfileStreamConsumerSteps {
     @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with PSC link payload")
     public void patchCompanyProfileEndpointIsCalled() {
         List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
-        assertEquals(3, events.size());
-        verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+        assertEquals(2, events.size());
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/persons-with-significant-control")));
-        verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+        verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links/persons-with-significant-control")));
     }
 
     @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked and there were {int} total events")
     public void patchCompanyProfileEndpointNotCalled(Integer numberOfEvents) {
         List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
         assertEquals(numberOfEvents, events.size());
-        verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
-        verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links")));
+        verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links/persons-with-significant-control")));
     }
 
     private String loadFileFromName(String fileName) {
@@ -127,7 +143,23 @@ public class CompanyProfileStreamConsumerSteps {
                 .setResourceId(companyNumber)
                 .setResourceKind("company-profile")
                 .setResourceUri("/company/"+companyNumber)
-                .setData("{ \"key\": \"value\" }")
+                .setData(loadFileFromName("profile-data-with-out-links.json"))
+                .setEvent(event)
+                .build();
+    }
+    private ResourceChangedData createCompanyProfileMessageWithLinks(String companyNumber) {
+        EventRecord event = EventRecord.newBuilder()
+                .setType("changed")
+                .setPublishedAt("2022-02-22T10:51:30")
+                .setFieldsChanged(Arrays.asList("foo", "moo"))
+                .build();
+
+        return ResourceChangedData.newBuilder()
+                .setContextId("context_id")
+                .setResourceId(companyNumber)
+                .setResourceKind("company-profile")
+                .setResourceUri("/company/"+companyNumber)
+                .setData(loadFileFromName("profile-data-with-all-links.json"))
                 .setEvent(event)
                 .build();
     }

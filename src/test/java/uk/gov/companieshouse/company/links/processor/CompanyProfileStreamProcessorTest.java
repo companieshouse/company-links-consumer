@@ -97,7 +97,6 @@ class CompanyProfileStreamProcessorTest {
 
         verify(pscClient).patchLink(argument.capture());
         assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
-        assertEquals(argument.getValue().getResourceId(), "pscs");
         assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
         verifyNoMoreInteractions(companyProfileService);
         verifyLoggingDataMap();

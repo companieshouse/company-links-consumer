@@ -96,7 +96,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                         + "company profile does not contain PSC link, attaching PSC link",
                 logContext, companyNumber), DataMapHolder.getLogMap());
 
-        PatchLinkRequest linkRequest = new PatchLinkRequest(companyNumber, "pscs", contextId);
+        PatchLinkRequest linkRequest = new PatchLinkRequest(companyNumber, contextId);
 
         addPscClient.patchLink(linkRequest);
     }

@@ -5,6 +5,7 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.util.FileCopyUtils;
+import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
@@ -111,10 +112,10 @@ public class TestData {
         companyProfile.getData().setLinks(links);
     }
 
-    public Message<ResourceChangedData> createCompanyProfileMessage(String resourceUri) throws IOException {
+    public Message<ResourceChangedData> createCompanyProfileWithLinksMessageWithValidResourceUri() throws IOException {
         InputStreamReader exampleCompanyProfileJsonPayload = new InputStreamReader(
                 Objects.requireNonNull(ClassLoader.getSystemClassLoader()
-                        .getResourceAsStream("company-profile-record.json")));
+                        .getResourceAsStream("company-profile-record-with-all-links.json")));
         String companyProfileRecord = FileCopyUtils.copyToString(exampleCompanyProfileJsonPayload);
 
         EventRecord changedEvent = new EventRecord();
@@ -124,7 +125,7 @@ public class TestData {
                 .setContextId(CONTEXT_ID)
                 .setResourceId(MOCK_COMPANY_NUMBER)
                 .setResourceKind("company-profile")
-                .setResourceUri(resourceUri)
+                .setResourceUri(COMPANY_PROFILE_LINK)
                 .setEvent(changedEvent)
                 .setData(companyProfileRecord)
                 .build();
@@ -137,16 +138,20 @@ public class TestData {
                 .build();
     }
 
-    public Message<ResourceChangedData> createCompanyProfileMessageWithValidResourceUri() throws IOException {
-        return createCompanyProfileMessage(COMPANY_PROFILE_LINK);
-    }
-
-    public Data createCompanyProfileFromJson() throws IOException {
+    public Data createCompanyProfileWithLinksFromJson() throws IOException {
         String data = FileCopyUtils.copyToString(new InputStreamReader(
-                new FileInputStream("src/test/resources/company-profile-record.json")));
+                new FileInputStream("src/test/resources/company-profile-record-with-all-links.json")));
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
         return objectMapper.readValue(data, Data.class);
+    }
+
+    public ChargesApi createCharges() throws IOException {
+        String data = FileCopyUtils.copyToString(new InputStreamReader(
+                new FileInputStream("src/test/resources/charges-api-record.json")));
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        return objectMapper.readValue(data, ChargesApi.class);
     }
 
     public PscList createPscList() throws IOException {

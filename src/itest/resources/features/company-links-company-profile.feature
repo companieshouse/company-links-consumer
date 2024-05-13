@@ -26,7 +26,7 @@ Feature: Process company profile links
     Given Company links consumer service is running
     And Company profile exists with no "persons-with-significant-control" link for company "00006401"
     And "persons-with-significant-control" exist for company "00006401"
-    When A valid avro Company Profile without "psc" link message is sent to the Kafka topic "stream-company-profile"
+    When A valid avro Company Profile without "persons-with-significant-control" link message is sent to the Kafka topic "stream-company-profile"
     Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with "persons-with-significant-control" link payload
 
   Scenario: Company profile message with existing PSC link does not update
@@ -39,5 +39,5 @@ Feature: Process company profile links
     Given Company links consumer service is running
     And Company profile exists with no "persons-with-significant-control" link for company "00006401"
     And "persons-with-significant-control" do not exist for company "00006401"
-    When A valid avro Company Profile without "psc" link message is sent to the Kafka topic "stream-company-profile"
+    When A valid avro Company Profile without "persons-with-significant-control" link message is sent to the Kafka topic "stream-company-profile"
     Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "persons-with-significant-control" link payload

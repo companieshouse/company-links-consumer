@@ -45,9 +45,17 @@
   },
   "links": {
     "self": "/company/00019993",
-    "charges": "/company/00019993/charges",
+    "persons_with_significant_control": "/company/00019993/persons-with-significant-control",
+    "persons_with_significant_control_statements": "/company/00019993/persons-with-significant-control-statements",
+    "persons_with_significant_control_statement": "/company/00019993/persons-with-significant-control-statement",
+    "registers": "/company/00019993/registers",
+    "charges" : "/company/00019993/charges",
+    "filing_history": "/company/00019993/filing-history",
+    "insolvency" : "/company/00019993/insolvency",
     "officers": "/company/00019993/officers",
-    "filing_history": "/company/00019993/filing-history"
+    "overseas": "/company/00019993/overseas",
+    "uk_establishments": "/company/00019993/uk-establishments",
+    "exemptions": "/company/00019993/exemptions"
   },
   "has_insolvency_history": false,
   "date_of_creation": "1884-06-30",

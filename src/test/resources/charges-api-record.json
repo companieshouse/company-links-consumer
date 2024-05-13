@@ -1,0 +1,68 @@
+{
+  "etag": "68648d4080736d82e98a5f099bf34784d9a35e53",
+  "total_count": 2,
+  "unfiltered_count": 2,
+  "satisfied_count": 0,
+  "part_satisfied_count": 0,
+  "items": [
+    {
+      "etag": "5aeb68751dffabf96ddacc5fc4bee1a1249fdfc7",
+      "classification": {
+        "type": "charge-description",
+        "description": "Standard security"
+      },
+      "charge_number": 37,
+      "status": "outstanding",
+      "delivered_on": "2007-05-18",
+      "created_on": "2007-05-16",
+      "particulars": {
+        "type": "short-particulars",
+        "description": "Northmost third floor flat at 60 mains road, dundee ANG22572."
+      },
+      "secured_details": {
+        "type": "amount-secured",
+        "description": "All sums due or to become due"
+      },
+      "transactions": [
+        {
+          "filing_type": "create-charge-scotland-pre-2006-companies-act",
+          "delivered_on": "2007-05-18",
+          "links": {
+            "filing": "/company/SO300712/filing-history/MDE4MDQ4NjQ3M2FkaXF6a2N4"
+          }
+        }
+      ],
+      "links": {
+        "self": "/company/SO300712/charges/zmLZh9Hk_mdu8yRKxSRMzIyrTi0"
+      }
+    },
+    {
+      "etag": "7800093782a4586a8a3e0f8a2e69c02a56b745fd",
+      "classification": {
+        "type": "charge-description",
+        "description": "Standard security"
+      },
+      "charge_number": 36,
+      "status": "outstanding",
+      "delivered_on": "2007-03-02",
+      "created_on": "2007-02-20",
+      "particulars": {
+        "type": "short-particulars",
+        "description": "The westmost second floor flat of the tenement 246 perth road, dundee in the county of angus ANG29633."
+      },
+      "secured_details": {
+        "type": "amount-secured",
+        "description": "All sums due or to become due"
+      },
+      "transactions": [
+        {
+          "filing_type": "create-charge-scotland-pre-2006-companies-act",
+          "delivered_on": "2007-03-02"
+        }
+      ],
+      "links": {
+        "self": "/company/SO300712/charges/IwuO3v9b1HAGgD0C4Mr_RDL5iy4"
+      }
+    }
+  ]
+}

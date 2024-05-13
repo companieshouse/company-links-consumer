@@ -1,6 +1,5 @@
 package uk.gov.companieshouse.company.links.steps;
 
-import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -19,12 +18,10 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CompanyProfileStreamConsumerSteps {
 
@@ -44,17 +41,17 @@ public class CompanyProfileStreamConsumerSteps {
         resettableCountDownLatch.resetLatch(4);
     }
 
-    @Given("Company profile exists with no PSC link for company {string}")
-    public void company_profile_exists_no_psc_link(String companyNumber) {
+    @Given("Company profile exists with no {string} link for company {string}")
+    public void company_profile_exists_without_one_link(String linkType, String companyNumber) {
         this.companyNumber = companyNumber;
-        WiremockTestConfig.setGetAndPatchStubsFor(this.companyNumber,
-                loadFileFromName("profile-with-out-links.json"));
+        WiremockTestConfig.setGetAndPatchStubsFor(linkType, this.companyNumber,
+                loadFileFromName(String.format("profile-without-%s-link.json", linkType)));
     }
 
-    @Given("Company profile exists with PSC link for company {string}")
-    public void company_profile_exists_with_psc_link(String companyNumber) {
+    @Given("Company profile exists with {string} link for company {string}")
+    public void company_profile_exists_with_all_link(String linkType, String companyNumber) {
         this.companyNumber = companyNumber;
-        WiremockTestConfig.setGetAndPatchStubsFor(this.companyNumber,
+        WiremockTestConfig.setGetAndPatchStubsFor(linkType, this.companyNumber,
                 loadFileFromName("profile-with-all-links.json"));
     }
 
@@ -64,37 +61,37 @@ public class CompanyProfileStreamConsumerSteps {
         assertThat(companyProfileService).isNotNull();
     }
 
-    @And("Psc exists for company {string}")
-    public void psc_exists_for_company(String companyNumber) {
-        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-record.json"), 200);
+    @And("{string} exist for company {string}")
+    public void objects_exist_for_company(String linkType, String companyNumber) {
+        WiremockTestConfig.stubForGet(linkType, companyNumber, loadFileFromName("psc-list-record.json"), 200);
     }
 
-    @And("Psc does not exist for company {string}")
-    public void psc_does_not_exist_for_company(String companyNumber) {
-        WiremockTestConfig.stubForGetPsc(companyNumber, loadFileFromName("psc-list-empty-record.json"), 200);
+    @And("{string} do not exist for company {string}")
+    public void objects_do_not_exist_for_company(String linkType, String companyNumber) {
+        WiremockTestConfig.stubForGet(linkType, companyNumber, loadFileFromName("psc-list-empty-record.json"), 200);
     }
 
     @And("The user is not authorized")
     public void user_unauthorized() {
-        WiremockTestConfig.stubForGetPsc(401);
+        WiremockTestConfig.stubForGetPscWith401Response("00006400");
     }
 
     @And("The company profile api is not available")
     public void company_profile_api_not_available() {
-        WiremockTestConfig.setPatchStubsFor("00006400", 404);
+        WiremockTestConfig.setPatchStubsForPscWith404Response("00006400");
     }
 
-    @When("A valid avro Company Profile message is sent to the Kafka topic {string}")
-    public void send_company_profile_kafka_message(String topicName) throws InterruptedException {
-        kafkaTemplate.send(topicName, createCompanyProfileMessage(companyNumber));
+    @When("A valid avro Company Profile without {string} link message is sent to the Kafka topic {string}")
+    public void send_company_profile_kafka_message(String linkType, String topicName) throws InterruptedException {
+        kafkaTemplate.send(topicName, createCompanyProfileMessageWithoutOneLink(linkType, companyNumber));
         kafkaTemplate.flush();
 
         assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
     }
 
-    @When("A valid avro Company Profile message is sent to the Kafka topic {string} with a psc link")
-    public void send_company_profile_kafka_message_with_psc_link(String topicName) throws InterruptedException {
-        kafkaTemplate.send(topicName, createCompanyProfileMessageWithLinks(companyNumber));
+    @When("A valid avro Company Profile with all links message is sent to the Kafka topic {string}")
+    public void send_company_profile_with_all_links_kafka_message(String topicName) throws InterruptedException {
+        kafkaTemplate.send(topicName, createCompanyProfileMessageWithAllLinks(companyNumber));
         kafkaTemplate.flush();
 
         assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
@@ -108,19 +105,15 @@ public class CompanyProfileStreamConsumerSteps {
         assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
     }
 
-    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with PSC link payload")
-    public void patchCompanyProfileEndpointIsCalled() {
-        List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
-        assertEquals(2, events.size());
-        verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/persons-with-significant-control")));
-        verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links/persons-with-significant-control")));
+    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with {string} link payload")
+    public void patchCompanyProfileEndpointIsCalledForPscs(String linkType) {
+        verify(1, getRequestedFor(urlEqualTo(String.format("/company/%s/%s", this.companyNumber, linkType))));
+        verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/%s", this.companyNumber, linkType))));
     }
 
-    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked and there were {int} total events")
-    public void patchCompanyProfileEndpointNotCalled(Integer numberOfEvents) {
-        List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
-        assertEquals(numberOfEvents, events.size());
-        verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links/persons-with-significant-control")));
+    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with {string} link payload")
+    public void patchCompanyProfileEndpointNotCalled(String linkType) {
+        verify(0, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/%s", this.companyNumber, linkType))));
     }
 
     private String loadFileFromName(String fileName) {
@@ -131,7 +124,7 @@ public class CompanyProfileStreamConsumerSteps {
         }
     }
 
-    private ResourceChangedData createCompanyProfileMessage(String companyNumber) {
+    private ResourceChangedData createCompanyProfileMessageWithoutOneLink(String linkType, String companyNumber) {
         EventRecord event = EventRecord.newBuilder()
                 .setType("changed")
                 .setPublishedAt("2022-02-22T10:51:30")
@@ -143,11 +136,11 @@ public class CompanyProfileStreamConsumerSteps {
                 .setResourceId(companyNumber)
                 .setResourceKind("company-profile")
                 .setResourceUri("/company/"+companyNumber)
-                .setData(loadFileFromName("profile-data-with-out-links.json"))
+                .setData(loadFileFromName(String.format("profile-data-without-%s-link.json", linkType)))
                 .setEvent(event)
                 .build();
     }
-    private ResourceChangedData createCompanyProfileMessageWithLinks(String companyNumber) {
+    private ResourceChangedData createCompanyProfileMessageWithAllLinks(String companyNumber) {
         EventRecord event = EventRecord.newBuilder()
                 .setType("changed")
                 .setPublishedAt("2022-02-22T10:51:30")

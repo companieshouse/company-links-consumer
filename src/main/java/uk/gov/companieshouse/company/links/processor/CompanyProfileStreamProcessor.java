@@ -4,14 +4,18 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
+import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
+import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
+import uk.gov.companieshouse.company.links.service.AddChargesClient;
 import uk.gov.companieshouse.company.links.service.AddPscClient;
-import uk.gov.companieshouse.company.links.service.CompanyProfileService;
+import uk.gov.companieshouse.company.links.service.ChargesService;
+import uk.gov.companieshouse.company.links.service.LinkClient;
 import uk.gov.companieshouse.company.links.service.PscListClient;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
@@ -21,24 +25,26 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 @Component
 public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
-    private final CompanyProfileService companyProfileService;
-    private final PscListClient pscListClient;
     private final CompanyProfileDeserializer companyProfileDeserializer;
+    private final ChargesService chargesService;
+    private final PscListClient pscListClient;
+    private final AddChargesClient addChargesClient;
     private final AddPscClient addPscClient;
 
     /**
      * Construct a Company Profile stream processor.
      */
     @Autowired
-    public CompanyProfileStreamProcessor(CompanyProfileService companyProfileService,
-                                         PscListClient pscListClient, Logger logger,
-                                         AddPscClient addPscClient,
-                                         CompanyProfileDeserializer companyProfileDeserializer) {
+    public CompanyProfileStreamProcessor(
+            Logger logger, CompanyProfileDeserializer companyProfileDeserializer,
+            ChargesService chargesService, PscListClient pscListClient,
+            AddChargesClient addChargesClient, AddPscClient addPscClient) {
         super(logger);
-        this.companyProfileService = companyProfileService;
-        this.pscListClient = pscListClient;
-        this.addPscClient = addPscClient;
         this.companyProfileDeserializer = companyProfileDeserializer;
+        this.chargesService = chargesService;
+        this.pscListClient = pscListClient;
+        this.addChargesClient = addChargesClient;
+        this.addPscClient = addPscClient;
     }
 
     /**
@@ -52,6 +58,8 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                 .companyNumber(companyNumber);
         Data companyProfileData =
                 companyProfileDeserializer.deserialiseCompanyData(payload.getData());
+
+        processChargesLink(contextId, companyNumber, companyProfileData);
         processPscLink(contextId, companyNumber, companyProfileData);
     }
 
@@ -68,35 +76,60 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             PatchLinkRequest patchLinkRequest = new PatchLinkRequest(companyNumber, contextId);
             PscList pscList;
             try {
-                pscList = pscListClient
-                        .getPscs(patchLinkRequest);
-
+                pscList = pscListClient.getPscs(patchLinkRequest);
             } catch (Exception exception) {
                 throw new RetryableErrorException(String.format(
                         "Error retrieving PSCs for company number %s", companyNumber),
                         exception);
             }
+
             if (pscList != null
                     && !pscList.getItems().isEmpty()) {
-                try {
-                    addCompanyPscsLink(contextId, companyNumber, contextId);
-                } catch (Exception exception) {
-                    throw new RetryableErrorException(String.format(
-                            "Error updating PSC link for company number %s",
-                            companyNumber), exception);
-                }
-
+                addCompanyLink(addPscClient, "PSC", contextId, companyNumber);
             }
         }
     }
 
-    private void addCompanyPscsLink(String logContext, String companyNumber, String contextId) {
-        logger.trace(String.format("Message with contextId %s and company number %s -"
-                        + "company profile does not contain PSC link, attaching PSC link",
-                logContext, companyNumber), DataMapHolder.getLogMap());
+    /**
+     * Process the Charges link for a Company Profile ResourceChanged message.
+     * If there is no Charges link in the ResourceChanged and Charges exist then add the link
+     */
+    private void processChargesLink(String contextId, String companyNumber, Data data) {
+        Optional<String> chargesLink = Optional.ofNullable(data)
+                .map(Data::getLinks)
+                .map(Links::getCharges);
 
-        PatchLinkRequest linkRequest = new PatchLinkRequest(companyNumber, contextId);
+        if (chargesLink.isEmpty()) {
+            ApiResponse<ChargesApi> chargesResponse;
+            try {
+                chargesResponse = chargesService.getCharges(contextId, companyNumber);
+            } catch (Exception exception) {
+                throw new RetryableErrorException(String.format(
+                        "Error retrieving Charges for company number %s", companyNumber),
+                        exception);
+            }
 
-        addPscClient.patchLink(linkRequest);
+            if (chargesResponse.getData() != null
+                    && !chargesResponse.getData().getItems().isEmpty()) {
+                addCompanyLink(addChargesClient, "Charges", contextId, companyNumber);
+            }
+        }
+    }
+
+    private void addCompanyLink(LinkClient linkClient, String linkType, String contextId,
+                                String companyNumber) {
+        try {
+            logger.trace(String.format("Message with contextId %s and company number %s -"
+                                    + "company profile does not contain %s link, attaching link",
+                            contextId, companyNumber, linkType), DataMapHolder.getLogMap());
+
+            PatchLinkRequest linkRequest = new PatchLinkRequest(companyNumber, contextId);
+
+            linkClient.patchLink(linkRequest);
+        } catch (Exception exception) {
+            throw new RetryableErrorException(String.format(
+                    "Error updating %s link for company number %s",
+                    linkType, companyNumber), exception);
+        }
     }
 }

@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.util.ResourceUtils;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.mockito.ArgumentMatchers.anyString;
 
 public class WiremockTestConfig {
 
@@ -108,40 +107,40 @@ public class WiremockTestConfig {
                                         "\"\n}")));
     }
 
-    public static void setGetAndPatchStubsFor(String companyNumber, String response){
+    public static void setGetAndPatchStubsFor(String linkType, String companyNumber, String response){
         stubFor(
-                get(urlEqualTo("/company/" + companyNumber + "/links"))
+                get(urlEqualTo(String.format("/company/%s/links", companyNumber)))
                         .willReturn(aResponse()
                                 .withStatus(200)
                                 .withHeader("Content-Type", "application/json")
                                 .withBody(response)));
 
         stubFor(
-                patch(urlEqualTo("/company/" + companyNumber + "/links/persons-with-significant-control"))
+                patch(urlEqualTo(String.format("/company/%s/links/%s", companyNumber, linkType)))
                         .willReturn(aResponse()
                                 .withStatus(200)));
     }
 
-    public static void stubForGetPsc(String companyNumber, String response, Integer responseCode) {
+    public static void stubForGet(String linkType, String companyNumber, String response, Integer responseCode) {
         stubFor(
-                get(urlEqualTo("/company/" + companyNumber + "/persons-with-significant-control"))
+                get(urlEqualTo(String.format("/company/%s/%s", companyNumber, linkType)))
                         .willReturn(aResponse()
                                 .withStatus(responseCode)
                                 .withHeader("Content-Type", "application/json")
                                 .withBody(response)));
     }
 
-    public static void stubForGetPsc(Integer responseCode) {
+    public static void stubForGetPscWith401Response(String companyNumber) {
         stubFor(
-                get(urlEqualTo("/company/00006400/persons-with-significant-control"))
+                get(urlEqualTo(String.format("/company/%s/persons-with-significant-control", companyNumber)))
                         .willReturn(aResponse()
                                 .withStatus(HttpStatus.UNAUTHORIZED.value())
                                 .withHeader("Content-Type", "application/json")));
     }
 
-    public static void setPatchStubsFor(String companyNumber, Integer response){
+    public static void setPatchStubsForPscWith404Response(String companyNumber){
         stubFor(
-                patch(urlEqualTo("/company/" + companyNumber + "/links/persons-with-significant-control"))
+                patch(urlEqualTo(String.format("/company/%s/links/persons-with-significant-control", companyNumber)))
                         .willReturn(aResponse()
                                 .withStatus(HttpStatus.SERVICE_UNAVAILABLE.value())));
     }

@@ -20,7 +20,7 @@ Feature: Process company profile links for error scenarios
   Scenario: Consume a valid company profile message but the company profile api is unavailable
     Given Company links consumer is available
     And The company profile api is unavailable
-    And Psc exists for company "00006400"
+    And "persons-with-significant-control" exist for company "00006400"
     When A valid "changed" message is consumed from the "company-profile" stream
     Then The message is placed on the "retry" topic
     And The message is placed on the "error" topic

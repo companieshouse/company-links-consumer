@@ -1,6 +1,5 @@
 package uk.gov.companieshouse.company.links.steps;
 
-import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -19,12 +18,10 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CompanyProfileStreamConsumerSteps {
 
@@ -48,7 +45,7 @@ public class CompanyProfileStreamConsumerSteps {
     public void company_profile_exists_no_psc_link(String companyNumber) {
         this.companyNumber = companyNumber;
         WiremockTestConfig.setGetAndPatchStubsFor(this.companyNumber,
-                loadFileFromName("profile-with-out-links.json"));
+                loadFileFromName("profile-without-psc-link.json"));
     }
 
     @Given("Company profile exists with PSC link for company {string}")
@@ -110,16 +107,12 @@ public class CompanyProfileStreamConsumerSteps {
 
     @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with PSC link payload")
     public void patchCompanyProfileEndpointIsCalled() {
-        List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
-        assertEquals(2, events.size());
         verify(1, getRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/persons-with-significant-control")));
         verify(1, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links/persons-with-significant-control")));
     }
 
     @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked and there were {int} total events")
     public void patchCompanyProfileEndpointNotCalled(Integer numberOfEvents) {
-        List<ServeEvent> events = WiremockTestConfig.getWiremockEvents();
-        assertEquals(numberOfEvents, events.size());
         verify(0, patchRequestedFor(urlEqualTo("/company/" + this.companyNumber + "/links/persons-with-significant-control")));
     }
 

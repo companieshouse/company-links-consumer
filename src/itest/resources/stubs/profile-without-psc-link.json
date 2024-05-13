@@ -21,7 +21,18 @@
     "jurisdiction":null,
     "last_full_members_list_date":null,
     "links": {
-      "insolvency" : null
+      "self": "/company/00006401",
+      "persons_with_significant_control": null,
+      "persons_with_significant_control_statements": "/company/00006401/persons-with-significant-control-statements",
+      "persons_with_significant_control_statement": "/company/00006401/persons-with-significant-control-statement",
+      "registers": "/company/00006401/registers",
+      "charges" : "/company/00006401/charges",
+      "filing_history": "/company/00006401/filing-history",
+      "insolvency" : "/company/00006401/insolvency",
+      "officers": "/company/00006401/officers",
+      "overseas": "/company/00006401/overseas",
+      "uk_establishments": "/company/00006401/uk-establishments",
+      "exemptions": "/company/00006401/exemptions"
     },
     "previous_company_names":null,
     "registered_office_address":null,

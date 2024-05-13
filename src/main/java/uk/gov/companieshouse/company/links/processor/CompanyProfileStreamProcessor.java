@@ -60,6 +60,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                 companyProfileDeserializer.deserialiseCompanyData(payload.getData());
 
         processChargesLink(contextId, companyNumber, companyProfileData);
+
         processPscLink(contextId, companyNumber, companyProfileData);
     }
 

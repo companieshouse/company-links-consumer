@@ -66,6 +66,11 @@ public class CompanyProfileStreamConsumerSteps {
         WiremockTestConfig.stubForGet(linkType, companyNumber, loadFileFromName("psc-list-record.json"), 200);
     }
 
+    @And("a {string} exists for company {string}")
+    public void statement_exists_for_company(String linkType, String companyNumber) {
+        WiremockTestConfig.stubForGet(linkType, companyNumber, loadFileFromName("psc-statements-list-record.json"), 200);
+    }
+
     @And("{string} do not exist for company {string}")
     public void objects_do_not_exist_for_company(String linkType, String companyNumber) {
         WiremockTestConfig.stubForGet(linkType, companyNumber, loadFileFromName("psc-list-empty-record.json"), 200);

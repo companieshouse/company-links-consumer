@@ -10,6 +10,7 @@ import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.psc.PscList;
+import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
@@ -160,6 +161,14 @@ public class TestData {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
         return objectMapper.readValue(data, PscList.class);
+    }
+
+    public StatementList createStatementList() throws IOException {
+        String data = FileCopyUtils.copyToString(new InputStreamReader(
+                new FileInputStream("src/test/resources/psc-statements-list-record.json")));
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        return objectMapper.readValue(data, StatementList.class);
     }
 
 }

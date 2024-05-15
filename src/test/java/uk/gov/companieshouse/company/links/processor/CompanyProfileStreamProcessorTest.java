@@ -16,14 +16,12 @@ import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
+import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.consumer.CompanyProfileStreamConsumer;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
-import uk.gov.companieshouse.company.links.service.AddChargesClient;
-import uk.gov.companieshouse.company.links.service.AddPscClient;
-import uk.gov.companieshouse.company.links.service.ChargesService;
-import uk.gov.companieshouse.company.links.service.PscListClient;
+import uk.gov.companieshouse.company.links.service.*;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -50,9 +48,13 @@ class CompanyProfileStreamProcessorTest {
     @Mock
     PscListClient pscListClient;
     @Mock
+    StatementsListClient statementsListClient;
+    @Mock
     public AddChargesClient addChargesClient;
     @Mock
     public AddPscClient addPscClient;
+    @Mock
+    public AddStatementsClient addStatementsClient;
     private TestData testData;
 
     @BeforeEach
@@ -60,7 +62,8 @@ class CompanyProfileStreamProcessorTest {
         companyProfileStreamProcessor = spy(new CompanyProfileStreamProcessor(
                 logger, companyProfileDeserializer,
                 chargesService, pscListClient,
-                addChargesClient, addPscClient));
+                addChargesClient, addPscClient,
+                statementsListClient, addStatementsClient));
         testData = new TestData();
         DataMapHolder.initialise(CONTEXT_ID);
         companyProfileStreamConsumer = new CompanyProfileStreamConsumer(companyProfileStreamProcessor, logger);
@@ -243,6 +246,98 @@ class CompanyProfileStreamProcessorTest {
                 HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
                 new HttpHeaders()).build();
         when(pscListClient.getPscs(any()))
+                .thenThrow(
+                        new RetryableErrorException("endpoint not found",
+                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verifyLoggingDataMap();
+    }
+
+    //PSC Statements TESTS
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a Psc Statements Link and a Psc Statement exists, so the Psc Statements link is updated")
+    void successfullyProcessCompanyProfileResourceChangedWherePscStatementExistsAndNoPscStatementLinkSoUpdatePscStatementLinks() throws IOException {
+
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setPersonsWithSignificantControlStatement(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatement());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        StatementList statementList = testData.createStatementList();
+        assertFalse(statementList.getItems().isEmpty());
+        when(statementsListClient.getStatementsList(any(), any())).thenReturn(statementList);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addStatementsClient).patchLink(argument.capture());
+        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
+        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a Psc Statements Link and a Statement does not exist, so the Psc Statement link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereNoPscStatementAndNoPscStatementLinkSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setPersonsWithSignificantControlStatement(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatement());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        when(statementsListClient.getStatementsList(any(), any())).thenReturn(new StatementList());
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addStatementsClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does have a Psc Statement Link, so the Psc Statement link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWherePscStatementLinkExistsSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        assertNotNull(companyProfile.getLinks().getPersonsWithSignificantControlStatement());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addStatementsClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when Psc Statements Data API returns non successful response !2XX")
+    void throwRetryableErrorExceptionWhenPscStatementsDataAPIReturnsNon2XX() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setPersonsWithSignificantControlStatement(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatement());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(statementsListClient.getStatementsList(any(), any()))
                 .thenThrow(
                         new RetryableErrorException("endpoint not found",
                                 ApiErrorResponseException.fromHttpResponseException(httpResponseException)));

@@ -55,7 +55,7 @@ public class OfficerListClient {
                 // found (case 1), and a non-zero response body is seen when a service is
                 // unavailable (case 2).
                 if (ex.getContent() != null
-                        && !ex.getContent().contains("officers-not-found")
+                        && !ex.getContent().contains("company-officers-not-found")
                         && ((ex.getHeaders().containsKey(HttpHeaders.CONTENT_LENGTH)
                         && ex.getHeaders().getContentLength() > 0)
                         || StringUtils.isEmpty(ex.getContent()))) {

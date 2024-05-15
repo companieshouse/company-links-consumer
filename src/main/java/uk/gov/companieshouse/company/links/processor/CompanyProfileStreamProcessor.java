@@ -4,19 +4,17 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
+import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
+import uk.gov.companieshouse.api.handler.officers.request.OfficersList;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
-import uk.gov.companieshouse.company.links.service.AddChargesClient;
-import uk.gov.companieshouse.company.links.service.AddPscClient;
-import uk.gov.companieshouse.company.links.service.ChargesService;
-import uk.gov.companieshouse.company.links.service.LinkClient;
-import uk.gov.companieshouse.company.links.service.PscListClient;
+import uk.gov.companieshouse.company.links.service.*;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -31,6 +29,10 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     private final AddChargesClient addChargesClient;
     private final AddPscClient addPscClient;
 
+    private final OfficerListClient officerListClient;
+
+    private final AddOfficersClient addOfficersClient;
+
     /**
      * Construct a Company Profile stream processor.
      */
@@ -38,13 +40,16 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     public CompanyProfileStreamProcessor(
             Logger logger, CompanyProfileDeserializer companyProfileDeserializer,
             ChargesService chargesService, PscListClient pscListClient,
-            AddChargesClient addChargesClient, AddPscClient addPscClient) {
+            AddChargesClient addChargesClient, AddPscClient addPscClient,
+            OfficerListClient officerListClient, AddOfficersClient addOfficersClient) {
         super(logger);
         this.companyProfileDeserializer = companyProfileDeserializer;
         this.chargesService = chargesService;
         this.pscListClient = pscListClient;
         this.addChargesClient = addChargesClient;
         this.addPscClient = addPscClient;
+        this.officerListClient = officerListClient;
+        this.addOfficersClient = addOfficersClient;
     }
 
     /**
@@ -116,6 +121,39 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             }
         }
     }
+
+    /**
+     * Process the Officers link for a Company Profile ResourceChanged message.
+     * If there is no Officers link in the ResourceChanged and Officers exist then add the link
+     */
+    private void processOfficerLink(String contextId, String companyNumber, Data data) {
+        Optional<String> officerLink = Optional.ofNullable(data)
+                .map(Data::getLinks)
+                .map(Links::getOfficers);
+
+        if (officerLink.isEmpty()) {
+            PatchLinkRequest patchLinkRequest = new PatchLinkRequest(companyNumber, contextId);
+            OfficerList officersList;
+            try {
+                officersList = officerListClient
+                        .getOfficers(patchLinkRequest);
+
+            } catch (Exception exception) {
+                throw new RetryableErrorException(String.format(
+                        "Error retrieving Officers for company number %s", companyNumber),
+                        exception);
+            }
+            if (officersList != null
+                    && !officersList.getItems().isEmpty()) {
+                addCompanyLink(addOfficersClient, "officers", contextId, companyNumber);
+            }
+        }
+    }
+
+    /**
+     * Process the Officers link for a Company Profile ResourceChanged message.
+     * If there is no Officers link in the ResourceChanged and Officers exist then add the link
+     */
 
     private void addCompanyLink(LinkClient linkClient, String linkType, String contextId,
                                 String companyNumber) {

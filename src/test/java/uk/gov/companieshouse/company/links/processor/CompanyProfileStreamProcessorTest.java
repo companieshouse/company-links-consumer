@@ -11,19 +11,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
+import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
+import uk.gov.companieshouse.api.handler.officers.request.OfficersList;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.consumer.CompanyProfileStreamConsumer;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
-import uk.gov.companieshouse.company.links.service.AddChargesClient;
-import uk.gov.companieshouse.company.links.service.AddPscClient;
-import uk.gov.companieshouse.company.links.service.ChargesService;
-import uk.gov.companieshouse.company.links.service.PscListClient;
+import uk.gov.companieshouse.company.links.service.*;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -53,6 +52,10 @@ class CompanyProfileStreamProcessorTest {
     public AddChargesClient addChargesClient;
     @Mock
     public AddPscClient addPscClient;
+    @Mock
+    public AddOfficersClient addOfficersClient;
+    @Mock
+    public OfficerListClient officerListClient;
     private TestData testData;
 
     @BeforeEach
@@ -60,7 +63,7 @@ class CompanyProfileStreamProcessorTest {
         companyProfileStreamProcessor = spy(new CompanyProfileStreamProcessor(
                 logger, companyProfileDeserializer,
                 chargesService, pscListClient,
-                addChargesClient, addPscClient));
+                addChargesClient, addPscClient, officerListClient, addOfficersClient));
         testData = new TestData();
         DataMapHolder.initialise(CONTEXT_ID);
         companyProfileStreamConsumer = new CompanyProfileStreamConsumer(companyProfileStreamProcessor, logger);
@@ -155,6 +158,36 @@ class CompanyProfileStreamProcessorTest {
                                 ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
         assertThrows(RetryableErrorException.class,
                 () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verifyLoggingDataMap();
+    }
+
+    //OFFICERS TESTS
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a Officers Link and Officers exist, so the Officers link is updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereOfficersExistAndNoOfficersLinkSoUpdateLink() throws IOException {
+
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setOfficers(null);
+        assertNull(companyProfile.getLinks().getOfficers());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        OfficerList officerList = testData.createOfficers();
+        assertFalse(officerList.getItems().isEmpty());
+        when(officerListClient.getOfficers(any())).thenReturn(officerList);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addChargesClient).patchLink(argument.capture());
+        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
+        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
         verifyLoggingDataMap();
     }
 

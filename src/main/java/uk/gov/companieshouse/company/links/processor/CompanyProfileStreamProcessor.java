@@ -1,6 +1,5 @@
 package uk.gov.companieshouse.company.links.processor;
 
-import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
@@ -8,16 +7,23 @@ import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
-import uk.gov.companieshouse.api.handler.officers.request.OfficersList;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
-import uk.gov.companieshouse.company.links.service.*;
+import uk.gov.companieshouse.company.links.service.AddChargesClient;
+import uk.gov.companieshouse.company.links.service.AddOfficersClient;
+import uk.gov.companieshouse.company.links.service.AddPscClient;
+import uk.gov.companieshouse.company.links.service.ChargesService;
+import uk.gov.companieshouse.company.links.service.LinkClient;
+import uk.gov.companieshouse.company.links.service.OfficerListClient;
+import uk.gov.companieshouse.company.links.service.PscListClient;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
+
+import java.util.Optional;
 
 
 @Component

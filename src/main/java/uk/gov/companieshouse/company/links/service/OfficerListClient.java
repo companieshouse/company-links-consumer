@@ -7,14 +7,11 @@ import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
-import uk.gov.companieshouse.api.handler.officers.request.OfficersList;
-import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
-import uk.gov.companieshouse.logging.Logger;
-
 import java.util.function.Supplier;
+import uk.gov.companieshouse.logging.Logger;
 
 @Component
 public class OfficerListClient {
@@ -58,7 +55,7 @@ public class OfficerListClient {
                 // found (case 1), and a non-zero response body is seen when a service is
                 // unavailable (case 2).
                 if (ex.getContent() != null
-                        && !ex.getContent().contains("company-officers-not-found")
+                        && !ex.getContent().contains("officers-not-found")
                         && ((ex.getHeaders().containsKey(HttpHeaders.CONTENT_LENGTH)
                         && ex.getHeaders().getContentLength() > 0)
                         || StringUtils.isEmpty(ex.getContent()))) {

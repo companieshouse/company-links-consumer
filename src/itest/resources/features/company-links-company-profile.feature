@@ -64,20 +64,20 @@ Feature: Process company profile links
     Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "persons-with-significant-control" link payload
 
 #PSC Statements
-  Scenario: Company profile message with no PSC Statement link and existing PSC Statement is processed successfully
+  Scenario: Company profile message with no PSC Statements link and existing PSC Statements is processed successfully
     Given Company links consumer service is running
     And Company profile exists with no "persons-with-significant-control-statements" link for company "00006401"
     And "persons-with-significant-control-statements" exist for company "00006401"
     When A valid avro Company Profile without "persons-with-significant-control-statements" link message is sent to the Kafka topic "stream-company-profile"
     Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with "persons-with-significant-control-statements" link payload
 
-  Scenario: Company profile message with existing PSC Statement link does not update
+  Scenario: Company profile message with existing PSC Statements link does not update
     Given Company links consumer service is running
     And Company profile exists with "persons-with-significant-control-statements" link for company "00006401"
     When A valid avro Company Profile with all links message is sent to the Kafka topic "stream-company-profile"
     Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "persons-with-significant-control-statements" link payload
 
-  Scenario: Company profile message with no PSC Statement link and no PSC Statement is processed successfully
+  Scenario: Company profile message with no PSC Statements link and no PSC Statements is processed successfully
     Given Company links consumer service is running
     And Company profile exists with no "persons-with-significant-control-statements" link for company "00006401"
     And "persons-with-significant-control-statements" do not exist for company "00006401"

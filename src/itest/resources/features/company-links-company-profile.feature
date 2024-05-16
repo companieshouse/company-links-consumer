@@ -45,20 +45,20 @@ Feature: Process company profile links
 #PSC Statements
   Scenario: Company profile message with no PSC Statement link and existing PSC Statement is processed successfully
     Given Company links consumer service is running
-    And Company profile exists with no "persons-with-significant-control-statement" link for company "00006401"
-    And a "persons-with-significant-control-statement" exists for company "00006401"
-    When A valid avro Company Profile without "persons-with-significant-control-statement" link message is sent to the Kafka topic "stream-company-profile"
-    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with "persons-with-significant-control-statement" link payload
+    And Company profile exists with no "persons-with-significant-control-statements" link for company "00006401"
+    And a "persons-with-significant-control-statements" exists for company "00006401"
+    When A valid avro Company Profile without "persons-with-significant-control-statements" link message is sent to the Kafka topic "stream-company-profile"
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with "persons-with-significant-control-statements" link payload
 
   Scenario: Company profile message with existing PSC Statement link does not update
     Given Company links consumer service is running
-    And Company profile exists with "persons-with-significant-control-statement" link for company "00006401"
+    And Company profile exists with "persons-with-significant-control-statements" link for company "00006401"
     When A valid avro Company Profile with all links message is sent to the Kafka topic "stream-company-profile"
-    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "persons-with-significant-control-statement" link payload
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "persons-with-significant-control-statements" link payload
 
   Scenario: Company profile message with no PSC Statement link and no PSC Statement is processed successfully
     Given Company links consumer service is running
-    And Company profile exists with no "persons-with-significant-control-statement" link for company "00006401"
-    And "persons-with-significant-control-statement" do not exist for company "00006401"
-    When A valid avro Company Profile without "persons-with-significant-control" link message is sent to the Kafka topic "stream-company-profile"
-    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "persons-with-significant-control-statement" link payload
+    And Company profile exists with no "persons-with-significant-control-statements" link for company "00006401"
+    And "persons-with-significant-control-statements" do not exist for company "00006401"
+    When A valid avro Company Profile without "persons-with-significant-control-statements" link message is sent to the Kafka topic "stream-company-profile"
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "persons-with-significant-control-statements" link payload

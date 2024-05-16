@@ -70,6 +70,8 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         processChargesLink(contextId, companyNumber, companyProfileData);
 
         processPscLink(contextId, companyNumber, companyProfileData);
+
+        processPscStatementsLink(contextId, companyNumber, companyProfileData);
     }
 
     /**

@@ -272,9 +272,7 @@ class CompanyProfileStreamProcessorTest {
         assertFalse(statementList.getItems().isEmpty());
         when(statementsListClient.getStatementsList(any(), any())).thenReturn(statementList);
 
-
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
-
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
         verify(addStatementsClient).patchLink(argument.capture());
@@ -294,11 +292,7 @@ class CompanyProfileStreamProcessorTest {
         assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatement());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-        when(statementsListClient.getStatementsList(any(), any())).thenReturn(new StatementList());
-
-
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
-
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
         verifyNoInteractions(addStatementsClient);

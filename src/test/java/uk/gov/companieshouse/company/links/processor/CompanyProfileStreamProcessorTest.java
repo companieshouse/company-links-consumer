@@ -14,6 +14,8 @@ import org.springframework.messaging.Message;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
+import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
+import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.consumer.CompanyProfileStreamConsumer;
@@ -21,8 +23,10 @@ import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
 import uk.gov.companieshouse.company.links.service.AddChargesClient;
+import uk.gov.companieshouse.company.links.service.AddFilingHistoryClient;
 import uk.gov.companieshouse.company.links.service.AddPscClient;
 import uk.gov.companieshouse.company.links.service.ChargesService;
+import uk.gov.companieshouse.company.links.service.FilingHistoryService;
 import uk.gov.companieshouse.company.links.service.PscListClient;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
@@ -53,6 +57,10 @@ class CompanyProfileStreamProcessorTest {
     public AddChargesClient addChargesClient;
     @Mock
     public AddPscClient addPscClient;
+    @Mock
+    public AddFilingHistoryClient addFilingHistoryClient;
+    @Mock
+    FilingHistoryService filingHistoryService;
     private TestData testData;
 
     @BeforeEach
@@ -60,7 +68,8 @@ class CompanyProfileStreamProcessorTest {
         companyProfileStreamProcessor = spy(new CompanyProfileStreamProcessor(
                 logger, companyProfileDeserializer,
                 chargesService, pscListClient,
-                addChargesClient, addPscClient));
+                addChargesClient, addPscClient, addFilingHistoryClient,
+                filingHistoryService));
         testData = new TestData();
         DataMapHolder.initialise(CONTEXT_ID);
         companyProfileStreamConsumer = new CompanyProfileStreamConsumer(companyProfileStreamProcessor, logger);
@@ -158,6 +167,97 @@ class CompanyProfileStreamProcessorTest {
         verifyLoggingDataMap();
     }
 
+    // FILING HISTORY TESTS
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a filing history Link and filing history exists, so the filing history link is updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereFilingHistoryExistsAndNoFilingHistoryLinkSoUpdateFilingHistoryLinks() throws IOException, URIValidationException {
+
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setFilingHistory(null);
+        assertNull(companyProfile.getLinks().getFilingHistory());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        FilingHistoryList filingHistoryListList = testData.createFilingHistoryList();
+        assertFalse(filingHistoryListList.getItems().isEmpty());
+        when(filingHistoryService.getFilingHistory(any(),any())).thenReturn(filingHistoryListList);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addFilingHistoryClient).patchLink(argument.capture());
+        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
+        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a filing history Link and filing history does not exist, so the filing history link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereNoFilingHistoryAndNoFilingHistoryLinkSoNoLinkUpdate() throws IOException, URIValidationException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setFilingHistory(null);
+        assertNull(companyProfile.getLinks().getFilingHistory());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        when(filingHistoryService.getFilingHistory(any(),any())).thenReturn(new FilingHistoryList());
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addFilingHistoryClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does have a filing history Link, so the filing history link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereFilingHistoryLinkExistsSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        assertNotNull(companyProfile.getLinks().getFilingHistory());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addFilingHistoryClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when Filing History Data API returns non successful response !2XX")
+    void throwRetryableErrorExceptionWhenFilingHistoryDataAPIReturnsNon2XX() throws IOException, URIValidationException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setFilingHistory(null);
+        assertNull(companyProfile.getLinks().getFilingHistory());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(filingHistoryService.getFilingHistory(any(),any()))
+                .thenThrow(
+                        new RetryableErrorException("endpoint not found",
+                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verifyLoggingDataMap();
+    }
 
     //PSCS TESTS
     @Test

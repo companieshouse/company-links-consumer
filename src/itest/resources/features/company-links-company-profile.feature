@@ -41,3 +41,24 @@ Feature: Process company profile links
     And "persons-with-significant-control" do not exist for company "00006401"
     When A valid avro Company Profile without "persons-with-significant-control" link message is sent to the Kafka topic "stream-company-profile"
     Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "persons-with-significant-control" link payload
+
+# OFFICERS
+  Scenario: Company profile message with no Officer link and existing Officer is processed successfully
+    Given Company links consumer service is running
+    And Company profile exists with no "officers" link for company "00006401"
+    And "officers" exist for company "00006401"
+    When A valid avro Company Profile without "officers" link message is sent to the Kafka topic "stream-company-profile"
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with "officers" link payload
+
+  Scenario: Company profile message with existing Officer link does not update
+    Given Company links consumer service is running
+    And Company profile exists with "officers" link for company "00006401"
+    When A valid avro Company Profile with all links message is sent to the Kafka topic "stream-company-profile"
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "officers" link payload
+
+  Scenario: Company profile message with no Officers link and no Officers is processed successfully
+    Given Company links consumer service is running
+    And Company profile exists with no "officers" link for company "00006401"
+    And "officers" do not exist for company "00006401"
+    When A valid avro Company Profile without "officers" link message is sent to the Kafka topic "stream-company-profile"
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "officers" link payload

@@ -11,8 +11,6 @@ import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.logging.Logger;
 
-
-
 @Service
 public class FilingHistoryService extends BaseApiClientService {
 
@@ -38,16 +36,14 @@ public class FilingHistoryService extends BaseApiClientService {
      */
     public FilingHistoryList getFilingHistory(String contextId, String companyNumber)
             throws RetryableErrorException, ApiErrorResponseException, URIValidationException {
-        String uri = String.format("/company/%s/filing-history", companyNumber);
+        String uri = String.format("/filing-history-data-api/company/%s/filing-history", companyNumber);
 
         logger.infoContext(contextId, String.format("GET %s", uri), DataMapHolder.getLogMap());
 
         InternalApiClient internalApiClient = internalApiClientSupplier.get();
         internalApiClient.getHttpClient().setRequestId(contextId);
 
-
-        return internalApiClient.privateDeltaResourceHandler().getAllFilingHistory(
-                String.format("/filing-history-data-api/%s/123456789/filing-history",
-                       companyNumber)).execute().getData();
+        return internalApiClient.privateDeltaResourceHandler()
+                .getAllFilingHistory(uri).execute().getData();
     }
 }

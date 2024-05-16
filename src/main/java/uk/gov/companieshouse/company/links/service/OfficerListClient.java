@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.service;
 
+import java.util.function.Supplier;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -10,7 +11,6 @@ import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
-import java.util.function.Supplier;
 import uk.gov.companieshouse.logging.Logger;
 
 @Component

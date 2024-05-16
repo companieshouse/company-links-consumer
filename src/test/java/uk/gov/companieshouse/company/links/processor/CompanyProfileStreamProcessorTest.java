@@ -42,7 +42,6 @@ class CompanyProfileStreamProcessorTest {
 
     private CompanyProfileStreamProcessor companyProfileStreamProcessor;
     private CompanyProfileStreamConsumer companyProfileStreamConsumer;
-    private OfficersStreamConsumer officerStreamConsumer;
 
     @Mock
     private Logger logger;
@@ -60,8 +59,6 @@ class CompanyProfileStreamProcessorTest {
     public AddOfficersClient addOfficersClient;
     @Mock
     public OfficerListClient officerListClient;
-    @Mock
-    public OfficerService officerService;
     private TestData testData;
 
     @BeforeEach
@@ -194,6 +191,69 @@ class CompanyProfileStreamProcessorTest {
         verify(addOfficersClient).patchLink(argument.capture());
         assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
         assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a Officer Link and a Officer does not exist, so the Officer link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereNoOfficerAndNoOfficerLinkSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setOfficers(null);
+        assertNull(companyProfile.getLinks().getOfficers());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        when(officerListClient.getOfficers(any())).thenReturn(new OfficerList());
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addOfficersClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does have a Officer Link, so the Officer link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereOfficerLinkExistsSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        assertNotNull(companyProfile.getLinks().getOfficers());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addOfficersClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when Officer Data API returns non successful response !2XX")
+    void throwRetryableErrorExceptionWhenOfficerAPIReturnsNon2XX() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setOfficers(null);
+        assertNull(companyProfile.getLinks().getOfficers());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(officerListClient.getOfficers(any()))
+                .thenThrow(
+                        new RetryableErrorException("endpoint not found",
+                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
         verifyLoggingDataMap();
     }
 

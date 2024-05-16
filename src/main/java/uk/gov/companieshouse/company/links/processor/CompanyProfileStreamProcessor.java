@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.processor;
 
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
@@ -22,8 +23,6 @@ import uk.gov.companieshouse.company.links.service.PscListClient;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
-
-import java.util.Optional;
 
 
 @Component
@@ -73,6 +72,8 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         processChargesLink(contextId, companyNumber, companyProfileData);
 
         processPscLink(contextId, companyNumber, companyProfileData);
+
+        processOfficerLink(contextId, companyNumber, companyProfileData);
     }
 
     /**

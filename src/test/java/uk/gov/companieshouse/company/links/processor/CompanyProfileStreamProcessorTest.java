@@ -264,8 +264,8 @@ class CompanyProfileStreamProcessorTest {
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setPersonsWithSignificantControlStatement(null);
-        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatement());
+        companyProfile.getLinks().setPersonsWithSignificantControlStatements(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatements());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
         StatementList statementList = testData.createStatementList();
@@ -323,8 +323,8 @@ class CompanyProfileStreamProcessorTest {
     void throwRetryableErrorExceptionWhenPscStatementsDataAPIReturnsNon2XX() throws IOException {
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setPersonsWithSignificantControlStatement(null);
-        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatement());
+        companyProfile.getLinks().setPersonsWithSignificantControlStatements(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatements());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
         final HttpResponseException httpResponseException = new HttpResponseException.Builder(

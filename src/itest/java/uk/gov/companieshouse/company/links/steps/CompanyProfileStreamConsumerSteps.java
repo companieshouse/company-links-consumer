@@ -63,8 +63,13 @@ public class CompanyProfileStreamConsumerSteps {
 
     @And("{string} exist for company {string}")
     public void objects_exist_for_company(String linkType, String companyNumber) {
-        WiremockTestConfig.stubForGet(linkType, companyNumber,
-                loadFileFromName(String.format("%s-list-record.json", linkType)), 200);
+        if (linkType.equals("filing-history")){
+            WiremockTestConfig.stubForGetFilingHistory(companyNumber,
+                    loadFileFromName(String.format("%s-list-record.json", linkType)), 200);
+        } else {
+            WiremockTestConfig.stubForGet(linkType, companyNumber,
+                    loadFileFromName(String.format("%s-list-record.json", linkType)), 200);
+        }
     }
 
     @And("{string} do not exist for company {string}")
@@ -113,7 +118,7 @@ public class CompanyProfileStreamConsumerSteps {
         verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/%s", this.companyNumber, linkType))));
     }
 
-    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with filing-history link payload")
+    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with Filing History link payload")
     public void patchCompanyProfileEndpointIsCalledForFilingHistory() {
         verify(1, getRequestedFor(urlEqualTo(String.format("/filing-history-data-api/company/%s/filing-history", this.companyNumber))));
         verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/filing-history", this.companyNumber))));

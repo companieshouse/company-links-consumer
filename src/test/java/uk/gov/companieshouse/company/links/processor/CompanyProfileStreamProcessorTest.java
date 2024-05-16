@@ -103,6 +103,7 @@ class CompanyProfileStreamProcessorTest {
         assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
         verifyLoggingDataMap();
     }
+
     @Test
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
             "where the Company Profile does not have a Charges Link and Charges do not exist, so the Charges link is not updated")
@@ -158,98 +159,6 @@ class CompanyProfileStreamProcessorTest {
                 HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
                 new HttpHeaders()).build();
         when(chargesService.getCharges(any(), any()))
-                .thenThrow(
-                        new RetryableErrorException("endpoint not found",
-                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
-        assertThrows(RetryableErrorException.class,
-                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
-        verifyLoggingDataMap();
-    }
-
-    //PSCS TESTS
-    @Test
-    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
-            "where the Company Profile does not have a Psc Link and a Psc exists, so the Psc link is updated")
-    void successfullyProcessCompanyProfileResourceChangedWherePscExistsAndNoPscLinkSoUpdatePscLinks() throws IOException {
-
-        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
-
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
-        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setPersonsWithSignificantControl(null);
-        assertNull(companyProfile.getLinks().getPersonsWithSignificantControl());
-        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
-
-        PscList pscList = testData.createPscList();
-        assertFalse(pscList.getItems().isEmpty());
-        when(pscListClient.getPscs(any())).thenReturn(pscList);
-
-
-        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
-
-
-        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verify(addPscClient).patchLink(argument.capture());
-        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
-        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
-        verifyLoggingDataMap();
-    }
-
-    @Test
-    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
-            "where the Company Profile does not have a Psc Link and a Psc does not exist, so the Psc link is not updated")
-    void successfullyProcessCompanyProfileResourceChangedWhereNoPscAndNoPscLinkSoNoLinkUpdate() throws IOException {
-
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
-        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setPersonsWithSignificantControl(null);
-        assertNull(companyProfile.getLinks().getPersonsWithSignificantControl());
-        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
-
-        when(pscListClient.getPscs(any())).thenReturn(new PscList());
-
-
-        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
-
-
-        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verifyNoInteractions(addPscClient);
-        verifyLoggingDataMap();
-    }
-
-    @Test
-    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
-            "where the Company Profile does have a Psc Link, so the Psc link is not updated")
-    void successfullyProcessCompanyProfileResourceChangedWherePscLinkExistsSoNoLinkUpdate() throws IOException {
-
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
-        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        assertNotNull(companyProfile.getLinks().getPersonsWithSignificantControl());
-        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
-
-
-        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
-
-
-        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verifyNoInteractions(addPscClient);
-        verifyLoggingDataMap();
-    }
-
-    @Test
-    @DisplayName("throws RetryableErrorException when Psc Data API returns non successful response !2XX")
-    void throwRetryableErrorExceptionWhenPscDataAPIReturnsNon2XX() throws IOException {
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
-        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setPersonsWithSignificantControl(null);
-        assertNull(companyProfile.getLinks().getPersonsWithSignificantControl());
-        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
-
-        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
-                HttpStatus.SERVICE_UNAVAILABLE.value(),
-                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
-                new HttpHeaders()).build();
-        when(pscListClient.getPscs(any()))
                 .thenThrow(
                         new RetryableErrorException("endpoint not found",
                                 ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
@@ -342,6 +251,98 @@ class CompanyProfileStreamProcessorTest {
                 HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
                 new HttpHeaders()).build();
         when(filingHistoryService.getFilingHistory(any(),any()))
+                .thenThrow(
+                        new RetryableErrorException("endpoint not found",
+                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verifyLoggingDataMap();
+    }
+
+    //PSCS TESTS
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a Psc Link and a Psc exists, so the Psc link is updated")
+    void successfullyProcessCompanyProfileResourceChangedWherePscExistsAndNoPscLinkSoUpdatePscLinks() throws IOException {
+
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setPersonsWithSignificantControl(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControl());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        PscList pscList = testData.createPscList();
+        assertFalse(pscList.getItems().isEmpty());
+        when(pscListClient.getPscs(any())).thenReturn(pscList);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addPscClient).patchLink(argument.capture());
+        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
+        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a Psc Link and a Psc does not exist, so the Psc link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereNoPscAndNoPscLinkSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setPersonsWithSignificantControl(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControl());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        when(pscListClient.getPscs(any())).thenReturn(new PscList());
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addPscClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does have a Psc Link, so the Psc link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWherePscLinkExistsSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        assertNotNull(companyProfile.getLinks().getPersonsWithSignificantControl());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addPscClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when Psc Data API returns non successful response !2XX")
+    void throwRetryableErrorExceptionWhenPscDataAPIReturnsNon2XX() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setPersonsWithSignificantControl(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControl());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(pscListClient.getPscs(any()))
                 .thenThrow(
                         new RetryableErrorException("endpoint not found",
                                 ApiErrorResponseException.fromHttpResponseException(httpResponseException)));

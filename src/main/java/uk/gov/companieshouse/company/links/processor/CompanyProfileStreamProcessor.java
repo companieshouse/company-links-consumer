@@ -10,16 +10,19 @@ import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
+import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
 import uk.gov.companieshouse.company.links.service.AddChargesClient;
 import uk.gov.companieshouse.company.links.service.AddFilingHistoryClient;
 import uk.gov.companieshouse.company.links.service.AddPscClient;
+import uk.gov.companieshouse.company.links.service.AddStatementsClient;
 import uk.gov.companieshouse.company.links.service.ChargesService;
 import uk.gov.companieshouse.company.links.service.FilingHistoryService;
 import uk.gov.companieshouse.company.links.service.LinkClient;
 import uk.gov.companieshouse.company.links.service.PscListClient;
+import uk.gov.companieshouse.company.links.service.StatementsListClient;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -31,10 +34,12 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     private final CompanyProfileDeserializer companyProfileDeserializer;
     private final ChargesService chargesService;
     private final PscListClient pscListClient;
+    private final StatementsListClient statementsListClient;
     private final AddChargesClient addChargesClient;
     private final AddPscClient addPscClient;
     private final AddFilingHistoryClient addFilingHistoryClient;
     private final FilingHistoryService filingHistoryService;
+    private final AddStatementsClient addStatementsClient;
 
     /**
      * Construct a Company Profile stream processor.
@@ -42,18 +47,21 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     @Autowired
     public CompanyProfileStreamProcessor(
             Logger logger, CompanyProfileDeserializer companyProfileDeserializer,
-            ChargesService chargesService, PscListClient pscListClient,
-            AddChargesClient addChargesClient, AddPscClient addPscClient,
-            AddFilingHistoryClient addFilingHistoryClient,
-            FilingHistoryService filingHistoryService) {
+            ChargesService chargesService, AddChargesClient addChargesClient,
+            FilingHistoryService filingHistoryService,
+                AddFilingHistoryClient addFilingHistoryClient,
+            PscListClient pscListClient, AddPscClient addPscClient,
+            StatementsListClient statementsListClient, AddStatementsClient addStatementsClient) {
         super(logger);
         this.companyProfileDeserializer = companyProfileDeserializer;
         this.chargesService = chargesService;
-        this.pscListClient = pscListClient;
         this.addChargesClient = addChargesClient;
-        this.addPscClient = addPscClient;
-        this.addFilingHistoryClient = addFilingHistoryClient;
         this.filingHistoryService = filingHistoryService;
+        this.addFilingHistoryClient = addFilingHistoryClient;
+        this.pscListClient = pscListClient;
+        this.addPscClient = addPscClient;
+        this.statementsListClient = statementsListClient;
+        this.addStatementsClient = addStatementsClient;
     }
 
     /**
@@ -71,6 +79,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         processChargesLink(contextId, companyNumber, companyProfileData);
         processFilingHistoryLink(contextId, companyNumber, companyProfileData);
         processPscLink(contextId, companyNumber, companyProfileData);
+        processPscStatementsLink(contextId, companyNumber, companyProfileData);
     }
 
     /**
@@ -149,6 +158,32 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             if (pscList != null
                     && !pscList.getItems().isEmpty()) {
                 addCompanyLink(addPscClient, "PSC", contextId, companyNumber);
+            }
+        }
+    }
+
+    /**
+     * Process the PSC Statements link for a Company Profile ResourceChanged message.
+     * If there is no PSC Statements link in the ResourceChanged and a PSC statement exists
+     * then add the link.
+     */
+    private void processPscStatementsLink(String contextId, String companyNumber, Data data) {
+        Optional<String> pscStatementsLink = Optional.ofNullable(data)
+                .map(Data::getLinks)
+                .map(Links::getPersonsWithSignificantControlStatements);
+
+        if (pscStatementsLink.isEmpty()) {
+            StatementList statementList;
+            try {
+                statementList = statementsListClient.getStatementsList(companyNumber, contextId);
+            } catch (Exception exception) {
+                throw new RetryableErrorException(String.format(
+                        "Error retrieving Statements for company number %s", companyNumber),
+                        exception);
+            }
+
+            if (statementList != null && !statementList.getItems().isEmpty()) {
+                addCompanyLink(addStatementsClient, "PSC Statements", contextId, companyNumber);
             }
         }
     }

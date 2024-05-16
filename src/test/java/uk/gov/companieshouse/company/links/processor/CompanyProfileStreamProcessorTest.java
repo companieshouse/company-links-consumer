@@ -15,10 +15,12 @@ import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
+import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.handler.officers.request.OfficersList;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.company.links.consumer.CompanyProfileStreamConsumer;
+import uk.gov.companieshouse.company.links.consumer.OfficersStreamConsumer;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
@@ -40,6 +42,8 @@ class CompanyProfileStreamProcessorTest {
 
     private CompanyProfileStreamProcessor companyProfileStreamProcessor;
     private CompanyProfileStreamConsumer companyProfileStreamConsumer;
+    private OfficersStreamConsumer officerStreamConsumer;
+
     @Mock
     private Logger logger;
     @Mock
@@ -56,6 +60,8 @@ class CompanyProfileStreamProcessorTest {
     public AddOfficersClient addOfficersClient;
     @Mock
     public OfficerListClient officerListClient;
+    @Mock
+    public OfficerService officerService;
     private TestData testData;
 
     @BeforeEach
@@ -166,7 +172,7 @@ class CompanyProfileStreamProcessorTest {
     @Test
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
             "where the Company Profile does not have a Officers Link and Officers exist, so the Officers link is updated")
-    void successfullyProcessCompanyProfileResourceChangedWhereOfficersExistAndNoOfficersLinkSoUpdateLink() throws IOException {
+    void successfullyProcessCompanyProfileResourceChangedWhereOfficersExistAndNoOfficersLinkSoUpdateLink() throws IOException, URIValidationException {
 
         ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
 
@@ -185,7 +191,7 @@ class CompanyProfileStreamProcessorTest {
 
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verify(addChargesClient).patchLink(argument.capture());
+        verify(addOfficersClient).patchLink(argument.capture());
         assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
         assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
         verifyLoggingDataMap();

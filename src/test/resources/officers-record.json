@@ -22,7 +22,11 @@
         "contact_name": "king"
       },
       "country_of_residence" : "United Kingdom",
-      "date_of_birth" : "1994-08-26",
+      "date_of_birth":{
+        "day":30,
+        "month":6,
+        "year":1995
+      },
       "links": {
         "self":"/company/12345678/appointments/7IjxamNGLlqtIingmTZJJ42Hw9Q",
         "officer":{
@@ -67,7 +71,11 @@
         "contact_name": "king"
       },
       "country_of_residence" : "United Kingdom",
-      "date_of_birth" : "1994-08-26",
+      "date_of_birth":{
+        "day":30,
+        "month":6,
+        "year":1995
+      },
       "links": {
         "self":"/company/12345678/appointments/7IjxamNGLlqtIingmTZJJ42Hw9Q",
         "officer":{

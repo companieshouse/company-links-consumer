@@ -164,7 +164,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
     /**
      * Process the PSC Statements link for a Company Profile ResourceChanged message.
-     * If there is no PSC Statements link in the ResourceChanged and a PSC statement exists
+     * If there is no PSC Statements link in the ResourceChanged and PSC statements exist
      * then add the link.
      */
     private void processPscStatementsLink(String contextId, String companyNumber, Data data) {

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
+import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.api.psc.StatementList;
@@ -14,9 +15,11 @@ import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
 import uk.gov.companieshouse.company.links.service.AddChargesClient;
+import uk.gov.companieshouse.company.links.service.AddFilingHistoryClient;
 import uk.gov.companieshouse.company.links.service.AddPscClient;
 import uk.gov.companieshouse.company.links.service.AddStatementsClient;
 import uk.gov.companieshouse.company.links.service.ChargesService;
+import uk.gov.companieshouse.company.links.service.FilingHistoryService;
 import uk.gov.companieshouse.company.links.service.LinkClient;
 import uk.gov.companieshouse.company.links.service.PscListClient;
 import uk.gov.companieshouse.company.links.service.StatementsListClient;
@@ -34,6 +37,8 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     private final StatementsListClient statementsListClient;
     private final AddChargesClient addChargesClient;
     private final AddPscClient addPscClient;
+    private final AddFilingHistoryClient addFilingHistoryClient;
+    private final FilingHistoryService filingHistoryService;
     private final AddStatementsClient addStatementsClient;
 
     /**
@@ -42,14 +47,18 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     @Autowired
     public CompanyProfileStreamProcessor(
             Logger logger, CompanyProfileDeserializer companyProfileDeserializer,
-            ChargesService chargesService, PscListClient pscListClient,
-            AddChargesClient addChargesClient, AddPscClient addPscClient,
+            ChargesService chargesService, AddChargesClient addChargesClient,
+            FilingHistoryService filingHistoryService,
+                AddFilingHistoryClient addFilingHistoryClient,
+            PscListClient pscListClient, AddPscClient addPscClient,
             StatementsListClient statementsListClient, AddStatementsClient addStatementsClient) {
         super(logger);
         this.companyProfileDeserializer = companyProfileDeserializer;
         this.chargesService = chargesService;
-        this.pscListClient = pscListClient;
         this.addChargesClient = addChargesClient;
+        this.filingHistoryService = filingHistoryService;
+        this.addFilingHistoryClient = addFilingHistoryClient;
+        this.pscListClient = pscListClient;
         this.addPscClient = addPscClient;
         this.statementsListClient = statementsListClient;
         this.addStatementsClient = addStatementsClient;
@@ -68,8 +77,62 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                 companyProfileDeserializer.deserialiseCompanyData(payload.getData());
 
         processChargesLink(contextId, companyNumber, companyProfileData);
-
+        processFilingHistoryLink(contextId, companyNumber, companyProfileData);
         processPscLink(contextId, companyNumber, companyProfileData);
+        processPscStatementsLink(contextId, companyNumber, companyProfileData);
+    }
+
+    /**
+     * Process the Charges link for a Company Profile ResourceChanged message.
+     * If there is no Charges link in the ResourceChanged and Charges exist then add the link
+     */
+    private void processChargesLink(String contextId, String companyNumber, Data data) {
+        Optional<String> chargesLink = Optional.ofNullable(data)
+                .map(Data::getLinks)
+                .map(Links::getCharges);
+
+        if (chargesLink.isEmpty()) {
+            ApiResponse<ChargesApi> chargesResponse;
+            try {
+                chargesResponse = chargesService.getCharges(contextId, companyNumber);
+            } catch (Exception exception) {
+                throw new RetryableErrorException(String.format(
+                        "Error retrieving Charges for company number %s", companyNumber),
+                        exception);
+            }
+
+            if (chargesResponse.getData() != null
+                    && !chargesResponse.getData().getItems().isEmpty()) {
+                addCompanyLink(addChargesClient, "Charges", contextId, companyNumber);
+            }
+        }
+    }
+
+    /**
+     * Process the Filing History link for a Company Profile ResourceChanged message.
+     * If there is no Filing History link in the ResourceChanged and Charges exist then add the link
+     */
+    private void processFilingHistoryLink(String contextId, String companyNumber, Data data) {
+        Optional<String> filingHistoryLink = Optional.ofNullable(data)
+                .map(Data::getLinks)
+                .map(Links::getFilingHistory);
+
+        if (filingHistoryLink.isEmpty()) {
+            FilingHistoryList filingHistoryResponse;
+            try {
+                filingHistoryResponse = filingHistoryService
+                        .getFilingHistory(contextId, companyNumber);
+            } catch (Exception exception) {
+                throw new RetryableErrorException(String.format(
+                        "Error retrieving Filing History for company number %s", companyNumber),
+                        exception);
+            }
+
+            if (filingHistoryResponse.getItems() != null
+                    && !filingHistoryResponse.getItems().isEmpty()) {
+                addCompanyLink(addFilingHistoryClient, "filing history", contextId, companyNumber);
+            }
+        }
     }
 
     /**
@@ -120,33 +183,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             }
 
             if (statementList != null && !statementList.getItems().isEmpty()) {
-                addStatementsLink(addStatementsClient, "PSC Statements", contextId, companyNumber);
-            }
-        }
-    }
-
-    /**
-     * Process the Charges link for a Company Profile ResourceChanged message.
-     * If there is no Charges link in the ResourceChanged and Charges exist then add the link
-     */
-    private void processChargesLink(String contextId, String companyNumber, Data data) {
-        Optional<String> chargesLink = Optional.ofNullable(data)
-                .map(Data::getLinks)
-                .map(Links::getCharges);
-
-        if (chargesLink.isEmpty()) {
-            ApiResponse<ChargesApi> chargesResponse;
-            try {
-                chargesResponse = chargesService.getCharges(contextId, companyNumber);
-            } catch (Exception exception) {
-                throw new RetryableErrorException(String.format(
-                        "Error retrieving Charges for company number %s", companyNumber),
-                        exception);
-            }
-
-            if (chargesResponse.getData() != null
-                    && !chargesResponse.getData().getItems().isEmpty()) {
-                addCompanyLink(addChargesClient, "Charges", contextId, companyNumber);
+                addCompanyLink(addStatementsClient, "PSC Statements", contextId, companyNumber);
             }
         }
     }
@@ -157,23 +194,6 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             logger.trace(String.format("Message with contextId %s and company number %s -"
                                     + "company profile does not contain %s link, attaching link",
                             contextId, companyNumber, linkType), DataMapHolder.getLogMap());
-
-            PatchLinkRequest linkRequest = new PatchLinkRequest(companyNumber, contextId);
-
-            linkClient.patchLink(linkRequest);
-        } catch (Exception exception) {
-            throw new RetryableErrorException(String.format(
-                    "Error updating %s link for company number %s",
-                    linkType, companyNumber), exception);
-        }
-    }
-
-    private void addStatementsLink(LinkClient linkClient, String linkType, String contextId,
-                                   String companyNumber) {
-        try {
-            logger.trace(String.format("Message with contextId %s and company number %s "
-                    + "company profile does not contain %s link, attaching link",
-                    contextId, companyNumber, linkType), DataMapHolder.getLogMap());
 
             PatchLinkRequest linkRequest = new PatchLinkRequest(companyNumber, contextId);
 

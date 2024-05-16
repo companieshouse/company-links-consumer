@@ -1,0 +1,42 @@
+{
+  "items_per_page": 25,
+  "items": [
+    {
+      "transaction_id": "MzA1MzY0NzkxNWFkaXF6a2N4",
+      "links": {
+        "self": "/company/34777772/filing-history/MzA1MzY0NzkxNWFkaXF6a2N4"
+      },
+      "category": "officers",
+      "subcategory": "termination",
+      "action_date": "2011-08-06",
+      "date": "2011-09-05",
+      "type": "TM01",
+      "description_values": {
+        "officer_name": "John Tester",
+        "termination_date": "2011-08-06"
+      },
+      "description": "termination-director-company-with-name-termination-date"
+    },
+    {
+      "transaction_id": "MzA1MzY0NzkxNWFkaXF6a2N4",
+      "links": {
+        "self": "/company/34777772/filing-history/MzA1MzY0NzkxNWFkaXF6a2N4"
+      },
+      "category": "officers",
+      "subcategory": "termination",
+      "action_date": "2011-08-06",
+      "date": "2011-09-05",
+      "type": "TM01",
+      "description_values": {
+        "officer_name": "John Tester Two",
+        "termination_date": "2011-08-06"
+      },
+      "description": "termination-director-company-with-name-termination-date"
+    }
+  ],
+  "filing_history_status" : "filing-history-available",
+  "etag" : "string",
+  "kind" : "filing-history",
+  "start_index": 0,
+  "total_count": 2
+}

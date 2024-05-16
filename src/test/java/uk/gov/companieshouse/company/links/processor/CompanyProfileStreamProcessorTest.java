@@ -14,6 +14,8 @@ import org.springframework.messaging.Message;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
+import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
+import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.api.psc.StatementList;
@@ -54,6 +56,10 @@ class CompanyProfileStreamProcessorTest {
     @Mock
     public AddPscClient addPscClient;
     @Mock
+    public AddFilingHistoryClient addFilingHistoryClient;
+    @Mock
+    FilingHistoryService filingHistoryService;
+    @Mock
     public AddStatementsClient addStatementsClient;
     private TestData testData;
 
@@ -61,8 +67,9 @@ class CompanyProfileStreamProcessorTest {
     void setUp() {
         companyProfileStreamProcessor = spy(new CompanyProfileStreamProcessor(
                 logger, companyProfileDeserializer,
-                chargesService, pscListClient,
-                addChargesClient, addPscClient,
+                chargesService, addChargesClient,
+                filingHistoryService, addFilingHistoryClient,
+                pscListClient, addPscClient,
                 statementsListClient, addStatementsClient));
         testData = new TestData();
         DataMapHolder.initialise(CONTEXT_ID);
@@ -161,6 +168,97 @@ class CompanyProfileStreamProcessorTest {
         verifyLoggingDataMap();
     }
 
+    // FILING HISTORY TESTS
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a filing history Link and filing history exists, so the filing history link is updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereFilingHistoryExistsAndNoFilingHistoryLinkSoUpdateFilingHistoryLinks() throws IOException, URIValidationException {
+
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setFilingHistory(null);
+        assertNull(companyProfile.getLinks().getFilingHistory());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        FilingHistoryList filingHistoryListList = testData.createFilingHistoryList();
+        assertFalse(filingHistoryListList.getItems().isEmpty());
+        when(filingHistoryService.getFilingHistory(any(),any())).thenReturn(filingHistoryListList);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addFilingHistoryClient).patchLink(argument.capture());
+        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
+        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a filing history Link and filing history does not exist, so the filing history link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereNoFilingHistoryAndNoFilingHistoryLinkSoNoLinkUpdate() throws IOException, URIValidationException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setFilingHistory(null);
+        assertNull(companyProfile.getLinks().getFilingHistory());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        when(filingHistoryService.getFilingHistory(any(),any())).thenReturn(new FilingHistoryList());
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addFilingHistoryClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does have a filing history Link, so the filing history link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereFilingHistoryLinkExistsSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        assertNotNull(companyProfile.getLinks().getFilingHistory());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addFilingHistoryClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when Filing History Data API returns non successful response !2XX")
+    void throwRetryableErrorExceptionWhenFilingHistoryDataAPIReturnsNon2XX() throws IOException, URIValidationException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setFilingHistory(null);
+        assertNull(companyProfile.getLinks().getFilingHistory());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(filingHistoryService.getFilingHistory(any(),any()))
+                .thenThrow(
+                        new RetryableErrorException("endpoint not found",
+                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verifyLoggingDataMap();
+    }
 
     //PSCS TESTS
     @Test
@@ -257,15 +355,15 @@ class CompanyProfileStreamProcessorTest {
     //PSC Statements TESTS
     @Test
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
-            "where the Company Profile does not have a Psc Statements Link and a Psc Statement exists, so the Psc Statements link is updated")
-    void successfullyProcessCompanyProfileResourceChangedWherePscStatementExistsAndNoPscStatementLinkSoUpdatePscStatementLinks() throws IOException {
+            "where the Company Profile does not have a Psc Statements Link and Psc Statements exist, so the Psc Statements link is updated")
+    void successfullyProcessCompanyProfileResourceChangedWherePscStatementsExistAndNoPscStatementsLinkSoUpdateLink() throws IOException {
 
         ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setPersonsWithSignificantControlStatement(null);
-        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatement());
+        companyProfile.getLinks().setPersonsWithSignificantControlStatements(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatements());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
         StatementList statementList = testData.createStatementList();
@@ -285,13 +383,13 @@ class CompanyProfileStreamProcessorTest {
 
     @Test
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
-            "where the Company Profile does not have a Psc Statements Link and a Statement does not exist, so the Psc Statement link is not updated")
-    void successfullyProcessCompanyProfileResourceChangedWhereNoPscStatementAndNoPscStatementLinkSoNoLinkUpdate() throws IOException {
+            "where the Company Profile does not have a Psc Statements Link and Psc Statements do not exist, so the Psc Statements link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereNoPscStatementsAndNoPscStatementsLinkSoNoLinkUpdate() throws IOException {
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setPersonsWithSignificantControlStatement(null);
-        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatement());
+        companyProfile.getLinks().setPersonsWithSignificantControlStatements(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatements());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
         when(statementsListClient.getStatementsList(any(), any())).thenReturn(new StatementList());
@@ -307,12 +405,12 @@ class CompanyProfileStreamProcessorTest {
 
     @Test
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
-            "where the Company Profile does have a Psc Statement Link, so the Psc Statement link is not updated")
-    void successfullyProcessCompanyProfileResourceChangedWherePscStatementLinkExistsSoNoLinkUpdate() throws IOException {
+            "where the Company Profile does have a Psc Statements Link, so the Charges link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWherePscStatementsLinkExistsSoNoLinkUpdate() throws IOException {
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        assertNotNull(companyProfile.getLinks().getPersonsWithSignificantControlStatement());
+        assertNotNull(companyProfile.getLinks().getPersonsWithSignificantControlStatements());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
 
@@ -329,8 +427,8 @@ class CompanyProfileStreamProcessorTest {
     void throwRetryableErrorExceptionWhenPscStatementsDataAPIReturnsNon2XX() throws IOException {
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setPersonsWithSignificantControlStatement(null);
-        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatement());
+        companyProfile.getLinks().setPersonsWithSignificantControlStatements(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControlStatements());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
         final HttpResponseException httpResponseException = new HttpResponseException.Builder(

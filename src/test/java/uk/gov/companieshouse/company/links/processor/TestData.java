@@ -9,6 +9,7 @@ import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
+import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.stream.EventRecord;
@@ -155,6 +156,14 @@ public class TestData {
         return objectMapper.readValue(data, ChargesApi.class);
     }
 
+    public FilingHistoryList createFilingHistoryList() throws IOException {
+        String data = FileCopyUtils.copyToString(new InputStreamReader(
+                new FileInputStream("src/test/resources/filing-history-list-record.json")));
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        return objectMapper.readValue(data, FilingHistoryList.class);
+    }
+
     public PscList createPscList() throws IOException {
         String data = FileCopyUtils.copyToString(new InputStreamReader(
                 new FileInputStream("src/test/resources/psc-list-record.json")));
@@ -170,5 +179,4 @@ public class TestData {
         objectMapper.findAndRegisterModules();
         return objectMapper.readValue(data, StatementList.class);
     }
-
 }

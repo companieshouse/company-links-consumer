@@ -130,6 +130,15 @@ public class WiremockTestConfig {
                                 .withBody(response)));
     }
 
+    public static void stubForGetFilingHistory(String companyNumber, String response, Integer responseCode) {
+        stubFor(
+                get(urlEqualTo(String.format("/filing-history-data-api/company/%s/filing-history", companyNumber)))
+                        .willReturn(aResponse()
+                                .withStatus(responseCode)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(response)));
+    }
+
     public static void stubForGetPscWith401Response(String companyNumber) {
         stubFor(
                 get(urlEqualTo(String.format("/company/%s/persons-with-significant-control", companyNumber)))

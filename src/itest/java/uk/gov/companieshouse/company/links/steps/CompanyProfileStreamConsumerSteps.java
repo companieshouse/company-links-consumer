@@ -74,8 +74,13 @@ public class CompanyProfileStreamConsumerSteps {
 
     @And("{string} do not exist for company {string}")
     public void objects_do_not_exist_for_company(String linkType, String companyNumber) {
-        WiremockTestConfig.stubForGet(linkType, companyNumber,
-                loadFileFromName("empty-list-record.json"), 200);
+        if (linkType.equals("filing-history")) {
+            WiremockTestConfig.stubForGetFilingHistory(companyNumber,
+                    loadFileFromName("empty-list-record.json"), 200);
+        } else {
+            WiremockTestConfig.stubForGet(linkType, companyNumber,
+                    loadFileFromName("empty-list-record.json"), 200);
+        }
     }
 
     @And("The user is not authorized")

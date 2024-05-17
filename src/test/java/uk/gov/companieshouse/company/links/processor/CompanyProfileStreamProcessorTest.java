@@ -72,98 +72,6 @@ class CompanyProfileStreamProcessorTest {
         companyProfileStreamConsumer = new CompanyProfileStreamConsumer(companyProfileStreamProcessor, logger);
     }
 
-    //CHARGES TESTS
-    @Test
-    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
-            "where the Company Profile does not have a Charges Link and Charges exist, so the Charges link is updated")
-    void successfullyProcessCompanyProfileResourceChangedWhereChargesExistAndNoChargesLinkSoUpdateLink() throws IOException {
-
-        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
-
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
-        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setCharges(null);
-        assertNull(companyProfile.getLinks().getCharges());
-        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
-
-        ApiResponse<ChargesApi> chargesResponse = new ApiResponse<> (200, null, testData.createCharges());
-        assertFalse(chargesResponse.getData().getItems().isEmpty());
-        when(chargesService.getCharges(any(), any())).thenReturn(chargesResponse);
-
-
-        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
-
-
-        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verify(addChargesClient).patchLink(argument.capture());
-        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
-        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
-        verifyLoggingDataMap();
-    }
-
-    @Test
-    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
-            "where the Company Profile does not have a Charges Link and Charges do not exist, so the Charges link is not updated")
-    void successfullyProcessCompanyProfileResourceChangedWhereNoChargesAndNoChargesLinkSoNoLinkUpdate() throws IOException {
-
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
-        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setCharges(null);
-        assertNull(companyProfile.getLinks().getCharges());
-        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
-
-        when(chargesService.getCharges(any(), any())).thenReturn(new ApiResponse<> (200, null, new ChargesApi()) );
-
-
-        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
-
-
-        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verifyNoInteractions(addChargesClient);
-        verifyLoggingDataMap();
-    }
-
-    @Test
-    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
-            "where the Company Profile does have a Charges Link, so the Charges link is not updated")
-    void successfullyProcessCompanyProfileResourceChangedWhereChargesLinkExistsSoNoLinkUpdate() throws IOException {
-
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
-        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        assertNotNull(companyProfile.getLinks().getCharges());
-        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
-
-
-        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
-
-
-        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verifyNoInteractions(addChargesClient);
-        verifyLoggingDataMap();
-    }
-
-    @Test
-    @DisplayName("throws RetryableErrorException when Charges Data API returns non successful response !2XX")
-    void throwRetryableErrorExceptionWhenChargesDataAPIReturnsNon2XX() throws IOException {
-        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
-        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setCharges(null);
-        assertNull(companyProfile.getLinks().getCharges());
-        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
-
-        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
-                HttpStatus.SERVICE_UNAVAILABLE.value(),
-                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
-                new HttpHeaders()).build();
-        when(chargesService.getCharges(any(), any()))
-                .thenThrow(
-                        new RetryableErrorException("endpoint not found",
-                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
-        assertThrows(RetryableErrorException.class,
-                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
-        verifyLoggingDataMap();
-    }
-
     //OFFICERS TESTS
 
     @Test
@@ -257,6 +165,97 @@ class CompanyProfileStreamProcessorTest {
         verifyLoggingDataMap();
     }
 
+    //CHARGES TESTS
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a Charges Link and Charges exist, so the Charges link is updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereChargesExistAndNoChargesLinkSoUpdateLink() throws IOException {
+
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setCharges(null);
+        assertNull(companyProfile.getLinks().getCharges());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        ApiResponse<ChargesApi> chargesResponse = new ApiResponse<> (200, null, testData.createCharges());
+        assertFalse(chargesResponse.getData().getItems().isEmpty());
+        when(chargesService.getCharges(any(), any())).thenReturn(chargesResponse);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addChargesClient).patchLink(argument.capture());
+        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
+        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a Charges Link and Charges do not exist, so the Charges link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereNoChargesAndNoChargesLinkSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setCharges(null);
+        assertNull(companyProfile.getLinks().getCharges());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        when(chargesService.getCharges(any(), any())).thenReturn(new ApiResponse<> (200, null, new ChargesApi()) );
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addChargesClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does have a Charges Link, so the Charges link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereChargesLinkExistsSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        assertNotNull(companyProfile.getLinks().getCharges());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addChargesClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when Charges Data API returns non successful response !2XX")
+    void throwRetryableErrorExceptionWhenChargesDataAPIReturnsNon2XX() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setCharges(null);
+        assertNull(companyProfile.getLinks().getCharges());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(chargesService.getCharges(any(), any()))
+                .thenThrow(
+                        new RetryableErrorException("endpoint not found",
+                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verifyLoggingDataMap();
+    }
 
     //PSCS TESTS
     @Test

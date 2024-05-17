@@ -272,7 +272,7 @@ class CompanyProfileStreamProcessorTest {
     @Test
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
             "where the Company Profile does not have a Officers Link and Officers exist, so the Officers link is updated")
-    void successfullyProcessCompanyProfileResourceChangedWhereOfficersExistAndNoOfficersLinkSoUpdateLink() throws IOException {
+    void successfullyProcessCompanyProfileResourceChangedWhereOfficersExistAndNoOfficersLinkSoUpdateLink() throws IOException, URIValidationException {
 
         ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
 
@@ -300,7 +300,7 @@ class CompanyProfileStreamProcessorTest {
     @Test
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
             "where the Company Profile does not have a Officer Link and a Officer does not exist, so the Officer link is not updated")
-    void successfullyProcessCompanyProfileResourceChangedWhereNoOfficerAndNoOfficerLinkSoNoLinkUpdate() throws IOException {
+    void successfullyProcessCompanyProfileResourceChangedWhereNoOfficerAndNoOfficerLinkSoNoLinkUpdate() throws IOException, URIValidationException {
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
@@ -340,7 +340,7 @@ class CompanyProfileStreamProcessorTest {
 
     @Test
     @DisplayName("throws RetryableErrorException when Officer Data API returns non successful response !2XX")
-    void throwRetryableErrorExceptionWhenOfficerAPIReturnsNon2XX() throws IOException {
+    void throwRetryableErrorExceptionWhenOfficerAPIReturnsNon2XX() throws IOException, URIValidationException {
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
         companyProfile.getLinks().setOfficers(null);

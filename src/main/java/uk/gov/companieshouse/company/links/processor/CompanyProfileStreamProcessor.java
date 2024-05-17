@@ -43,9 +43,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     private final AddFilingHistoryClient addFilingHistoryClient;
     private final FilingHistoryService filingHistoryService;
     private final AddStatementsClient addStatementsClient;
-
     private final OfficerListClient officerListClient;
-
     private final AddOfficersClient addOfficersClient;
 
     /**

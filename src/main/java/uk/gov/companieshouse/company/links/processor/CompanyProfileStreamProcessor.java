@@ -57,19 +57,19 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             ChargesService chargesService, AddChargesClient addChargesClient,
             FilingHistoryService filingHistoryService,
                 AddFilingHistoryClient addFilingHistoryClient,
+            OfficerListClient officerListClient, AddOfficersClient addOfficersClient,
             PscListClient pscListClient, AddPscClient addPscClient,
-            StatementsListClient statementsListClient, AddStatementsClient addStatementsClient,
-            OfficerListClient officerListClient, AddOfficersClient addOfficersClient) {
+            StatementsListClient statementsListClient, AddStatementsClient addStatementsClient) {
         super(logger);
         this.companyProfileDeserializer = companyProfileDeserializer;
         this.chargesService = chargesService;
         this.addChargesClient = addChargesClient;
         this.filingHistoryService = filingHistoryService;
         this.addFilingHistoryClient = addFilingHistoryClient;
-        this.pscListClient = pscListClient;
-        this.addPscClient = addPscClient;
         this.officerListClient = officerListClient;
         this.addOfficersClient = addOfficersClient;
+        this.pscListClient = pscListClient;
+        this.addPscClient = addPscClient;
         this.statementsListClient = statementsListClient;
         this.addStatementsClient = addStatementsClient;
     }
@@ -88,8 +88,8 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
         processChargesLink(contextId, companyNumber, companyProfileData);
         processFilingHistoryLink(contextId, companyNumber, companyProfileData);
-        processPscLink(contextId, companyNumber, companyProfileData);
         processOfficerLink(contextId, companyNumber, companyProfileData);
+        processPscLink(contextId, companyNumber, companyProfileData);
         processPscStatementsLink(contextId, companyNumber, companyProfileData);
     }
 
@@ -147,6 +147,34 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     }
 
     /**
+     * Process the Officers link for a Company Profile ResourceChanged message.
+     * If there is no Officers link in the ResourceChanged and Officers exist then add the link
+     */
+    private void processOfficerLink(String contextId, String companyNumber, Data data) {
+        Optional<String> officerLink = Optional.ofNullable(data)
+                .map(Data::getLinks)
+                .map(Links::getOfficers);
+
+        if (officerLink.isEmpty()) {
+            PatchLinkRequest patchLinkRequest = new PatchLinkRequest(companyNumber, contextId);
+            OfficerList officersList;
+            try {
+                officersList = officerListClient
+                        .getOfficers(patchLinkRequest);
+
+            } catch (Exception exception) {
+                throw new RetryableErrorException(String.format(
+                        "Error retrieving Officers for company number %s", companyNumber),
+                        exception);
+            }
+            if (officersList != null
+                    && !officersList.getItems().isEmpty()) {
+                addCompanyLink(addOfficersClient, "officers", contextId, companyNumber);
+            }
+        }
+    }
+
+    /**
      * Process the PSCs link for a Company Profile ResourceChanged message.
      * If there is no PSCs link in the ResourceChanged and PSCs exist then add the link
      */
@@ -198,39 +226,6 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             }
         }
     }
-
-    /**
-     * Process the Officers link for a Company Profile ResourceChanged message.
-     * If there is no Officers link in the ResourceChanged and Officers exist then add the link
-     */
-    private void processOfficerLink(String contextId, String companyNumber, Data data) {
-        Optional<String> officerLink = Optional.ofNullable(data)
-                .map(Data::getLinks)
-                .map(Links::getOfficers);
-
-        if (officerLink.isEmpty()) {
-            PatchLinkRequest patchLinkRequest = new PatchLinkRequest(companyNumber, contextId);
-            OfficerList officersList;
-            try {
-                officersList = officerListClient
-                        .getOfficers(patchLinkRequest);
-
-            } catch (Exception exception) {
-                throw new RetryableErrorException(String.format(
-                        "Error retrieving Officers for company number %s", companyNumber),
-                        exception);
-            }
-            if (officersList != null
-                    && !officersList.getItems().isEmpty()) {
-                addCompanyLink(addOfficersClient, "officers", contextId, companyNumber);
-            }
-        }
-    }
-
-    /**
-     * Process the Officers link for a Company Profile ResourceChanged message.
-     * If there is no Officers link in the ResourceChanged and Officers exist then add the link
-     */
 
     private void addCompanyLink(LinkClient linkClient, String linkType, String contextId,
                                 String companyNumber) {

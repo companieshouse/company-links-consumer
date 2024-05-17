@@ -157,20 +157,20 @@ public class TestData {
         return objectMapper.readValue(data, ChargesApi.class);
     }
 
-    public OfficerList createOfficers() throws IOException {
-        String data = FileCopyUtils.copyToString(new InputStreamReader(
-                new FileInputStream("src/test/resources/officers-record.json")));
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.findAndRegisterModules();
-        return objectMapper.readValue(data, OfficerList.class);
-    }   
-
     public FilingHistoryList createFilingHistoryList() throws IOException {
         String data = FileCopyUtils.copyToString(new InputStreamReader(
                 new FileInputStream("src/test/resources/filing-history-list-record.json")));
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
         return objectMapper.readValue(data, FilingHistoryList.class);
+    }
+
+    public OfficerList createOfficers() throws IOException {
+        String data = FileCopyUtils.copyToString(new InputStreamReader(
+                new FileInputStream("src/test/resources/officers-record.json")));
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        return objectMapper.readValue(data, OfficerList.class);
     }
 
     public PscList createPscList() throws IOException {

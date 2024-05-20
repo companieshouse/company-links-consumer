@@ -4,6 +4,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
+import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
@@ -16,11 +17,13 @@ import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
 import uk.gov.companieshouse.company.links.service.AddChargesClient;
 import uk.gov.companieshouse.company.links.service.AddFilingHistoryClient;
+import uk.gov.companieshouse.company.links.service.AddOfficersClient;
 import uk.gov.companieshouse.company.links.service.AddPscClient;
 import uk.gov.companieshouse.company.links.service.AddStatementsClient;
 import uk.gov.companieshouse.company.links.service.ChargesService;
 import uk.gov.companieshouse.company.links.service.FilingHistoryService;
 import uk.gov.companieshouse.company.links.service.LinkClient;
+import uk.gov.companieshouse.company.links.service.OfficerListClient;
 import uk.gov.companieshouse.company.links.service.PscListClient;
 import uk.gov.companieshouse.company.links.service.StatementsListClient;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
@@ -40,6 +43,8 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     private final AddFilingHistoryClient addFilingHistoryClient;
     private final FilingHistoryService filingHistoryService;
     private final AddStatementsClient addStatementsClient;
+    private final OfficerListClient officerListClient;
+    private final AddOfficersClient addOfficersClient;
 
     /**
      * Construct a Company Profile stream processor.
@@ -50,6 +55,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             ChargesService chargesService, AddChargesClient addChargesClient,
             FilingHistoryService filingHistoryService,
                 AddFilingHistoryClient addFilingHistoryClient,
+            OfficerListClient officerListClient, AddOfficersClient addOfficersClient,
             PscListClient pscListClient, AddPscClient addPscClient,
             StatementsListClient statementsListClient, AddStatementsClient addStatementsClient) {
         super(logger);
@@ -58,6 +64,8 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         this.addChargesClient = addChargesClient;
         this.filingHistoryService = filingHistoryService;
         this.addFilingHistoryClient = addFilingHistoryClient;
+        this.officerListClient = officerListClient;
+        this.addOfficersClient = addOfficersClient;
         this.pscListClient = pscListClient;
         this.addPscClient = addPscClient;
         this.statementsListClient = statementsListClient;
@@ -78,6 +86,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
         processChargesLink(contextId, companyNumber, companyProfileData);
         processFilingHistoryLink(contextId, companyNumber, companyProfileData);
+        processOfficerLink(contextId, companyNumber, companyProfileData);
         processPscLink(contextId, companyNumber, companyProfileData);
         processPscStatementsLink(contextId, companyNumber, companyProfileData);
     }
@@ -131,6 +140,34 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             if (filingHistoryResponse.getItems() != null
                     && !filingHistoryResponse.getItems().isEmpty()) {
                 addCompanyLink(addFilingHistoryClient, "filing history", contextId, companyNumber);
+            }
+        }
+    }
+
+    /**
+     * Process the Officers link for a Company Profile ResourceChanged message.
+     * If there is no Officers link in the ResourceChanged and Officers exist then add the link
+     */
+    private void processOfficerLink(String contextId, String companyNumber, Data data) {
+        Optional<String> officerLink = Optional.ofNullable(data)
+                .map(Data::getLinks)
+                .map(Links::getOfficers);
+
+        if (officerLink.isEmpty()) {
+            PatchLinkRequest patchLinkRequest = new PatchLinkRequest(companyNumber, contextId);
+            OfficerList officersList;
+            try {
+                officersList = officerListClient
+                        .getOfficers(patchLinkRequest);
+
+            } catch (Exception exception) {
+                throw new RetryableErrorException(String.format(
+                        "Error retrieving Officers for company number %s", companyNumber),
+                        exception);
+            }
+            if (officersList != null
+                    && !officersList.getItems().isEmpty()) {
+                addCompanyLink(addOfficersClient, "officers", contextId, companyNumber);
             }
         }
     }

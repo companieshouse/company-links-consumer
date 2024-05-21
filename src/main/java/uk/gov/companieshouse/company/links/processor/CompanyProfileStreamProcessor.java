@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
+import uk.gov.companieshouse.api.exemptions.CompanyExemptions;
 import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
@@ -15,10 +16,12 @@ import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
 import uk.gov.companieshouse.company.links.service.AddChargesClient;
+import uk.gov.companieshouse.company.links.service.AddExemptionsClient;
 import uk.gov.companieshouse.company.links.service.AddFilingHistoryClient;
 import uk.gov.companieshouse.company.links.service.AddPscClient;
 import uk.gov.companieshouse.company.links.service.AddStatementsClient;
 import uk.gov.companieshouse.company.links.service.ChargesService;
+import uk.gov.companieshouse.company.links.service.ExemptionsListClient;
 import uk.gov.companieshouse.company.links.service.FilingHistoryService;
 import uk.gov.companieshouse.company.links.service.LinkClient;
 import uk.gov.companieshouse.company.links.service.PscListClient;
@@ -32,6 +35,8 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
     private final CompanyProfileDeserializer companyProfileDeserializer;
+    private final ExemptionsListClient exemptionsListClient;
+    private final AddExemptionsClient addExemptionsClient;
     private final ChargesService chargesService;
     private final PscListClient pscListClient;
     private final StatementsListClient statementsListClient;
@@ -51,7 +56,8 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             FilingHistoryService filingHistoryService,
                 AddFilingHistoryClient addFilingHistoryClient,
             PscListClient pscListClient, AddPscClient addPscClient,
-            StatementsListClient statementsListClient, AddStatementsClient addStatementsClient) {
+            StatementsListClient statementsListClient, AddStatementsClient addStatementsClient,
+            ExemptionsListClient exemptionsListClient, AddExemptionsClient addExemptionsClient) {
         super(logger);
         this.companyProfileDeserializer = companyProfileDeserializer;
         this.chargesService = chargesService;
@@ -62,6 +68,8 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         this.addPscClient = addPscClient;
         this.statementsListClient = statementsListClient;
         this.addStatementsClient = addStatementsClient;
+        this.exemptionsListClient = exemptionsListClient;
+        this.addExemptionsClient = addExemptionsClient;
     }
 
     /**
@@ -77,6 +85,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                 companyProfileDeserializer.deserialiseCompanyData(payload.getData());
 
         processChargesLink(contextId, companyNumber, companyProfileData);
+        processExemptionsLink(contextId, companyNumber, companyProfileData);
         processFilingHistoryLink(contextId, companyNumber, companyProfileData);
         processPscLink(contextId, companyNumber, companyProfileData);
         processPscStatementsLink(contextId, companyNumber, companyProfileData);
@@ -184,6 +193,39 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
             if (statementList != null && !statementList.getItems().isEmpty()) {
                 addCompanyLink(addStatementsClient, "PSC Statements", contextId, companyNumber);
+            }
+        }
+    }
+
+    private void processExemptionsLink(String contextId, String companyNumber, Data data) {
+        Optional<String> exemptionsLink = Optional.ofNullable(data)
+                .map(Data::getLinks)
+                .map(Links::getExemptions);
+
+        if (exemptionsLink.isEmpty()) {
+            CompanyExemptions companyExemptions;
+            try {
+                companyExemptions = exemptionsListClient
+                        .getExemptionsList(contextId, companyNumber);
+            } catch (Exception exception) {
+                throw new RetryableErrorException(String.format(
+                        "Error retrieving Exemptions for company number %s", companyNumber),
+                        exception);
+            }
+
+            if (companyExemptions != null && companyExemptions.getExemptions() != null) {
+                if (companyExemptions.getExemptions().getPscExemptAsSharesAdmittedOnMarket() != null
+                        || companyExemptions.getExemptions()
+                        .getDisclosureTransparencyRulesChapterFiveApplies() != null
+                        || companyExemptions.getExemptions()
+                        .getPscExemptAsTradingOnRegulatedMarket() != null
+                        || companyExemptions.getExemptions()
+                        .getPscExemptAsTradingOnEuRegulatedMarket() != null
+                        || companyExemptions.getExemptions()
+                        .getPscExemptAsTradingOnUkRegulatedMarket() != null) {
+                    addCompanyLink(addExemptionsClient, "Company Exemptions",
+                            contextId, companyNumber);
+                }
             }
         }
     }

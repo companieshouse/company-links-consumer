@@ -21,6 +21,27 @@ Feature: Process company profile links
     When A valid avro Company Profile without "charges" link message is sent to the Kafka topic "stream-company-profile"
     Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "charges" link payload
 
+# EXEMPTIONS
+  Scenario: Company profile message with no Exemptions link and existing Exemptions is processed successfully
+    Given Company links consumer service is running
+    And Company profile exists with no "exemptions" link for company "00006401"
+    And "exemptions" exist for company "00006401"
+    When A valid avro Company Profile without "exemptions" link message is sent to the Kafka topic "stream-company-profile"
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with "exemptions" link payload
+
+  Scenario: Company profile message with existing Exemptions link does not update
+    Given Company links consumer service is running
+    And Company profile exists with "exemptions" link for company "00006401"
+    When A valid avro Company Profile with all links message is sent to the Kafka topic "stream-company-profile"
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "exemptions" link payload
+
+  Scenario: Company profile message with no Exemptions link and no Exemptions is processed successfully
+    Given Company links consumer service is running
+    And Company profile exists with no "exemptions" link for company "00006401"
+    And "exemptions" do not exist for company "00006401"
+    When A valid avro Company Profile without "exemptions" link message is sent to the Kafka topic "stream-company-profile"
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "exemptions" link payload
+
 # FILING HISTORY
   Scenario: Company profile message with no Filing history link and existing Filing history is processed successfully
     Given Company links consumer service is running

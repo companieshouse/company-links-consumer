@@ -14,6 +14,7 @@ import org.springframework.messaging.Message;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
+import uk.gov.companieshouse.api.exemptions.CompanyExemptions;
 import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.model.ApiResponse;
@@ -45,8 +46,13 @@ class CompanyProfileStreamProcessorTest {
     private Logger logger;
     @Mock
     private CompanyProfileDeserializer companyProfileDeserializer;
+
     @Mock
     ChargesService chargesService;
+    @Mock
+    ExemptionsListClient exemptionsListClient;
+    @Mock
+    FilingHistoryService filingHistoryService;
     @Mock
     PscListClient pscListClient;
     @Mock
@@ -54,13 +60,14 @@ class CompanyProfileStreamProcessorTest {
     @Mock
     public AddChargesClient addChargesClient;
     @Mock
-    public AddPscClient addPscClient;
+    public AddExemptionsClient addExemptionsClient;
     @Mock
     public AddFilingHistoryClient addFilingHistoryClient;
     @Mock
-    FilingHistoryService filingHistoryService;
+    public AddPscClient addPscClient;
     @Mock
     public AddStatementsClient addStatementsClient;
+
     private TestData testData;
 
     @BeforeEach
@@ -70,7 +77,8 @@ class CompanyProfileStreamProcessorTest {
                 chargesService, addChargesClient,
                 filingHistoryService, addFilingHistoryClient,
                 pscListClient, addPscClient,
-                statementsListClient, addStatementsClient));
+                statementsListClient, addStatementsClient,
+                exemptionsListClient, addExemptionsClient));
         testData = new TestData();
         DataMapHolder.initialise(CONTEXT_ID);
         companyProfileStreamConsumer = new CompanyProfileStreamConsumer(companyProfileStreamProcessor, logger);
@@ -403,7 +411,7 @@ class CompanyProfileStreamProcessorTest {
 
     @Test
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
-            "where the Company Profile does have a Psc Statements Link, so the Charges link is not updated")
+            "where the Company Profile does have a Psc Statements Link, so the Psc Statements link is not updated")
     void successfullyProcessCompanyProfileResourceChangedWherePscStatementsLinkExistsSoNoLinkUpdate() throws IOException {
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
@@ -434,6 +442,96 @@ class CompanyProfileStreamProcessorTest {
                 HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
                 new HttpHeaders()).build();
         when(statementsListClient.getStatementsList(any(), any()))
+                .thenThrow(
+                        new RetryableErrorException("endpoint not found",
+                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verifyLoggingDataMap();
+    }
+
+    //Exemptions TESTS
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have an Exemptions Link and Exemptions exist, so the Exemptions link is updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereExemptionsExistAndNoExemptionsLinkSoUpdateLink() throws IOException {
+
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setExemptions(null);
+        assertNull(companyProfile.getLinks().getExemptions());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        CompanyExemptions companyExemptions = testData.createExemptions();
+        assertNotNull(companyExemptions.getExemptions());
+        when(exemptionsListClient.getExemptionsList(any(), any())).thenReturn(companyExemptions);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addExemptionsClient).patchLink(argument.capture());
+        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
+        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have an Exemptions Link and Exemptions do not exist, so the Exemptions link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereNoExemptionsAndNoExemptionsLinkSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setExemptions(null);
+        assertNull(companyProfile.getLinks().getExemptions());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addExemptionsClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does have an Exemptions Link, so the Exemptions link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereExemptionsLinkExistsSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        assertNotNull(companyProfile.getLinks().getExemptions());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addExemptionsClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when Company Exemptions Data API returns non successful response !2XX")
+    void throwRetryableErrorExceptionWhenCompanyExemptionsDataAPIReturnsNon2XX() throws IOException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setExemptions(null);
+        assertNull(companyProfile.getLinks().getExemptions());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(exemptionsListClient.getExemptionsList(any(), any()))
                 .thenThrow(
                         new RetryableErrorException("endpoint not found",
                                 ApiErrorResponseException.fromHttpResponseException(httpResponseException)));

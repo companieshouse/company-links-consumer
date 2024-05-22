@@ -3,25 +3,25 @@ Feature: Process company profile links
 # CHARGES
   Scenario: Company profile message with no Charges link and existing Charges is processed successfully
     Given Company links consumer service is running
-    And Company profile exists with no "charges" link for company "00006401"
+    And Company profile exists with no Charges link for company "00006401"
     And "charges" exist for company "00006401"
     When A valid avro Company Profile without "charges" link message is sent to the Kafka topic "stream-company-profile"
-    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with "charges" link payload
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with Charges link payload
     And No messages are placed on the invalid, error or retry topics
 
   Scenario: Company profile message with existing Charges link does not update
     Given Company links consumer service is running
-    And Company profile exists with "charges" link for company "00006401"
+    And Company profile exists with Charges link for company "00006401"
     When A valid avro Company Profile with all links message is sent to the Kafka topic "stream-company-profile"
-    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "charges" link payload
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with Charges link payload
     And No messages are placed on the invalid, error or retry topics
 
   Scenario: Company profile message with no Charges link and no Charges is processed successfully
     Given Company links consumer service is running
-    And Company profile exists with no "charges" link for company "00006401"
+    And Company profile exists with no Charges link for company "00006401"
     And "charges" do not exist for company "00006401"
     When A valid avro Company Profile without "charges" link message is sent to the Kafka topic "stream-company-profile"
-    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "charges" link payload
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with Charges link payload
     And No messages are placed on the invalid, error or retry topics
 
 # FILING HISTORY

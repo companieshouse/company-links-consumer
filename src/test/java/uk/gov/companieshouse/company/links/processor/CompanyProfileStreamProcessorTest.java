@@ -54,7 +54,7 @@ class CompanyProfileStreamProcessorTest {
     @Mock
     StatementsListClient statementsListClient;
     @Mock
-    public AddChargesClient addChargesClient;
+    public CompanyProfileService companyProfileService;
     @Mock
     public AddPscClient addPscClient;
     @Mock
@@ -74,7 +74,7 @@ class CompanyProfileStreamProcessorTest {
     void setUp() {
         companyProfileStreamProcessor = spy(new CompanyProfileStreamProcessor(
                 logger, companyProfileDeserializer,
-                chargesService, addChargesClient,
+                chargesService, companyProfileService,
                 filingHistoryService, addFilingHistoryClient,
                 officerListClient, addOfficersClient,
                 pscListClient, addPscClient,
@@ -90,8 +90,6 @@ class CompanyProfileStreamProcessorTest {
             "where the Company Profile does not have a Charges Link and Charges exist, so the Charges link is updated")
     void successfullyProcessCompanyProfileResourceChangedWhereChargesExistAndNoChargesLinkSoUpdateLink() throws IOException {
 
-        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
-
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
         companyProfile.getLinks().setCharges(null);
@@ -102,14 +100,15 @@ class CompanyProfileStreamProcessorTest {
         assertFalse(chargesResponse.getData().getItems().isEmpty());
         when(chargesService.getCharges(any(), any())).thenReturn(chargesResponse);
 
+        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any())).thenReturn(
+                new ApiResponse<> (200, null));
+
 
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verify(addChargesClient).patchLink(argument.capture());
-        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
-        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
+        verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any());
         verifyLoggingDataMap();
     }
 
@@ -131,7 +130,7 @@ class CompanyProfileStreamProcessorTest {
 
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verifyNoInteractions(addChargesClient);
+        verifyNoInteractions(companyProfileService);
         verifyLoggingDataMap();
     }
 
@@ -150,7 +149,7 @@ class CompanyProfileStreamProcessorTest {
 
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verifyNoInteractions(addChargesClient);
+        verifyNoInteractions(companyProfileService);
         verifyLoggingDataMap();
     }
 

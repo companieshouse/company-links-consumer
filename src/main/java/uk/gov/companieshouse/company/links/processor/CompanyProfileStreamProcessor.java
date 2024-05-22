@@ -2,9 +2,12 @@ package uk.gov.companieshouse.company.links.processor;
 
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
+import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.charges.ChargesApi;
+import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.exemptions.CompanyExemptions;
@@ -15,17 +18,20 @@ import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
-import uk.gov.companieshouse.company.links.service.AddChargesClient;
 import uk.gov.companieshouse.company.links.service.AddExemptionsClient;
 import uk.gov.companieshouse.company.links.service.AddFilingHistoryClient;
+import uk.gov.companieshouse.company.links.service.AddOfficersClient;
 import uk.gov.companieshouse.company.links.service.AddPscClient;
 import uk.gov.companieshouse.company.links.service.AddStatementsClient;
 import uk.gov.companieshouse.company.links.service.ChargesService;
 import uk.gov.companieshouse.company.links.service.ExemptionsListClient;
+import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.company.links.service.FilingHistoryService;
 import uk.gov.companieshouse.company.links.service.LinkClient;
+import uk.gov.companieshouse.company.links.service.OfficerListClient;
 import uk.gov.companieshouse.company.links.service.PscListClient;
 import uk.gov.companieshouse.company.links.service.StatementsListClient;
+import uk.gov.companieshouse.company.links.type.ApiType;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -40,11 +46,13 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     private final ChargesService chargesService;
     private final PscListClient pscListClient;
     private final StatementsListClient statementsListClient;
-    private final AddChargesClient addChargesClient;
+    private final CompanyProfileService companyProfileService;
     private final AddPscClient addPscClient;
     private final AddFilingHistoryClient addFilingHistoryClient;
     private final FilingHistoryService filingHistoryService;
     private final AddStatementsClient addStatementsClient;
+    private final OfficerListClient officerListClient;
+    private final AddOfficersClient addOfficersClient;
 
     /**
      * Construct a Company Profile stream processor.
@@ -52,18 +60,21 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
     @Autowired
     public CompanyProfileStreamProcessor(
             Logger logger, CompanyProfileDeserializer companyProfileDeserializer,
-            ChargesService chargesService, AddChargesClient addChargesClient,
+            ChargesService chargesService, CompanyProfileService companyProfileService,
             FilingHistoryService filingHistoryService,
                 AddFilingHistoryClient addFilingHistoryClient,
+            OfficerListClient officerListClient, AddOfficersClient addOfficersClient,
             PscListClient pscListClient, AddPscClient addPscClient,
             StatementsListClient statementsListClient, AddStatementsClient addStatementsClient,
             ExemptionsListClient exemptionsListClient, AddExemptionsClient addExemptionsClient) {
         super(logger);
         this.companyProfileDeserializer = companyProfileDeserializer;
         this.chargesService = chargesService;
-        this.addChargesClient = addChargesClient;
+        this.companyProfileService = companyProfileService;
         this.filingHistoryService = filingHistoryService;
         this.addFilingHistoryClient = addFilingHistoryClient;
+        this.officerListClient = officerListClient;
+        this.addOfficersClient = addOfficersClient;
         this.pscListClient = pscListClient;
         this.addPscClient = addPscClient;
         this.statementsListClient = statementsListClient;
@@ -87,6 +98,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         processChargesLink(contextId, companyNumber, companyProfileData);
         processExemptionsLink(contextId, companyNumber, companyProfileData);
         processFilingHistoryLink(contextId, companyNumber, companyProfileData);
+        processOfficerLink(contextId, companyNumber, companyProfileData);
         processPscLink(contextId, companyNumber, companyProfileData);
         processPscStatementsLink(contextId, companyNumber, companyProfileData);
     }
@@ -112,7 +124,32 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
             if (chargesResponse.getData() != null
                     && !chargesResponse.getData().getItems().isEmpty()) {
-                addCompanyLink(addChargesClient, "Charges", contextId, companyNumber);
+
+                Links links;
+                if (data != null) {
+                    if (data.getLinks() != null) {
+                        links = data.getLinks();
+                    } else {
+                        links = new Links();
+                    }
+                } else {
+                    data = new Data();
+                    links = new Links();
+                }
+                links.setCharges(String.format("/company/%s/charges", companyNumber));
+                data.setLinks(links);
+                data.setHasCharges(true);
+                var companyProfile = new CompanyProfile();
+                companyProfile.setData(data);
+
+                //Note: There is an issue where the Patch request sent by the AddChargesClient to
+                // the '/company/*/links/charges' endpoint is being picked up by another service
+                // in Cidev. The same happens for Insolvency. Therefore, we are using the
+                // old endpoint '/company/*/links'.
+                final ApiResponse<Void> patchResponse = companyProfileService.patchCompanyProfile(
+                        contextId, companyNumber, companyProfile);
+                handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), contextId,
+                        "PATCH", ApiType.COMPANY_PROFILE, companyNumber);
             }
         }
     }
@@ -140,6 +177,34 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             if (filingHistoryResponse.getItems() != null
                     && !filingHistoryResponse.getItems().isEmpty()) {
                 addCompanyLink(addFilingHistoryClient, "filing history", contextId, companyNumber);
+            }
+        }
+    }
+
+    /**
+     * Process the Officers link for a Company Profile ResourceChanged message.
+     * If there is no Officers link in the ResourceChanged and Officers exist then add the link
+     */
+    private void processOfficerLink(String contextId, String companyNumber, Data data) {
+        Optional<String> officerLink = Optional.ofNullable(data)
+                .map(Data::getLinks)
+                .map(Links::getOfficers);
+
+        if (officerLink.isEmpty()) {
+            PatchLinkRequest patchLinkRequest = new PatchLinkRequest(companyNumber, contextId);
+            OfficerList officersList;
+            try {
+                officersList = officerListClient
+                        .getOfficers(patchLinkRequest);
+
+            } catch (Exception exception) {
+                throw new RetryableErrorException(String.format(
+                        "Error retrieving Officers for company number %s", companyNumber),
+                        exception);
+            }
+            if (officersList != null
+                    && !officersList.getItems().isEmpty()) {
+                addCompanyLink(addOfficersClient, "officers", contextId, companyNumber);
             }
         }
     }

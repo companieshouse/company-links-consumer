@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
+import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
@@ -42,6 +43,7 @@ class CompanyProfileStreamProcessorTest {
 
     private CompanyProfileStreamProcessor companyProfileStreamProcessor;
     private CompanyProfileStreamConsumer companyProfileStreamConsumer;
+
     @Mock
     private Logger logger;
     @Mock
@@ -58,24 +60,28 @@ class CompanyProfileStreamProcessorTest {
     @Mock
     StatementsListClient statementsListClient;
     @Mock
-    public AddChargesClient addChargesClient;
+    public CompanyProfileService companyProfileService;
     @Mock
     public AddExemptionsClient addExemptionsClient;
+    @Mock
+    public AddOfficersClient addOfficersClient;
+    @Mock
+    public OfficerListClient officerListClient;
     @Mock
     public AddFilingHistoryClient addFilingHistoryClient;
     @Mock
     public AddPscClient addPscClient;
     @Mock
     public AddStatementsClient addStatementsClient;
-
     private TestData testData;
 
     @BeforeEach
     void setUp() {
         companyProfileStreamProcessor = spy(new CompanyProfileStreamProcessor(
                 logger, companyProfileDeserializer,
-                chargesService, addChargesClient,
+                chargesService, companyProfileService,
                 filingHistoryService, addFilingHistoryClient,
+                officerListClient, addOfficersClient,
                 pscListClient, addPscClient,
                 statementsListClient, addStatementsClient,
                 exemptionsListClient, addExemptionsClient));
@@ -90,8 +96,6 @@ class CompanyProfileStreamProcessorTest {
             "where the Company Profile does not have a Charges Link and Charges exist, so the Charges link is updated")
     void successfullyProcessCompanyProfileResourceChangedWhereChargesExistAndNoChargesLinkSoUpdateLink() throws IOException {
 
-        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
-
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
         companyProfile.getLinks().setCharges(null);
@@ -102,14 +106,15 @@ class CompanyProfileStreamProcessorTest {
         assertFalse(chargesResponse.getData().getItems().isEmpty());
         when(chargesService.getCharges(any(), any())).thenReturn(chargesResponse);
 
+        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any())).thenReturn(
+                new ApiResponse<> (200, null));
+
 
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verify(addChargesClient).patchLink(argument.capture());
-        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
-        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
+        verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any());
         verifyLoggingDataMap();
     }
 
@@ -131,7 +136,7 @@ class CompanyProfileStreamProcessorTest {
 
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verifyNoInteractions(addChargesClient);
+        verifyNoInteractions(companyProfileService);
         verifyLoggingDataMap();
     }
 
@@ -150,7 +155,7 @@ class CompanyProfileStreamProcessorTest {
 
 
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
-        verifyNoInteractions(addChargesClient);
+        verifyNoInteractions(companyProfileService);
         verifyLoggingDataMap();
     }
 
@@ -260,6 +265,98 @@ class CompanyProfileStreamProcessorTest {
                 HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
                 new HttpHeaders()).build();
         when(filingHistoryService.getFilingHistory(any(),any()))
+                .thenThrow(
+                        new RetryableErrorException("endpoint not found",
+                                ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verifyLoggingDataMap();
+    }
+
+    //OFFICERS TESTS
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a Officers Link and Officers exist, so the Officers link is updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereOfficersExistAndNoOfficersLinkSoUpdateLink() throws IOException, URIValidationException {
+
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setOfficers(null);
+        assertNull(companyProfile.getLinks().getOfficers());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        OfficerList officerList = testData.createOfficers();
+        assertFalse(officerList.getItems().isEmpty());
+        when(officerListClient.getOfficers(any())).thenReturn(officerList);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addOfficersClient).patchLink(argument.capture());
+        assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
+        assertEquals(argument.getValue().getRequestId(), CONTEXT_ID);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does not have a Officer Link and a Officer does not exist, so the Officer link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereNoOfficerAndNoOfficerLinkSoNoLinkUpdate() throws IOException, URIValidationException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setOfficers(null);
+        assertNull(companyProfile.getLinks().getOfficers());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        when(officerListClient.getOfficers(any())).thenReturn(new OfficerList());
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addOfficersClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
+            "where the Company Profile does have a Officer Link, so the Officer link is not updated")
+    void successfullyProcessCompanyProfileResourceChangedWhereOfficerLinkExistsSoNoLinkUpdate() throws IOException {
+
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        assertNotNull(companyProfile.getLinks().getOfficers());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+
+        companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
+
+
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verifyNoInteractions(addOfficersClient);
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws RetryableErrorException when Officer Data API returns non successful response !2XX")
+    void throwRetryableErrorExceptionWhenOfficerAPIReturnsNon2XX() throws IOException, URIValidationException {
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setOfficers(null);
+        assertNull(companyProfile.getLinks().getOfficers());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(officerListClient.getOfficers(any()))
                 .thenThrow(
                         new RetryableErrorException("endpoint not found",
                                 ApiErrorResponseException.fromHttpResponseException(httpResponseException)));

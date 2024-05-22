@@ -44,14 +44,28 @@ public class CompanyProfileStreamConsumerSteps {
     @Given("Company profile exists with no {string} link for company {string}")
     public void company_profile_exists_without_one_link(String linkType, String companyNumber) {
         this.companyNumber = companyNumber;
-        WiremockTestConfig.setGetAndPatchStubsFor(linkType, this.companyNumber,
+        WiremockTestConfig.setGetAndPatchStubsForLink(linkType, this.companyNumber,
                 loadFileFromName(String.format("profile-without-%s-link.json", linkType)));
+    }
+
+    @Given("Company profile exists with no Charges link for company {string}")
+    public void company_profile_exists_without_charges_link(String companyNumber) {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.setGetAndPatchStubsForChargesAndForInsolvency(this.companyNumber,
+                loadFileFromName(String.format("profile-without-%s-link.json", "charges")));
     }
 
     @Given("Company profile exists with {string} link for company {string}")
     public void company_profile_exists_with_all_link(String linkType, String companyNumber) {
         this.companyNumber = companyNumber;
-        WiremockTestConfig.setGetAndPatchStubsFor(linkType, this.companyNumber,
+        WiremockTestConfig.setGetAndPatchStubsForLink(linkType, this.companyNumber,
+                loadFileFromName("profile-with-all-links.json"));
+    }
+
+    @Given("Company profile exists with Charges link for company {string}")
+    public void company_profile_exists_with_all_links_for_charges(String companyNumber) {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.setGetAndPatchStubsForChargesAndForInsolvency(this.companyNumber,
                 loadFileFromName("profile-with-all-links.json"));
     }
 
@@ -74,8 +88,13 @@ public class CompanyProfileStreamConsumerSteps {
 
     @And("{string} do not exist for company {string}")
     public void objects_do_not_exist_for_company(String linkType, String companyNumber) {
-        WiremockTestConfig.stubForGet(linkType, companyNumber,
-                loadFileFromName("empty-list-record.json"), 200);
+        if (linkType.equals("filing-history")) {
+            WiremockTestConfig.stubForGetFilingHistory(companyNumber,
+                    loadFileFromName("empty-list-record.json"), 200);
+        } else {
+            WiremockTestConfig.stubForGet(linkType, companyNumber,
+                    loadFileFromName("empty-list-record.json"), 200);
+        }
     }
 
     @And("The user is not authorized")
@@ -118,6 +137,12 @@ public class CompanyProfileStreamConsumerSteps {
         verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/%s", this.companyNumber, linkType))));
     }
 
+    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with Charges link payload")
+    public void patchCompanyProfileEndpointIsCalledForCharges() {
+        verify(1, getRequestedFor(urlEqualTo(String.format("/company/%s/%s", this.companyNumber, "charges"))));
+        verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links", this.companyNumber))));
+    }
+
     @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with Filing History link payload")
     public void patchCompanyProfileEndpointIsCalledForFilingHistory() {
         verify(1, getRequestedFor(urlEqualTo(String.format("/filing-history-data-api/company/%s/filing-history", this.companyNumber))));
@@ -127,6 +152,11 @@ public class CompanyProfileStreamConsumerSteps {
     @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with {string} link payload")
     public void patchCompanyProfileEndpointNotCalled(String linkType) {
         verify(0, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/%s", this.companyNumber, linkType))));
+    }
+
+    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with Charges link payload")
+    public void patchCompanyProfileEndpointNotCalledForCharges() {
+        verify(0, patchRequestedFor(urlEqualTo(String.format("/company/%s/links", this.companyNumber))));
     }
 
     private String loadFileFromName(String fileName) {

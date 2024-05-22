@@ -107,7 +107,7 @@ public class WiremockTestConfig {
                                         "\"\n}")));
     }
 
-    public static void setGetAndPatchStubsFor(String linkType, String companyNumber, String response){
+    public static void setGetAndPatchStubsForLink(String linkType, String companyNumber, String response){
         stubFor(
                 get(urlEqualTo(String.format("/company/%s/links", companyNumber)))
                         .willReturn(aResponse()
@@ -117,6 +117,20 @@ public class WiremockTestConfig {
 
         stubFor(
                 patch(urlEqualTo(String.format("/company/%s/links/%s", companyNumber, linkType)))
+                        .willReturn(aResponse()
+                                .withStatus(200)));
+    }
+
+    public static void setGetAndPatchStubsForChargesAndForInsolvency(String companyNumber, String response){
+        stubFor(
+                get(urlEqualTo(String.format("/company/%s/links", companyNumber)))
+                        .willReturn(aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(response)));
+
+        stubFor(
+                patch(urlEqualTo(String.format("/company/%s/links", companyNumber)))
                         .willReturn(aResponse()
                                 .withStatus(200)));
     }

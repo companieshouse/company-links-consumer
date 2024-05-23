@@ -42,7 +42,7 @@ import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
-import uk.gov.companieshouse.company.links.service.CompanyInsolvencyService;
+import uk.gov.companieshouse.company.links.service.InsolvencyService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.EventRecord;
@@ -57,7 +57,7 @@ class InsolvencyStreamProcessorTest {
     private CompanyProfileService companyProfileService;
 
     @Mock
-    private CompanyInsolvencyService companyInsolvencyService;
+    private InsolvencyService insolvencyService;
 
     @Mock
     private Logger logger;
@@ -70,7 +70,7 @@ class InsolvencyStreamProcessorTest {
         DataMapHolder.initialise(CONTEXT_ID);
         insolvencyProcessor = new InsolvencyStreamProcessor(
                 companyProfileService,
-                logger, companyInsolvencyService);
+                logger, insolvencyService);
     }
 
     @Test
@@ -89,7 +89,7 @@ class InsolvencyStreamProcessorTest {
 
         when(companyProfileService.patchCompanyProfile(any(), any(), any())).thenReturn(new ApiResponse<>(200, null, null));
 
-        when(companyInsolvencyService.getCompanyInsolvency(
+        when(insolvencyService.getInsolvency(
                 CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyInsolvencyGetApiResponse);
 
@@ -184,7 +184,7 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyInsolvency> companyInsolvencyGetApiResponse = new ApiResponse<>(
                 HttpStatus.NOT_FOUND.value(), null, null);
 
-        when(companyInsolvencyService.getCompanyInsolvency(
+        when(insolvencyService.getInsolvency(
                 CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyInsolvencyGetApiResponse);
 
@@ -219,7 +219,7 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyInsolvency> companyInsolvencyGetApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, null);
 
-        when(companyInsolvencyService.getCompanyInsolvency(
+        when(insolvencyService.getInsolvency(
                 CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyInsolvencyGetApiResponse);
 
@@ -370,7 +370,7 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyInsolvency> companyInsolvencyGetApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyInsolvency());
 
-        when(companyInsolvencyService.getCompanyInsolvency(
+        when(insolvencyService.getInsolvency(
                 CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyInsolvencyGetApiResponse);
 
@@ -407,7 +407,7 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyInsolvency> companyInsolvencyGetApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyInsolvency());
 
-        when(companyInsolvencyService.getCompanyInsolvency(
+        when(insolvencyService.getInsolvency(
                 CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyInsolvencyGetApiResponse);
 
@@ -438,7 +438,7 @@ class InsolvencyStreamProcessorTest {
         final ApiResponse<CompanyInsolvency> companyInsolvencyGetApiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(), null, createCompanyInsolvency());
 
-        when(companyInsolvencyService.getCompanyInsolvency(
+        when(insolvencyService.getInsolvency(
                 CONTEXT_ID, MOCK_COMPANY_NUMBER))
                 .thenReturn(companyInsolvencyGetApiResponse);
 

@@ -11,6 +11,7 @@ import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
+import uk.gov.companieshouse.api.insolvency.CompanyInsolvency;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.api.psc.StatementList;
@@ -24,6 +25,7 @@ import uk.gov.companieshouse.company.links.service.AddStatementsClient;
 import uk.gov.companieshouse.company.links.service.ChargesService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.company.links.service.FilingHistoryService;
+import uk.gov.companieshouse.company.links.service.InsolvencyService;
 import uk.gov.companieshouse.company.links.service.LinkClient;
 import uk.gov.companieshouse.company.links.service.OfficerListClient;
 import uk.gov.companieshouse.company.links.service.PscListClient;
@@ -39,15 +41,16 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
     private final CompanyProfileDeserializer companyProfileDeserializer;
     private final ChargesService chargesService;
-    private final PscListClient pscListClient;
-    private final StatementsListClient statementsListClient;
     private final CompanyProfileService companyProfileService;
-    private final AddPscClient addPscClient;
-    private final AddFilingHistoryClient addFilingHistoryClient;
     private final FilingHistoryService filingHistoryService;
-    private final AddStatementsClient addStatementsClient;
+    private final AddFilingHistoryClient addFilingHistoryClient;
+    private final InsolvencyService insolvencyService;
     private final OfficerListClient officerListClient;
     private final AddOfficersClient addOfficersClient;
+    private final PscListClient pscListClient;
+    private final AddPscClient addPscClient;
+    private final StatementsListClient statementsListClient;
+    private final AddStatementsClient addStatementsClient;
 
     /**
      * Construct a Company Profile stream processor.
@@ -58,6 +61,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             ChargesService chargesService, CompanyProfileService companyProfileService,
             FilingHistoryService filingHistoryService,
                 AddFilingHistoryClient addFilingHistoryClient,
+            InsolvencyService insolvencyService,
             OfficerListClient officerListClient, AddOfficersClient addOfficersClient,
             PscListClient pscListClient, AddPscClient addPscClient,
             StatementsListClient statementsListClient, AddStatementsClient addStatementsClient) {
@@ -67,6 +71,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         this.companyProfileService = companyProfileService;
         this.filingHistoryService = filingHistoryService;
         this.addFilingHistoryClient = addFilingHistoryClient;
+        this.insolvencyService = insolvencyService;
         this.officerListClient = officerListClient;
         this.addOfficersClient = addOfficersClient;
         this.pscListClient = pscListClient;
@@ -89,6 +94,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
         processChargesLink(contextId, companyNumber, companyProfileData);
         processFilingHistoryLink(contextId, companyNumber, companyProfileData);
+        processInsolvencyLink(contextId, companyNumber, companyProfileData);
         processOfficerLink(contextId, companyNumber, companyProfileData);
         processPscLink(contextId, companyNumber, companyProfileData);
         processPscStatementsLink(contextId, companyNumber, companyProfileData);
@@ -147,7 +153,8 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
     /**
      * Process the Filing History link for a Company Profile ResourceChanged message.
-     * If there is no Filing History link in the ResourceChanged and Charges exist then add the link
+     * If there is no Filing History link in the ResourceChanged and Filing History records exist
+     * then add the link
      */
     private void processFilingHistoryLink(String contextId, String companyNumber, Data data) {
         Optional<String> filingHistoryLink = Optional.ofNullable(data)
@@ -168,6 +175,58 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             if (filingHistoryResponse.getItems() != null
                     && !filingHistoryResponse.getItems().isEmpty()) {
                 addCompanyLink(addFilingHistoryClient, "filing history", contextId, companyNumber);
+            }
+        }
+    }
+
+    /**
+     * Process the Insolvency link for a Company Profile ResourceChanged message.
+     * If there is no Insolvency link in the ResourceChanged and Insolvencies exist
+     * then add the link
+     */
+    private void processInsolvencyLink(String contextId, String companyNumber, Data data) {
+        Optional<String> insolvencyLink = Optional.ofNullable(data)
+                .map(Data::getLinks)
+                .map(Links::getInsolvency);
+
+        if (insolvencyLink.isEmpty()) {
+            ApiResponse<CompanyInsolvency> insolvencyResponse;
+            try {
+                insolvencyResponse = insolvencyService.getInsolvency(contextId, companyNumber);
+            } catch (Exception exception) {
+                throw new RetryableErrorException(String.format(
+                        "Error retrieving Insolvency for company number %s", companyNumber),
+                        exception);
+            }
+
+            if (insolvencyResponse.getData() != null
+                    && !insolvencyResponse.getData().getCases().isEmpty()) {
+
+                Links links;
+                if (data != null) {
+                    if (data.getLinks() != null) {
+                        links = data.getLinks();
+                    } else {
+                        links = new Links();
+                    }
+                } else {
+                    data = new Data();
+                    links = new Links();
+                }
+                links.setInsolvency(String.format("/company/%s/insolvency", companyNumber));
+                data.setLinks(links);
+                data.setHasInsolvencyHistory(true);
+                var companyProfile = new CompanyProfile();
+                companyProfile.setData(data);
+
+                //Note: There is an issue where the Patch request sent by the AddInsolvencyClient to
+                // the '/company/*/links/insolvency' endpoint is being picked up by another service
+                // in Cidev. The same happens for Charges. Therefore, we are using the
+                // old endpoint '/company/*/links'.
+                final ApiResponse<Void> patchResponse = companyProfileService.patchCompanyProfile(
+                        contextId, companyNumber, companyProfile);
+                handleResponse(HttpStatus.valueOf(patchResponse.getStatusCode()), contextId,
+                        "PATCH", ApiType.COMPANY_PROFILE, companyNumber);
             }
         }
     }

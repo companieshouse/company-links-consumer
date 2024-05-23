@@ -13,8 +13,8 @@ import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
-import uk.gov.companieshouse.company.links.service.CompanyInsolvencyService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
+import uk.gov.companieshouse.company.links.service.InsolvencyService;
 import uk.gov.companieshouse.company.links.type.ApiType;
 import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -24,7 +24,7 @@ import uk.gov.companieshouse.stream.ResourceChangedData;
 public class InsolvencyStreamProcessor extends StreamResponseProcessor {
 
     private final CompanyProfileService companyProfileService;
-    private final CompanyInsolvencyService companyInsolvencyService;
+    private final InsolvencyService insolvencyService;
 
     /**
      * Construct an insolvency stream processor.
@@ -32,10 +32,10 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
     @Autowired
     public InsolvencyStreamProcessor(
             CompanyProfileService companyProfileService,
-            Logger logger, CompanyInsolvencyService companyInsolvencyService) {
+            Logger logger, InsolvencyService insolvencyService) {
         super(logger);
         this.companyProfileService = companyProfileService;
-        this.companyInsolvencyService = companyInsolvencyService;
+        this.insolvencyService = insolvencyService;
     }
 
     /**
@@ -62,10 +62,10 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
             return;
         }
 
-        final ApiResponse<CompanyInsolvency> companyInsolvencyResponse = companyInsolvencyService
-                .getCompanyInsolvency(logContext, companyNumber);
+        final ApiResponse<CompanyInsolvency> insolvencyResponse = insolvencyService
+                .getInsolvency(logContext, companyNumber);
 
-        if (companyInsolvencyResponse.getStatusCode() == HttpStatus.NOT_FOUND.value()) {
+        if (insolvencyResponse.getStatusCode() == HttpStatus.NOT_FOUND.value()) {
             links.setInsolvency(null);
             data.hasInsolvencyHistory(false);
             data.setLinks(links);
@@ -107,7 +107,7 @@ public class InsolvencyStreamProcessor extends StreamResponseProcessor {
         }
 
         final ApiResponse<CompanyInsolvency> companyInsolvencyResponse =
-                companyInsolvencyService.getCompanyInsolvency(logContext, companyNumber);
+                insolvencyService.getInsolvency(logContext, companyNumber);
 
         HttpStatus statusCode = HttpStatus.valueOf(companyInsolvencyResponse.getStatusCode());
 

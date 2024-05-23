@@ -26,7 +26,7 @@ import org.springframework.kafka.test.utils.KafkaTestUtils;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
 import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
-import uk.gov.companieshouse.company.links.service.CompanyInsolvencyService;
+import uk.gov.companieshouse.company.links.service.InsolvencyService;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -56,7 +56,7 @@ public class InsolvencyStreamConsumerSteps {
     private CompanyProfileService companyProfileService;
 
     @Autowired
-    private CompanyInsolvencyService companyInsolvencyService;
+    private InsolvencyService insolvencyService;
 
     @Autowired
     public KafkaTemplate<String, Object> kafkaTemplate;
@@ -84,7 +84,7 @@ public class InsolvencyStreamConsumerSteps {
 
     @And("Company insolvency api service is running")
     public void company_insolvency_api_service_is_running() {
-        assertThat(companyInsolvencyService).isNotNull();
+        assertThat(insolvencyService).isNotNull();
         WiremockTestConfig.setupWiremock();
     }
 

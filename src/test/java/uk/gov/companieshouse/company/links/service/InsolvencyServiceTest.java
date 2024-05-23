@@ -29,13 +29,13 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class CompanyInsolvencyServiceTest {
+class InsolvencyServiceTest {
     private static final String MOCK_CONTEXT_ID = "context_id";
     private static final String MOCK_COMPANY_NUMBER = "6146287";
     private static final String MOCK_COMPANY_INSOLVENCY_URI =
             String.format("/company/%s/insolvency", MOCK_COMPANY_NUMBER);
 
-    private CompanyInsolvencyService companyInsolvencyService;
+    private InsolvencyService insolvencyService;
 
     @Mock
     private CompanyInsolvency companyInsolvency;
@@ -63,7 +63,7 @@ class CompanyInsolvencyServiceTest {
 
     @BeforeEach
     void setup() {
-        companyInsolvencyService = spy(new CompanyInsolvencyService(logger, internalApiClientSupplier));
+        insolvencyService = spy(new InsolvencyService(logger, internalApiClientSupplier));
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
         when(internalApiClient.getHttpClient()).thenReturn(httpClient);
         when(internalApiClient.privateDeltaInsolvencyResourceHandler()).thenReturn(privateDeltaResourceHandler);
@@ -78,8 +78,8 @@ class CompanyInsolvencyServiceTest {
         when(privateDeltaResourceHandler.getInsolvency(MOCK_COMPANY_INSOLVENCY_URI)).thenReturn(privateCompanyInsolvencyGet);
         when(privateCompanyInsolvencyGet.execute()).thenReturn(expected);
 
-        var response = companyInsolvencyService
-                .getCompanyInsolvency(MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER);
+        var response = insolvencyService
+                .getInsolvency(MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER);
 
         assertThat(response).isSameAs(expected);
     }
@@ -95,8 +95,8 @@ class CompanyInsolvencyServiceTest {
         when(privateCompanyInsolvencyGet.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
-        var response = companyInsolvencyService
-                .getCompanyInsolvency(MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER);
+        var response = insolvencyService
+                .getInsolvency(MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER);
 
         assertThat(response.getStatusCode()).isEqualTo(410);
         assertThat(response.getData()).isNull();
@@ -110,7 +110,7 @@ class CompanyInsolvencyServiceTest {
 
         assertThrows(
                 RetryableErrorException.class,
-                () -> companyInsolvencyService.getCompanyInsolvency(MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER));
+                () -> insolvencyService.getInsolvency(MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER));
 
     }
 
@@ -125,7 +125,7 @@ class CompanyInsolvencyServiceTest {
         when(privateCompanyInsolvencyGet.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
-        ApiResponse<CompanyInsolvency>  response = companyInsolvencyService.getCompanyInsolvency(MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER);
+        ApiResponse<CompanyInsolvency>  response = insolvencyService.getInsolvency(MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST.value());
     }
@@ -142,7 +142,7 @@ class CompanyInsolvencyServiceTest {
         when(privateCompanyInsolvencyGet.execute()).thenThrow(
                 ApiErrorResponseException.fromHttpResponseException(httpResponseException));
 
-        ApiResponse<CompanyInsolvency>  response = companyInsolvencyService.getCompanyInsolvency(MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER);
+        ApiResponse<CompanyInsolvency>  response = insolvencyService.getInsolvency(MOCK_CONTEXT_ID, MOCK_COMPANY_NUMBER);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
     }

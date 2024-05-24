@@ -160,7 +160,7 @@ public class TestData {
 
     public CompanyExemptions createExemptions() throws IOException {
         String data = FileCopyUtils.copyToString(new InputStreamReader(
-                new FileInputStream("src/test/resources/company-exemptions-list-record.json")));
+                new FileInputStream("src/test/resources/exemptions-list-record.json")));
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
         return objectMapper.readValue(data, CompanyExemptions.class);

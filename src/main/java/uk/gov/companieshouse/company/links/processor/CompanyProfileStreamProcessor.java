@@ -173,11 +173,11 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
 
             if (companyExemptions != null && companyExemptions.getExemptions() != null) {
                 Exemptions exemptions = companyExemptions.getExemptions();
-                if (exemptions.getPscExemptAsSharesAdmittedOnMarket() != null
-                        || exemptions.getDisclosureTransparencyRulesChapterFiveApplies() != null
-                        || exemptions.getPscExemptAsTradingOnRegulatedMarket() != null
+                if (exemptions.getPscExemptAsTradingOnRegulatedMarket() != null
+                        || exemptions.getPscExemptAsSharesAdmittedOnMarket() != null
+                        || exemptions.getPscExemptAsTradingOnUkRegulatedMarket() != null
                         || exemptions.getPscExemptAsTradingOnEuRegulatedMarket() != null
-                        || exemptions.getPscExemptAsTradingOnUkRegulatedMarket() != null) {
+                        || exemptions.getDisclosureTransparencyRulesChapterFiveApplies() != null) {
                     addCompanyLink(addExemptionsClient, "Company Exemptions",
                             contextId, companyNumber);
                 }

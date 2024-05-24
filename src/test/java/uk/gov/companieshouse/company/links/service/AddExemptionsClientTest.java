@@ -120,7 +120,7 @@ class AddExemptionsClientTest {
     }
 
     @Test
-    void testThrowNonRetryableExceptionIfComapnyNumberInvalid() throws ApiErrorResponseException, URIValidationException {
+    void testThrowNonRetryableExceptionIfCompanyNumberInvalid() throws ApiErrorResponseException, URIValidationException {
         // given
         URIValidationException uriValidationException = new URIValidationException("Invalid URI");
         when(exemptionsLinksPatchHandler.execute()).thenThrow(uriValidationException);

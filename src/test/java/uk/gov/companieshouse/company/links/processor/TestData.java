@@ -158,6 +158,14 @@ public class TestData {
         return objectMapper.readValue(data, ChargesApi.class);
     }
 
+    public CompanyExemptions createExemptions() throws IOException {
+        String data = FileCopyUtils.copyToString(new InputStreamReader(
+                new FileInputStream("src/test/resources/company-exemptions-list-record.json")));
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+        return objectMapper.readValue(data, CompanyExemptions.class);
+    }
+
     public FilingHistoryList createFilingHistoryList() throws IOException {
         String data = FileCopyUtils.copyToString(new InputStreamReader(
                 new FileInputStream("src/test/resources/filing-history-list-record.json")));
@@ -188,13 +196,5 @@ public class TestData {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
         return objectMapper.readValue(data, StatementList.class);
-    }
-
-    public CompanyExemptions createExemptions() throws IOException {
-        String data = FileCopyUtils.copyToString(new InputStreamReader(
-                new FileInputStream("src/test/resources/company-exemptions-list-record.json")));
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.findAndRegisterModules();
-        return objectMapper.readValue(data, CompanyExemptions.class);
     }
 }

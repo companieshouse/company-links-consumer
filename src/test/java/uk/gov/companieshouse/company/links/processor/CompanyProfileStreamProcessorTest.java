@@ -80,11 +80,11 @@ class CompanyProfileStreamProcessorTest {
         companyProfileStreamProcessor = spy(new CompanyProfileStreamProcessor(
                 logger, companyProfileDeserializer,
                 chargesService, companyProfileService,
+                exemptionsListClient, addExemptionsClient,
                 filingHistoryService, addFilingHistoryClient,
                 officerListClient, addOfficersClient,
                 pscListClient, addPscClient,
-                statementsListClient, addStatementsClient,
-                exemptionsListClient, addExemptionsClient));
+                statementsListClient, addStatementsClient));
         testData = new TestData();
         DataMapHolder.initialise(CONTEXT_ID);
         companyProfileStreamConsumer = new CompanyProfileStreamConsumer(companyProfileStreamProcessor, logger);

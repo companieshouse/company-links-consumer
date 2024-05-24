@@ -48,6 +48,7 @@ class CompanyProfileStreamProcessorTest {
 
     private CompanyProfileStreamProcessor companyProfileStreamProcessor;
     private CompanyProfileStreamConsumer companyProfileStreamConsumer;
+    private TestData testData;
 
     @Mock
     private Logger logger;
@@ -78,8 +79,7 @@ class CompanyProfileStreamProcessorTest {
     @Mock
     private StatementsListClient statementsListClient;
     @Mock
-    public AddStatementsClient addStatementsClient;
-    private TestData testData;
+    private AddStatementsClient addStatementsClient;
 
     @BeforeEach
     void setUp() {
@@ -202,7 +202,7 @@ class CompanyProfileStreamProcessorTest {
             "where the Company Profile does not have an Exemptions Link and a PscExemptAsTradingOnRegulatedMarket" +
             " Exemption exist, so the Exemptions link is updated")
     void successfullyProcessCompanyProfileResourceChangedWhereARegulatedMarketExemptionExistAndNoExemptionsLinkSoUpdateLink() throws IOException, URIValidationException {
-
+        // given
         ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
@@ -218,10 +218,10 @@ class CompanyProfileStreamProcessorTest {
         assertNotNull(companyExemptions.getExemptions().getPscExemptAsTradingOnRegulatedMarket());
         when(exemptionsListClient.getExemptionsList(any(), any())).thenReturn(companyExemptions);
 
-
+        // when
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
-
+        // then
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
         verify(addExemptionsClient).patchLink(argument.capture());
         assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
@@ -234,7 +234,7 @@ class CompanyProfileStreamProcessorTest {
             "where the Company Profile does not have an Exemptions Link and a PscExemptAsSharesAdmittedOnMarket" +
             " Exemption exist, so the Exemptions link is updated")
     void successfullyProcessCompanyProfileResourceChangedWhereASharesExemptionExistAndNoExemptionsLinkSoUpdateLink() throws IOException, URIValidationException {
-
+        // given
         ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
@@ -250,10 +250,10 @@ class CompanyProfileStreamProcessorTest {
         assertNotNull(companyExemptions.getExemptions().getPscExemptAsSharesAdmittedOnMarket());
         when(exemptionsListClient.getExemptionsList(any(), any())).thenReturn(companyExemptions);
 
-
+        // when
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
-
+        // then
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
         verify(addExemptionsClient).patchLink(argument.capture());
         assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
@@ -266,7 +266,7 @@ class CompanyProfileStreamProcessorTest {
             "where the Company Profile does not have an Exemptions Link and a PscExemptAsTradingOnUkRegulatedMarket" +
             " Exemption exist, so the Exemptions link is updated")
     void successfullyProcessCompanyProfileResourceChangedWhereAUkMarketExemptionExistAndNoExemptionsLinkSoUpdateLink() throws IOException, URIValidationException {
-
+        // given
         ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
@@ -282,10 +282,10 @@ class CompanyProfileStreamProcessorTest {
         assertNotNull(companyExemptions.getExemptions().getPscExemptAsTradingOnUkRegulatedMarket());
         when(exemptionsListClient.getExemptionsList(any(), any())).thenReturn(companyExemptions);
 
-
+        // when
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
-
+        // then
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
         verify(addExemptionsClient).patchLink(argument.capture());
         assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
@@ -298,7 +298,7 @@ class CompanyProfileStreamProcessorTest {
             "where the Company Profile does not have an Exemptions Link and a PscExemptAsTradingOnEuRegulatedMarket" +
             " Exemption exist, so the Exemptions link is updated")
     void successfullyProcessCompanyProfileResourceChangedWhereAEuMarketExemptionExistAndNoExemptionsLinkSoUpdateLink() throws IOException, URIValidationException {
-
+        // given
         ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
@@ -312,10 +312,10 @@ class CompanyProfileStreamProcessorTest {
         assertNotNull(companyExemptions.getExemptions().getPscExemptAsTradingOnEuRegulatedMarket());
         when(exemptionsListClient.getExemptionsList(any(), any())).thenReturn(companyExemptions);
 
-
+        // when
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
-
+        // then
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
         verify(addExemptionsClient).patchLink(argument.capture());
         assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
@@ -328,7 +328,7 @@ class CompanyProfileStreamProcessorTest {
             "where the Company Profile does not have an Exemptions Link and a DisclosureTransparencyRulesChapterFiveApplies" +
             " Exemption exist, so the Exemptions link is updated")
     void successfullyProcessCompanyProfileResourceChangedWhereAChapterFiveExemptionExistAndNoExemptionsLinkSoUpdateLink() throws IOException, URIValidationException {
-
+        // given
         ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
 
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
@@ -342,10 +342,10 @@ class CompanyProfileStreamProcessorTest {
         assertNotNull(companyExemptions.getExemptions().getDisclosureTransparencyRulesChapterFiveApplies());
         when(exemptionsListClient.getExemptionsList(any(), any())).thenReturn(companyExemptions);
 
-
+        // when
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
-
+        // then
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
         verify(addExemptionsClient).patchLink(argument.capture());
         assertEquals(argument.getValue().getCompanyNumber(), MOCK_COMPANY_NUMBER);
@@ -357,17 +357,17 @@ class CompanyProfileStreamProcessorTest {
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
             "where the Company Profile does not have an Exemptions Link and Exemptions do not exist, so the Exemptions link is not updated")
     void successfullyProcessCompanyProfileResourceChangedWhereNoExemptionsAndNoExemptionsLinkSoNoLinkUpdate() throws IOException {
-
+        // given
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
         companyProfile.getLinks().setExemptions(null);
         assertNull(companyProfile.getLinks().getExemptions());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-
+        // when
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
-
+        // then
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
         verifyNoInteractions(addExemptionsClient);
         verifyLoggingDataMap();
@@ -377,16 +377,16 @@ class CompanyProfileStreamProcessorTest {
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
             "where the Company Profile does have an Exemptions Link, so the Exemptions link is not updated")
     void successfullyProcessCompanyProfileResourceChangedWhereExemptionsLinkExistsSoNoLinkUpdate() throws IOException {
-
+        // given
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
         assertNotNull(companyProfile.getLinks().getExemptions());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-
+        // when
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
 
-
+        // then
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
         verifyNoInteractions(addExemptionsClient);
         verifyLoggingDataMap();
@@ -395,6 +395,7 @@ class CompanyProfileStreamProcessorTest {
     @Test
     @DisplayName("throws RetryableErrorException when Company Exemptions Data API returns non successful response !2XX")
     void throwRetryableErrorExceptionWhenCompanyExemptionsDataAPIReturnsNon2XX() throws IOException, URIValidationException {
+        // given
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
         companyProfile.getLinks().setExemptions(null);
@@ -406,9 +407,10 @@ class CompanyProfileStreamProcessorTest {
                 HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
                 new HttpHeaders()).build();
         when(exemptionsListClient.getExemptionsList(any(), any()))
-                .thenThrow(
-                        new RetryableErrorException("endpoint not found",
+                .thenThrow(new RetryableErrorException("endpoint not found",
                                 ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+
+        // when, then
         assertThrows(RetryableErrorException.class,
                 () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
         verifyLoggingDataMap();

@@ -171,7 +171,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                         exception);
             }
 
-            if (companyExemptions != null) {
+            if (companyExemptions != null && companyExemptions.getExemptions() != null) {
                 Exemptions exemptions = companyExemptions.getExemptions();
                 if (exemptions.getPscExemptAsSharesAdmittedOnMarket() != null
                         || exemptions.getDisclosureTransparencyRulesChapterFiveApplies() != null

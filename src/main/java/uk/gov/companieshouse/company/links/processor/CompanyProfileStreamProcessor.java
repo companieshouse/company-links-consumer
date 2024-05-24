@@ -11,6 +11,7 @@ import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.exemptions.CompanyExemptions;
+import uk.gov.companieshouse.api.exemptions.Exemptions;
 import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
@@ -278,16 +279,13 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                         exception);
             }
 
-            if (companyExemptions != null && companyExemptions.getExemptions() != null) {
-                if (companyExemptions.getExemptions().getPscExemptAsSharesAdmittedOnMarket() != null
-                        || companyExemptions.getExemptions()
-                        .getDisclosureTransparencyRulesChapterFiveApplies() != null
-                        || companyExemptions.getExemptions()
-                        .getPscExemptAsTradingOnRegulatedMarket() != null
-                        || companyExemptions.getExemptions()
-                        .getPscExemptAsTradingOnEuRegulatedMarket() != null
-                        || companyExemptions.getExemptions()
-                        .getPscExemptAsTradingOnUkRegulatedMarket() != null) {
+            if (companyExemptions != null) {
+                Exemptions exemptions = companyExemptions.getExemptions();
+                if (exemptions.getPscExemptAsSharesAdmittedOnMarket() != null
+                        || exemptions.getDisclosureTransparencyRulesChapterFiveApplies() != null
+                        || exemptions.getPscExemptAsTradingOnRegulatedMarket() != null
+                        || exemptions.getPscExemptAsTradingOnEuRegulatedMarket() != null
+                        || exemptions.getPscExemptAsTradingOnUkRegulatedMarket() != null) {
                     addCompanyLink(addExemptionsClient, "Company Exemptions",
                             contextId, companyNumber);
                 }

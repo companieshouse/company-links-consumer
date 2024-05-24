@@ -551,7 +551,7 @@ class CompanyProfileStreamProcessorTest {
     @Test
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
             "where the Company Profile does not have an Exemptions Link and Exemptions exist, so the Exemptions link is updated")
-    void successfullyProcessCompanyProfileResourceChangedWhereExemptionsExistAndNoExemptionsLinkSoUpdateLink() throws IOException {
+    void successfullyProcessCompanyProfileResourceChangedWhereExemptionsExistAndNoExemptionsLinkSoUpdateLink() throws IOException, URIValidationException {
 
         ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
 
@@ -617,7 +617,7 @@ class CompanyProfileStreamProcessorTest {
 
     @Test
     @DisplayName("throws RetryableErrorException when Company Exemptions Data API returns non successful response !2XX")
-    void throwRetryableErrorExceptionWhenCompanyExemptionsDataAPIReturnsNon2XX() throws IOException {
+    void throwRetryableErrorExceptionWhenCompanyExemptionsDataAPIReturnsNon2XX() throws IOException, URIValidationException {
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
         companyProfile.getLinks().setExemptions(null);

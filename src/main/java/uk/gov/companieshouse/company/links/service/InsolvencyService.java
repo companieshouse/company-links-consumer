@@ -11,7 +11,7 @@ import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.logging.Logger;
 
 @Service
-public class CompanyInsolvencyService extends BaseApiClientService {
+public class InsolvencyService extends BaseApiClientService {
 
     private final Supplier<InternalApiClient> internalApiClientSupplier;
 
@@ -21,8 +21,8 @@ public class CompanyInsolvencyService extends BaseApiClientService {
      * @param logger the CH logger
      */
     @Autowired
-    public CompanyInsolvencyService(Logger logger,
-            Supplier<InternalApiClient> internalApiClientSupplier) {
+    public InsolvencyService(Logger logger,
+                             Supplier<InternalApiClient> internalApiClientSupplier) {
         super(logger);
         this.internalApiClientSupplier = internalApiClientSupplier;
     }
@@ -35,7 +35,7 @@ public class CompanyInsolvencyService extends BaseApiClientService {
      * @param companyNumber the company's company number
      * @return an ApiResponse containing the CompanyInsolvencyApi data model
      */
-    public ApiResponse<CompanyInsolvency> getCompanyInsolvency(String contextId,
+    public ApiResponse<CompanyInsolvency> getInsolvency(String contextId,
             String companyNumber)
             throws RetryableErrorException {
         logger.trace(String.format("Call to GET insolvency-data-api with contextId %s "

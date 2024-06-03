@@ -1,0 +1,38 @@
+{
+  "etag": "etag",
+  "status": ["in-administration"],
+  "cases": [
+    {
+      "type": "compulsory-liquidation",
+      "dates": [
+        {
+          "type": "instrumented-on",
+          "date": "2022-01-01"
+        }
+      ],
+      "practitioners": [
+        {
+          "name": "practitioner name",
+          "address": {
+            "address_line_1": "address1",
+            "postal_code": "AB1 9YZ",
+            "address_line_2": "addressLine",
+            "locality": "locality",
+            "region": "region",
+            "country": "UK"
+          },
+          "appointed_on": "2022-01-01",
+          "ceased_to_act_on": "2022-01-01",
+          "role": "receiver"
+        }
+      ],
+      "notes": [
+        "test"
+      ],
+      "links": {
+        "charge": "charge"
+      },
+      "number": "3"
+    }
+  ]
+}

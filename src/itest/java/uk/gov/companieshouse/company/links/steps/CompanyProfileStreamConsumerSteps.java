@@ -55,6 +55,13 @@ public class CompanyProfileStreamConsumerSteps {
                 loadFileFromName(String.format("profile-without-%s-link.json", "charges")));
     }
 
+    @Given("Company profile exists with no Insolvency link for company {string}")
+    public void company_profile_exists_without_insolvency_link(String companyNumber) {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.setGetAndPatchStubsForChargesAndForInsolvency(this.companyNumber,
+                loadFileFromName(String.format("profile-without-%s-link.json", "insolvency")));
+    }
+
     @Given("Company profile exists with {string} link for company {string}")
     public void company_profile_exists_with_all_link(String linkType, String companyNumber) {
         this.companyNumber = companyNumber;
@@ -64,6 +71,13 @@ public class CompanyProfileStreamConsumerSteps {
 
     @Given("Company profile exists with Charges link for company {string}")
     public void company_profile_exists_with_all_links_for_charges(String companyNumber) {
+        this.companyNumber = companyNumber;
+        WiremockTestConfig.setGetAndPatchStubsForChargesAndForInsolvency(this.companyNumber,
+                loadFileFromName("profile-with-all-links.json"));
+    }
+
+    @Given("Company profile exists with Insolvency link for company {string}")
+    public void company_profile_exists_with_all_links_for_insolvency(String companyNumber) {
         this.companyNumber = companyNumber;
         WiremockTestConfig.setGetAndPatchStubsForChargesAndForInsolvency(this.companyNumber,
                 loadFileFromName("profile-with-all-links.json"));
@@ -149,6 +163,12 @@ public class CompanyProfileStreamConsumerSteps {
         verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/filing-history", this.companyNumber))));
     }
 
+    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with Insolvency link payload")
+    public void patchCompanyProfileEndpointIsCalledForInsolvency() {
+        verify(1, getRequestedFor(urlEqualTo(String.format("/company/%s/%s", this.companyNumber, "insolvency"))));
+        verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links", this.companyNumber))));
+    }
+
     @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with {string} link payload")
     public void patchCompanyProfileEndpointNotCalled(String linkType) {
         verify(0, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/%s", this.companyNumber, linkType))));
@@ -156,6 +176,11 @@ public class CompanyProfileStreamConsumerSteps {
 
     @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with Charges link payload")
     public void patchCompanyProfileEndpointNotCalledForCharges() {
+        verify(0, patchRequestedFor(urlEqualTo(String.format("/company/%s/links", this.companyNumber))));
+    }
+
+    @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with Insolvency link payload")
+    public void patchCompanyProfileEndpointNotCalledForInsolvency() {
         verify(0, patchRequestedFor(urlEqualTo(String.format("/company/%s/links", this.companyNumber))));
     }
 

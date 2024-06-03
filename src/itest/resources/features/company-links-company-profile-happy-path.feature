@@ -72,6 +72,30 @@ Feature: Process company profile links
     Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "filing-history" link payload
     And No messages are placed on the invalid, error or retry topics
 
+# INSOLVENCY
+  Scenario: Company profile message with no Insolvency link and existing Insolvencies is processed successfully
+    Given Company links consumer service is running
+    And Company profile exists with no Insolvency link for company "00006401"
+    And "insolvency" exist for company "00006401"
+    When A valid avro Company Profile without "insolvency" link message is sent to the Kafka topic "stream-company-profile"
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with Insolvency link payload
+    And No messages are placed on the invalid, error or retry topics
+
+  Scenario: Company profile message with existing Insolvency link does not update
+    Given Company links consumer service is running
+    And Company profile exists with Insolvency link for company "00006401"
+    When A valid avro Company Profile with all links message is sent to the Kafka topic "stream-company-profile"
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with Insolvency link payload
+    And No messages are placed on the invalid, error or retry topics
+
+  Scenario: Company profile message with no Insolvency link and no Insolvencies is processed successfully
+    Given Company links consumer service is running
+    And Company profile exists with no Insolvency link for company "00006401"
+    And "insolvency" do not exist for company "00006401"
+    When A valid avro Company Profile without "insolvency" link message is sent to the Kafka topic "stream-company-profile"
+    Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with Insolvency link payload
+    And No messages are placed on the invalid, error or retry topics
+
 # OFFICERS
   Scenario: Company profile message with no Officer link and existing Officer is processed successfully
     Given Company links consumer service is running
@@ -120,7 +144,7 @@ Feature: Process company profile links
     Then The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is NOT invoked with "persons-with-significant-control" link payload
     And No messages are placed on the invalid, error or retry topics
 
-#PSC Statements
+#PSC STATEMENTS
   Scenario: Company profile message with no PSC Statements link and existing PSC Statements is processed successfully
     Given Company links consumer service is running
     And Company profile exists with no "persons-with-significant-control-statements" link for company "00006401"

@@ -42,7 +42,6 @@ public class RetrySteps {
 
     @When("the consumer receives a message with company number {string} but the api returns a {int}")
     public void theConsumerReceivesMessageButDataApiReturns(String companyNumber, int responseCode) throws Exception{
-        //stubPutStatement(responseCode);
         WiremockTestConfig.stubGetCompanyProfile(companyNumber, responseCode,
                 "profile-with-all-links");
         stubPatchOfficersCompanyProfile(companyNumber, responseCode);

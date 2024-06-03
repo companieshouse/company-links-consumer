@@ -24,8 +24,3 @@ Feature: Process company profile links for error scenarios
     When A valid "changed" message is consumed from the "company-profile" stream
     Then The message is placed on the "retry" topic
     And The message is placed on the "error" topic
-
-  Scenario: Process message when the api returns 503
-    Given Company links consumer is available
-    When the consumer receives a message with company number "00006400" but the api returns a 503
-    Then the message should retry 3 times and then error

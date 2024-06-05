@@ -101,13 +101,61 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         Data companyProfileData =
                 companyProfileDeserializer.deserialiseCompanyData(payload.getData());
 
-        processChargesLink(contextId, companyNumber, companyProfileData);
-        processExemptionsLink(contextId, companyNumber, companyProfileData);
-        processFilingHistoryLink(contextId, companyNumber, companyProfileData);
-        processInsolvencyLink(contextId, companyNumber, companyProfileData);
-        processOfficerLink(contextId, companyNumber, companyProfileData);
-        processPscLink(contextId, companyNumber, companyProfileData);
-        processPscStatementsLink(contextId, companyNumber, companyProfileData);
+        RetryableErrorException linkException = null;
+
+        try {
+            processChargesLink(contextId, companyNumber, companyProfileData);
+        } catch (Exception exception) {
+            linkException = new RetryableErrorException(String.format(
+                    "Error retrieving Charges for company number %s", companyNumber),
+                    exception);
+        }
+        try {
+            processExemptionsLink(contextId, companyNumber, companyProfileData);
+        } catch (Exception exception) {
+            linkException = new RetryableErrorException(String.format(
+                    "Error retrieving Exemptions for company number %s", companyNumber),
+                    exception);
+        }
+        try {
+            processFilingHistoryLink(contextId, companyNumber, companyProfileData);
+        } catch (Exception exception) {
+            linkException = new RetryableErrorException(String.format(
+                    "Error retrieving Filing History for company number %s", companyNumber),
+                    exception);
+        }
+        try {
+            processInsolvencyLink(contextId, companyNumber, companyProfileData);
+        } catch (Exception exception) {
+            linkException = new RetryableErrorException(String.format(
+                    "Error retrieving Insolvency for company number %s", companyNumber),
+                    exception);
+        }
+        try {
+            processOfficerLink(contextId, companyNumber, companyProfileData);
+        } catch (Exception exception) {
+            linkException = new RetryableErrorException(String.format(
+                    "Error retrieving Officers for company number %s", companyNumber),
+                    exception);
+        }
+        try {
+            processPscLink(contextId, companyNumber, companyProfileData);
+        } catch (Exception exception) {
+            linkException = new RetryableErrorException(String.format(
+                    "Error retrieving Psc for company number %s", companyNumber),
+                    exception);
+        }
+        try {
+            processPscStatementsLink(contextId, companyNumber, companyProfileData);
+        } catch (Exception exception) {
+            linkException = new RetryableErrorException(String.format(
+                    "Error retrieving Psc Statement for company number %s", companyNumber),
+                    exception);
+        }
+
+        if (linkException != null) {
+            throw linkException;
+        }
     }
 
     /**

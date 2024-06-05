@@ -416,6 +416,44 @@ class CompanyProfileStreamProcessorTest {
         verifyLoggingDataMap();
     }
 
+    @Test
+    @DisplayName("throws RetryableErrorException when Charges Data API returns non successful response but still processes and updates Exemptions link")
+    void throwRetryableErrorExceptionWhenChargesDataAPIReturnsNon2XXAndProcessesExemptionsLink() throws IOException, URIValidationException {
+        // given
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setCharges(null);
+        companyProfile.getLinks().setExemptions(null);
+        assertNull(companyProfile.getLinks().getCharges());
+        assertNull(companyProfile.getLinks().getExemptions());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(chargesService.getCharges(any(), any()))
+                .thenThrow(new RetryableErrorException("endpoint not found",
+                        ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+
+        CompanyExemptions companyExemptions = testData.createExemptions();
+        var exemptions = new Exemptions();
+        exemptions.setPscExemptAsTradingOnRegulatedMarket(new PscExemptAsTradingOnRegulatedMarketItem());
+        companyExemptions.setExemptions(exemptions);
+        assertNotNull(companyExemptions.getExemptions().getPscExemptAsTradingOnRegulatedMarket());
+        when(exemptionsListClient.getExemptionsList(any(), any())).thenReturn(companyExemptions);
+
+        // when, then
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+
+        verify(addExemptionsClient).patchLink(argument.capture());
+        verifyNoInteractions(companyProfileService);
+
+        verifyLoggingDataMap();
+    }
+
     // FILING HISTORY TESTS
     @Test
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +

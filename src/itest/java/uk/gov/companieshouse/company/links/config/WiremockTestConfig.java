@@ -146,7 +146,7 @@ public class WiremockTestConfig {
 
     public static void stubForGetFilingHistory(String companyNumber, String response, Integer responseCode) {
         stubFor(
-                get(urlEqualTo(String.format("/filing-history-data-api/company/%s/filing-history", companyNumber)))
+                get(urlEqualTo(String.format("/company/%s/filing-history", companyNumber)))
                         .willReturn(aResponse()
                                 .withStatus(responseCode)
                                 .withHeader("Content-Type", "application/json")

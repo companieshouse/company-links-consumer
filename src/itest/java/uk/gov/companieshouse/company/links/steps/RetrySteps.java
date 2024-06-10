@@ -55,8 +55,8 @@ public class RetrySteps {
     @Then("^the message should retry (\\d*) times and then error$")
     public void theMessageShouldRetryAndError(int retries) {
         ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer);
-        Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-officers-company-links-consumer-retry");
-        Iterable<ConsumerRecord<String, Object>> errorRecords =  records.records("stream-company-officers-company-links-consumer-error");
+        Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-officers-retry");
+        Iterable<ConsumerRecord<String, Object>> errorRecords =  records.records("stream-company-officers-error");
 
         int actualRetries = (int) StreamSupport.stream(retryRecords.spliterator(), false).count();
         int errors = (int) StreamSupport.stream(errorRecords.spliterator(), false).count();

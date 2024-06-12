@@ -52,11 +52,31 @@ public class RetrySteps {
         countDown();
     }
 
+    @Then("^the message should retry (\\d*) times on the company-profile topic and then error$")
+    public void theMessageShouldRetryAndErrorCompanyProfile(int retries) throws InterruptedException {
+        Thread.sleep(5000);
+        ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer);
+        Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-profile-company-links-consumer-retry");
+        Iterable<ConsumerRecord<String, Object>> errorRecords =  records.records("stream-company-profile-company-links-consumer-error");
+
+        retryRecords.forEach(record -> System.out.println("Retry Record: " + record));
+        errorRecords.forEach(record -> System.out.println("Error Record: " + record));
+
+        int actualRetries = (int) StreamSupport.stream(retryRecords.spliterator(), false).count();
+        int errors = (int) StreamSupport.stream(errorRecords.spliterator(), false).count();
+
+        System.out.println("Actual Retries: " + actualRetries);
+        System.out.println("Errors: " + errors);
+
+        assertThat(actualRetries).isEqualTo(retries);
+        assertThat(errors).isEqualTo(1);
+    }
+
     @Then("^the message should retry (\\d*) times and then error$")
     public void theMessageShouldRetryAndError(int retries) {
         ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer);
-        Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-officers-retry");
-        Iterable<ConsumerRecord<String, Object>> errorRecords =  records.records("stream-company-officers-error");
+        Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-profile-retry");
+        Iterable<ConsumerRecord<String, Object>> errorRecords =  records.records("stream-company-profile-error");
 
         int actualRetries = (int) StreamSupport.stream(retryRecords.spliterator(), false).count();
         int errors = (int) StreamSupport.stream(errorRecords.spliterator(), false).count();

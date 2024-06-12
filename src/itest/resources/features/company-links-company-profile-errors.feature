@@ -30,5 +30,5 @@ Feature: Process company profile links for error scenarios
     And The company profile api is unavailable
     And "persons-with-significant-control" exist for company "00006400"
     When A valid "changed" message is consumed from the "company-profile" stream
-    Then the message should retry 4 times and then error
+    Then the message should retry 3 times on the company-profile topic and then error
 

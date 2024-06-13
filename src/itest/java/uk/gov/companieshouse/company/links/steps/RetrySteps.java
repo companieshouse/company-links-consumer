@@ -66,19 +66,6 @@ public class RetrySteps {
         assertThat(errors).isEqualTo(1);
     }
 
-    @Then("^the message should retry (\\d*) times and then error$")
-    public void theMessageShouldRetryAndError(int retries) {
-        ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer);
-        Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-profile-retry");
-        Iterable<ConsumerRecord<String, Object>> errorRecords =  records.records("stream-company-profile-error");
-
-        int actualRetries = (int) StreamSupport.stream(retryRecords.spliterator(), false).count();
-        int errors = (int) StreamSupport.stream(errorRecords.spliterator(), false).count();
-
-        assertThat(actualRetries).isEqualTo(retries);
-        assertThat(errors).isEqualTo(1);
-    }
-
     private String loadFileFromName(String fileName) {
         try {
             return FileUtils.readFileToString(ResourceUtils.getFile("classpath:stubs/"+fileName), StandardCharsets.UTF_8);

@@ -59,14 +59,8 @@ public class RetrySteps {
         Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-profile-company-links-consumer-retry");
         Iterable<ConsumerRecord<String, Object>> errorRecords =  records.records("stream-company-profile-company-links-consumer-error");
 
-        retryRecords.forEach(record -> System.out.println("Retry Record: " + record));
-        errorRecords.forEach(record -> System.out.println("Error Record: " + record));
-
         int actualRetries = (int) StreamSupport.stream(retryRecords.spliterator(), false).count();
         int errors = (int) StreamSupport.stream(errorRecords.spliterator(), false).count();
-
-        System.out.println("Actual Retries: " + actualRetries);
-        System.out.println("Errors: " + errors);
 
         assertThat(actualRetries).isEqualTo(retries);
         assertThat(errors).isEqualTo(1);

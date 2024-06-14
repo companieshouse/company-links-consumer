@@ -159,7 +159,7 @@ public class CompanyProfileStreamConsumerSteps {
 
     @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with Filing History link payload")
     public void patchCompanyProfileEndpointIsCalledForFilingHistory() {
-        verify(1, getRequestedFor(urlEqualTo(String.format("/filing-history-data-api/company/%s/filing-history", this.companyNumber))));
+        verify(1, getRequestedFor(urlEqualTo(String.format("/company/%s/filing-history", this.companyNumber))));
         verify(1, patchRequestedFor(urlEqualTo(String.format("/company/%s/links/filing-history", this.companyNumber))));
     }
 

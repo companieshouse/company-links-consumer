@@ -36,7 +36,7 @@ public class FilingHistoryService extends BaseApiClientService {
      */
     public FilingHistoryList getFilingHistory(String contextId, String companyNumber)
             throws RetryableErrorException, ApiErrorResponseException, URIValidationException {
-        String uri = String.format("/filing-history-data-api/company/%s/filing-history",
+        String uri = String.format("/company/%s/filing-history",
                 companyNumber);
 
         logger.infoContext(contextId, String.format("GET %s", uri), DataMapHolder.getLogMap());

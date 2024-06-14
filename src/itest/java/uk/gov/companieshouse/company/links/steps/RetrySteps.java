@@ -18,6 +18,8 @@ import uk.gov.companieshouse.logging.Logger;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
@@ -61,7 +63,7 @@ public class RetrySteps {
 
         int actualRetries = (int) StreamSupport.stream(retryRecords.spliterator(), false).count();
         int errors = (int) StreamSupport.stream(errorRecords.spliterator(), false).count();
-
+        System.out.println("Actual retries " + actualRetries);
         assertThat(actualRetries).isEqualTo(retries);
         assertThat(errors).isEqualTo(1);
     }

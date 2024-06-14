@@ -29,12 +29,15 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.*;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import uk.gov.companieshouse.api.appointment.ItemLinkTypes;
 import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.appointment.OfficerSummary;
+import uk.gov.companieshouse.api.company.Data;
+import uk.gov.companieshouse.company.links.config.CucumberContext;
 import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -63,6 +66,9 @@ public class StreamConsumerSteps {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private TestRestTemplate restTemplate;
 
     @Given("Company links consumer is available")
     public void companyLinksConsumerIsRunning() {
@@ -103,6 +109,22 @@ public class StreamConsumerSteps {
         kafkaTemplate.flush();
 
         assertMessageConsumed();
+    }
+
+    @When("I send GET request with company number {string}")
+    public void i_send_get_request_with_company_number(String companyNumber) throws InterruptedException {
+        String uri = "/company/{company_number}/links/persons-with-significant-control";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("ERIC-Identity", "SOME_IDENTITY");
+        headers.add("ERIC-Identity-Type", "key");
+
+        ResponseEntity<Data> response = restTemplate.exchange(
+                uri, HttpMethod.GET, new HttpEntity<>(headers),
+                Data.class, companyNumber);
+
+        CucumberContext.CONTEXT.set("statusCode", response.getStatusCodeValue());
+        CucumberContext.CONTEXT.set("getResponseBody", response.getBody());
     }
 
     @When("A message is consumed with invalid event type from the {string} stream")
@@ -154,6 +176,7 @@ public class StreamConsumerSteps {
                 List<Header> retryList = StreamSupport.stream(errorRecord.headers().spliterator(), false)
                         .filter(header -> header.key().equalsIgnoreCase(RETRY_TOPIC_ATTEMPTS_KEY))
                         .collect(Collectors.toList());
+                System.out.println("Retry list: " + retryList );
                 assertThat(retryList).hasSize(RETRY_ATTEMPTS);
                 break;
             default:

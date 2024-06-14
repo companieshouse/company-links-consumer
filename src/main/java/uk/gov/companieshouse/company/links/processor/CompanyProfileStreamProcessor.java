@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.CompanyProfile;
@@ -17,6 +18,7 @@ import uk.gov.companieshouse.api.insolvency.CompanyInsolvency;
 import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.api.psc.StatementList;
+import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
@@ -101,60 +103,91 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         Data companyProfileData =
                 companyProfileDeserializer.deserialiseCompanyData(payload.getData());
 
-        RetryableErrorException linkException = null;
+        RetryableErrorException retryableLinkException = null;
+        NonRetryableErrorException nonRetryableLinkException = null;
 
         try {
             processChargesLink(contextId, companyNumber, companyProfileData);
+        } catch (HttpClientErrorException.Conflict conflictException){
+            nonRetryableLinkException = new NonRetryableErrorException(String.format(
+                    "Error retrieving Charges for company number %s", companyNumber),
+                    conflictException);
         } catch (Exception exception) {
-            linkException = new RetryableErrorException(String.format(
+            retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Charges for company number %s", companyNumber),
                     exception);
         }
         try {
             processExemptionsLink(contextId, companyNumber, companyProfileData);
+        } catch (HttpClientErrorException.Conflict conflictException){
+            nonRetryableLinkException = new NonRetryableErrorException(String.format(
+                    "Error retrieving Exemptions for company number %s", companyNumber),
+                    conflictException);
         } catch (Exception exception) {
-            linkException = new RetryableErrorException(String.format(
+            retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Exemptions for company number %s", companyNumber),
                     exception);
         }
         try {
             processFilingHistoryLink(contextId, companyNumber, companyProfileData);
+        } catch (HttpClientErrorException.Conflict conflictException){
+            nonRetryableLinkException = new NonRetryableErrorException(String.format(
+                    "Error retrieving Filing History for company number %s", companyNumber),
+                    conflictException);
         } catch (Exception exception) {
-            linkException = new RetryableErrorException(String.format(
+            retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Filing History for company number %s", companyNumber),
                     exception);
         }
         try {
             processInsolvencyLink(contextId, companyNumber, companyProfileData);
+        } catch (HttpClientErrorException.Conflict conflictException){
+            nonRetryableLinkException = new NonRetryableErrorException(String.format(
+                    "Error retrieving Insolvency for company number %s", companyNumber),
+                    conflictException);
         } catch (Exception exception) {
-            linkException = new RetryableErrorException(String.format(
+            retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Insolvency for company number %s", companyNumber),
                     exception);
         }
         try {
             processOfficerLink(contextId, companyNumber, companyProfileData);
+        } catch (HttpClientErrorException.Conflict conflictException){
+            nonRetryableLinkException = new NonRetryableErrorException(String.format(
+                    "Error retrieving Officers for company number %s", companyNumber),
+                    conflictException);
         } catch (Exception exception) {
-            linkException = new RetryableErrorException(String.format(
+            retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Officers for company number %s", companyNumber),
                     exception);
         }
         try {
             processPscLink(contextId, companyNumber, companyProfileData);
+        } catch (HttpClientErrorException.Conflict conflictException){
+            nonRetryableLinkException = new NonRetryableErrorException(String.format(
+                    "Error retrieving Psc for company number %s", companyNumber),
+                    conflictException);
         } catch (Exception exception) {
-            linkException = new RetryableErrorException(String.format(
+            retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Psc for company number %s", companyNumber),
                     exception);
         }
         try {
             processPscStatementsLink(contextId, companyNumber, companyProfileData);
+        } catch (HttpClientErrorException.Conflict conflictException){
+            nonRetryableLinkException = new NonRetryableErrorException(String.format(
+                    "Error retrieving Psc Statement for company number %s", companyNumber),
+                    conflictException);
         } catch (Exception exception) {
-            linkException = new RetryableErrorException(String.format(
+            retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Psc Statement for company number %s", companyNumber),
                     exception);
         }
 
-        if (linkException != null) {
-            throw linkException;
+        if (retryableLinkException != null) {
+            throw retryableLinkException;
+        } else if (nonRetryableLinkException != null) {
+            throw nonRetryableLinkException;
         }
     }
 

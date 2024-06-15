@@ -38,3 +38,8 @@ Feature: Process company profile links for error scenarios
     When I send GET request with company number "00006400"
     Then I should receive 404 status code
     And the message should retry 3 times on the company-profile topic and then error
+
+  Scenario: Process message when the API returns 409
+    Given Company links consumer is available
+    And "persons-with-significant-control" exist for company "00006400"
+    When A valid "changed" message consumed causes a conflict from the "company-profile" stream

@@ -100,6 +100,18 @@ public class StreamConsumerSteps {
         assertMessageConsumed();
     }
 
+    @When("A valid {string} message consumed causes a conflict from the {string} stream")
+    public void consumeValidMessageAndThrowsAConflictException(String eventType, String deltaType) throws InterruptedException {
+        this.deltaType = deltaType;
+        initialiseVariablesUsingDeltaType();
+
+        stubPatchLink(HttpStatus.CONFLICT.value(), eventType);
+        kafkaTemplate.send(mainTopic, createValidMessage(eventType));
+        kafkaTemplate.flush();
+
+        assertMessageConsumed();
+    }
+
     @When("An invalid message is consumed from the {string} stream")
     public void consumeInvalidMessage(String deltaType) throws InterruptedException {
         this.deltaType = deltaType;
@@ -125,6 +137,11 @@ public class StreamConsumerSteps {
 
         CucumberContext.CONTEXT.set("statusCode", response.getStatusCodeValue());
         CucumberContext.CONTEXT.set("getResponseBody", response.getBody());
+
+        kafkaTemplate.send("stream-company-profile", "not found");
+        kafkaTemplate.flush();
+
+        assertMessageConsumed();
     }
 
     @When("A message is consumed with invalid event type from the {string} stream")
@@ -213,7 +230,18 @@ public class StreamConsumerSteps {
         stubFor(
                 patch(urlEqualTo(patchUrl))
                         .willReturn(aResponse()
-                                .withStatus(responseCode)));
+                                .withStatus(responseCode)
+                                .withHeader("Content-Type","application/json")
+                                .withBody(createResponeBody(responseCode))));
+    }
+
+    public String createResponeBody(int responseCode){
+        if(responseCode == 409){
+            return "{\"error\": \"Conflict: the resource already exists.\"}";
+        }
+        else{
+            return "{}";
+        }
     }
 
     private void assertMessageConsumed() throws InterruptedException {

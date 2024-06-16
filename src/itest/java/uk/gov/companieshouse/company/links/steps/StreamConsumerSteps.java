@@ -141,7 +141,7 @@ public class StreamConsumerSteps {
         CucumberContext.CONTEXT.set("statusCode", response.getStatusCodeValue());
         CucumberContext.CONTEXT.set("getResponseBody", response.getBody());
 
-        kafkaTemplate.send(mainTopic, "not found");
+        kafkaTemplate.send(mainTopic, createValidMessage("changed"));
         kafkaTemplate.flush();
 
         assertMessageConsumed();

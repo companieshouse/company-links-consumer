@@ -106,7 +106,7 @@ public class StreamConsumerSteps {
         initialiseVariablesUsingDeltaType();
 
         stubPatchLink(HttpStatus.CONFLICT.value(), eventType);
-        kafkaTemplate.send(mainTopic, createValidMessage(eventType));
+        kafkaTemplate.send(mainTopic, "conflict message");
         kafkaTemplate.flush();
 
         assertMessageConsumed();
@@ -196,7 +196,6 @@ public class StreamConsumerSteps {
                 List<Header> retryList = StreamSupport.stream(errorRecord.headers().spliterator(), false)
                         .filter(header -> header.key().equalsIgnoreCase(RETRY_TOPIC_ATTEMPTS_KEY))
                         .collect(Collectors.toList());
-                System.out.println("Retry list: " + retryList );
                 assertThat(retryList).hasSize(RETRY_ATTEMPTS);
                 break;
             default:
@@ -233,18 +232,7 @@ public class StreamConsumerSteps {
         stubFor(
                 patch(urlEqualTo(patchUrl))
                         .willReturn(aResponse()
-                                .withStatus(responseCode)
-                                .withHeader("Content-Type","application/json")
-                                .withBody(createResponeBody(responseCode))));
-    }
-
-    public String createResponeBody(int responseCode){
-        if(responseCode == 409){
-            return "{\"error\": \"Conflict: the resource already exists.\"}";
-        }
-        else{
-            return "{}";
-        }
+                                .withStatus(responseCode)));
     }
 
     private void assertMessageConsumed() throws InterruptedException {

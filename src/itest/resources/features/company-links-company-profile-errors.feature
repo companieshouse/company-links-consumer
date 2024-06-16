@@ -36,6 +36,7 @@ Feature: Process company profile links for error scenarios
     Given Company links consumer is available
     And "persons-with-significant-control" exist for company "00006400"
     When A valid "changed" message consumed causes a conflict from the "company-profile" stream
+    Then the message should retry 0 times on the company-profile topic and then error
 
   Scenario: Process message when the api returns 404
     Given Company links consumer is available

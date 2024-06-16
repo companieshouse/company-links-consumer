@@ -122,6 +122,12 @@ public class CompanyProfileStreamConsumerSteps {
         }
     }
 
+    @And("{string} does not exist for company {string} returning not found")
+    public void company_not_found(String linkType, String companyNumber) {
+            WiremockTestConfig.stubForGet(linkType, companyNumber,
+                    loadFileFromName("empty-list-record.json"), 404);
+    }
+
     @And("The user is not authorized")
     public void user_unauthorized() {
         WiremockTestConfig.stubForGetPscWith401Response("00006400");

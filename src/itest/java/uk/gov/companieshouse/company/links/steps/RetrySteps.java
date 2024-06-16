@@ -58,12 +58,25 @@ public class RetrySteps {
     public void theMessageShouldRetryAndErrorCompanyProfile(int retries) throws InterruptedException {
         Thread.sleep(5000);
         ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer);
+
+        System.out.println("fetched records from kafka");
+
         Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-profile-company-links-consumer-retry");
         Iterable<ConsumerRecord<String, Object>> errorRecords =  records.records("stream-company-profile-company-links-consumer-error");
 
+        System.out.println("processing retry records");
+        retryRecords.forEach(record -> System.out.println("retry record: " + record));
+
+        System.out.println("processing error records");
+        errorRecords.forEach(record -> System.out.println("error record: " + record));
+
         int actualRetries = (int) StreamSupport.stream(retryRecords.spliterator(), false).count();
         int errors = (int) StreamSupport.stream(errorRecords.spliterator(), false).count();
+
         System.out.println("Actual retries " + actualRetries);
+        System.out.println("Erros: " + errors);
+
+
         assertThat(actualRetries).isEqualTo(retries);
         assertThat(errors).isEqualTo(1);
     }

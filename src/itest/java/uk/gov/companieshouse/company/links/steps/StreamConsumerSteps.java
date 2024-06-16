@@ -123,9 +123,12 @@ public class StreamConsumerSteps {
         assertMessageConsumed();
     }
 
-    @When("I send GET request with company number {string}")
-    public void i_send_get_request_with_company_number(String companyNumber) throws InterruptedException {
-        String uri = "/company/{company_number}/links/persons-with-significant-control";
+    @When("I send GET request for company {string} returning not found and updates {string} stream")
+    public void i_send_get_request_with_company_number(String companyNumber,String deltaType) throws InterruptedException {
+        this.deltaType = deltaType;
+        initialiseVariablesUsingDeltaType();
+
+        String uri = String.format("/company/%s/links/persons-with-significant-control",companyNumber);
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("ERIC-Identity", "SOME_IDENTITY");
@@ -138,7 +141,7 @@ public class StreamConsumerSteps {
         CucumberContext.CONTEXT.set("statusCode", response.getStatusCodeValue());
         CucumberContext.CONTEXT.set("getResponseBody", response.getBody());
 
-        kafkaTemplate.send("stream-company-profile", "not found");
+        kafkaTemplate.send(mainTopic, "not found");
         kafkaTemplate.flush();
 
         assertMessageConsumed();

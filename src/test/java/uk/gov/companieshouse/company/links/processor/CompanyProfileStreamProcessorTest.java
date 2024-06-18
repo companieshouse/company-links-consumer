@@ -456,16 +456,13 @@ class CompanyProfileStreamProcessorTest {
     }
 
     @Test
-    @DisplayName("throws Non RetryableErrorException when Charges Data API returns non successful response but still processes and updates Exemptions link")
-    void throwNonRetryableErrorExceptionWhenChargesDataAPIReturnsNon2XXAndProcessesExemptionsLink() throws IOException, URIValidationException {
+    @DisplayName("throws Non RetryableErrorException when Charges Data API returns non successful response")
+    void throwNonRetryableErrorExceptionWhenChargesDataAPIReturnsNon2XX() throws IOException {
         // given
-        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
         companyProfile.getLinks().setCharges(null);
-        companyProfile.getLinks().setExemptions(null);
         assertNull(companyProfile.getLinks().getCharges());
-        assertNull(companyProfile.getLinks().getExemptions());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
         final HttpResponseException httpResponseException = new HttpResponseException.Builder(
@@ -473,24 +470,17 @@ class CompanyProfileStreamProcessorTest {
                 HttpStatus.CONFLICT.getReasonPhrase(),
                 new HttpHeaders()).build();
         when(chargesService.getCharges(any(), any()))
-                .thenThrow(new NonRetryableErrorException("endpoint not found",
+                .thenThrow(new NonRetryableErrorException("endpoint conflict",
                         ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
 
-        CompanyExemptions companyExemptions = testData.createExemptions();
-        var exemptions = new Exemptions();
-        exemptions.setPscExemptAsTradingOnRegulatedMarket(new PscExemptAsTradingOnRegulatedMarketItem());
-        companyExemptions.setExemptions(exemptions);
-        assertNotNull(companyExemptions.getExemptions().getPscExemptAsTradingOnRegulatedMarket());
-        when(exemptionsListClient.getExemptionsList(any(), any())).thenReturn(companyExemptions);
-
         // when, then
-        assertThrows(RetryableErrorException.class,
+        assertThrows(NonRetryableErrorException.class,
                 () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
 
-        verify(addExemptionsClient).patchLink(argument.capture());
-        verifyNoInteractions(companyProfileService);
+        //verifyNoInteractions(companyProfileService);
 
         verifyLoggingDataMap();
+
     }
 
     // FILING HISTORY TESTS

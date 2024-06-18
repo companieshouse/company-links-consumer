@@ -69,6 +69,17 @@ public class RetrySteps {
         assertThat(errors).isEqualTo(1);
     }
 
+    @Then("the message should not be placed on the retry topic")
+    public void theMessageShouldNotBePlacedOnTheRetryTopic() throws InterruptedException {
+        Thread.sleep(5000);
+        ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer);
+
+        Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-profile-company-links-consumer-retry");
+        int actualRetries = (int) StreamSupport.stream(retryRecords.spliterator(), false).count();
+
+        assertThat(actualRetries).isEqualTo(0);
+    }
+
     private String loadFileFromName(String fileName) {
         try {
             return FileUtils.readFileToString(ResourceUtils.getFile("classpath:stubs/"+fileName), StandardCharsets.UTF_8);

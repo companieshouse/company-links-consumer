@@ -27,6 +27,7 @@ import uk.gov.companieshouse.api.model.ApiResponse;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.consumer.CompanyProfileStreamConsumer;
+import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
 import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.serialization.CompanyProfileDeserializer;
@@ -435,6 +436,44 @@ class CompanyProfileStreamProcessorTest {
                 new HttpHeaders()).build();
         when(chargesService.getCharges(any(), any()))
                 .thenThrow(new RetryableErrorException("endpoint not found",
+                        ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+
+        CompanyExemptions companyExemptions = testData.createExemptions();
+        var exemptions = new Exemptions();
+        exemptions.setPscExemptAsTradingOnRegulatedMarket(new PscExemptAsTradingOnRegulatedMarketItem());
+        companyExemptions.setExemptions(exemptions);
+        assertNotNull(companyExemptions.getExemptions().getPscExemptAsTradingOnRegulatedMarket());
+        when(exemptionsListClient.getExemptionsList(any(), any())).thenReturn(companyExemptions);
+
+        // when, then
+        assertThrows(RetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+
+        verify(addExemptionsClient).patchLink(argument.capture());
+        verifyNoInteractions(companyProfileService);
+
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws Non RetryableErrorException when Charges Data API returns non successful response but still processes and updates Exemptions link")
+    void throwNonRetryableErrorExceptionWhenChargesDataAPIReturnsNon2XXAndProcessesExemptionsLink() throws IOException, URIValidationException {
+        // given
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setCharges(null);
+        companyProfile.getLinks().setExemptions(null);
+        assertNull(companyProfile.getLinks().getCharges());
+        assertNull(companyProfile.getLinks().getExemptions());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                new HttpHeaders()).build();
+        when(chargesService.getCharges(any(), any()))
+                .thenThrow(new NonRetryableErrorException("endpoint not found",
                         ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
 
         CompanyExemptions companyExemptions = testData.createExemptions();

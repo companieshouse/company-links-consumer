@@ -39,6 +39,7 @@ import uk.gov.companieshouse.logging.Logger;
 import uk.gov.companieshouse.stream.ResourceChangedData;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -467,10 +468,12 @@ class CompanyProfileStreamProcessorTest {
         assertNull(companyProfile.getLinks().getExemptions());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-        final HttpClientErrorException conflictException = new HttpClientErrorException().Builder(
-                HttpStatus.CONFLICT.value(),
+        final HttpClientErrorException conflictException = HttpClientErrorException.create(
+                HttpStatus.CONFLICT,
                 HttpStatus.CONFLICT.getReasonPhrase(),
-                new HttpHeaders()).build();
+                new org.springframework.http.HttpHeaders(),
+                null,
+                StandardCharsets.UTF_8);
 
         when(exemptionsListClient.getExemptionsList(any(), any()))
                 .thenThrow(new NonRetryableErrorException("Conflict", ApiErrorResponseException.fromHttpResponseException(conflictException)));

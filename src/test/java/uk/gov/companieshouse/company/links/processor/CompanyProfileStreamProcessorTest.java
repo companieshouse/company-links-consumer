@@ -2,6 +2,7 @@ package uk.gov.companieshouse.company.links.processor;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
+import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
+import org.springframework.web.client.HttpClientErrorException;
 import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.charges.ChargesApi;
 import uk.gov.companieshouse.api.company.Data;
@@ -456,31 +458,29 @@ class CompanyProfileStreamProcessorTest {
     }
 
     @Test
-    @DisplayName("throws Non RetryableErrorException when Charges Data API returns non successful response")
-    void throwNonRetryableErrorExceptionWhenChargesDataAPIReturnsNon2XX() throws IOException {
+    @DisplayName("throws Non RetryableErrorException when Exemptions Data API returns non successful response")
+    void throwNonRetryableErrorExceptionWhenExemptionsDataAPIReturnsNon2XX() throws IOException, URIValidationException {
         // given
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setCharges(null);
-        assertNull(companyProfile.getLinks().getCharges());
+        companyProfile.getLinks().setExemptions(null);
+        assertNull(companyProfile.getLinks().getExemptions());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-        final HttpResponseException httpResponseException = new HttpResponseException.Builder(
+        final HttpClientErrorException conflictException = new HttpClientErrorException().Builder(
                 HttpStatus.CONFLICT.value(),
                 HttpStatus.CONFLICT.getReasonPhrase(),
                 new HttpHeaders()).build();
-        when(chargesService.getCharges(any(), any()))
-                .thenThrow(new NonRetryableErrorException("endpoint conflict",
-                        ApiErrorResponseException.fromHttpResponseException(httpResponseException)));
+
+        when(exemptionsListClient.getExemptionsList(any(), any()))
+                .thenThrow(new NonRetryableErrorException("Conflict", ApiErrorResponseException.fromHttpResponseException(conflictException)));
+
 
         // when, then
         assertThrows(NonRetryableErrorException.class,
                 () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
 
-        //verifyNoInteractions(companyProfileService);
-
         verifyLoggingDataMap();
-
     }
 
     // FILING HISTORY TESTS

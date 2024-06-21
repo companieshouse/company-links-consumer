@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.processor;
 
+import com.github.dockerjava.api.exception.ConflictException;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import org.apache.zookeeper.KeeperException;
@@ -459,31 +460,39 @@ class CompanyProfileStreamProcessorTest {
     }
 
     @Test
-    @DisplayName("throws Non RetryableErrorException when Exemptions Data API returns non successful response")
-    void throwNonRetryableErrorExceptionWhenExemptionsDataAPIReturnsNon2XX() throws IOException, URIValidationException {
+    @DisplayName("throws a Non RetryableErrorException when Charges Data API returns non successful response")
+    void throwANonRetryableErrorExceptionWhenChargesDataAPIReturnsNon2XX() throws IOException, URIValidationException {
         // given
         Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
         Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
-        companyProfile.getLinks().setExemptions(null);
-        assertNull(companyProfile.getLinks().getExemptions());
+        companyProfile.getLinks().setCharges(null);
+        assertNull(companyProfile.getLinks().getCharges());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-        final HttpClientErrorException conflictException = HttpClientErrorException.create(
+        ApiResponse<ChargesApi> chargesResponse = new ApiResponse<> (409, null, testData.createCharges());
+        assertFalse(chargesResponse.getData().getItems().isEmpty());
+        when(chargesService.getCharges(any(), any())).thenReturn(chargesResponse);
+
+        HttpClientErrorException conflictException = HttpClientErrorException.create(
                 HttpStatus.CONFLICT,
-                HttpStatus.CONFLICT.getReasonPhrase(),
+                "Conflict",
                 new org.springframework.http.HttpHeaders(),
                 null,
-                StandardCharsets.UTF_8);
+                StandardCharsets.UTF_8
+        );
 
-        when(exemptionsListClient.getExemptionsList(any(), any()))
-                .thenThrow(new NonRetryableErrorException("Conflict", ApiErrorResponseException.fromHttpResponseException(conflictException)));
-
+        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any())).
+                thenThrow(conflictException);
 
         // when, then
         assertThrows(NonRetryableErrorException.class,
                 () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
 
+        // then
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any());
         verifyLoggingDataMap();
+
     }
 
     // FILING HISTORY TESTS

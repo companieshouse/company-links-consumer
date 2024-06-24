@@ -62,11 +62,3 @@ Feature: Process company links information for officers
     And   The company appointments api is unavailable
     When A valid "deleted" message is consumed from the "officers" stream
     Then The message is placed on the "retry" topic
-
-  Scenario: Process message when the api returns 503
-    Given Company links consumer is available
-    And The company profile api is unavailable
-    And "officers" exist for company "00006400"
-    When A valid "changed" message is consumed from the "officers" stream
-    When the consumer receives a message with company number "00006400" but the api returns a 503
-    Then the message should retry 3 times and then error

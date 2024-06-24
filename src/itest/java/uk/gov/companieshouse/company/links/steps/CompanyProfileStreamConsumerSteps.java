@@ -6,9 +6,17 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.apache.commons.io.FileUtils;
+import org.assertj.core.api.Assertions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.util.ResourceUtils;
+import uk.gov.companieshouse.api.company.Data;
+import uk.gov.companieshouse.company.links.config.CucumberContext;
 import uk.gov.companieshouse.company.links.config.WiremockTestConfig;
 import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
 import uk.gov.companieshouse.company.links.service.CompanyProfileService;
@@ -35,6 +43,9 @@ public class CompanyProfileStreamConsumerSteps {
 
     @Autowired
     private ResettableCountDownLatch resettableCountDownLatch;
+
+    @Autowired
+    private TestRestTemplate restTemplate;
 
     @Before
     public void beforeEach() {
@@ -111,6 +122,12 @@ public class CompanyProfileStreamConsumerSteps {
         }
     }
 
+    @And("{string} does not exist for company {string} returning not found")
+    public void company_not_found(String linkType, String companyNumber) {
+            WiremockTestConfig.stubForGet(linkType, companyNumber,
+                    loadFileFromName("empty-list-record.json"), 404);
+    }
+
     @And("The user is not authorized")
     public void user_unauthorized() {
         WiremockTestConfig.stubForGetPscWith401Response("00006400");
@@ -143,6 +160,12 @@ public class CompanyProfileStreamConsumerSteps {
         kafkaTemplate.flush();
 
         assertThat(resettableCountDownLatch.getCountDownLatch().await(5, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @Then("I should receive {int} status code")
+    public void i_should_receive_status_code(Integer statusCode) {
+        Integer expectedStatusCode = CucumberContext.CONTEXT.get("statusCode");
+        Assertions.assertThat(expectedStatusCode).isEqualTo(statusCode);
     }
 
     @Then("The Company Profile message is successfully consumed and company-profile-api PATCH endpoint is invoked with {string} link payload")

@@ -493,6 +493,44 @@ class CompanyProfileStreamProcessorTest {
         verifyLoggingDataMap();
     }
 
+    @Test
+    @DisplayName("throws NonRetryableErrorException when Exemptions returns non successful response !2XX")
+    void throwNonRetryableErrorExceptionWhenExemptionsReturnsNon2XX() throws IOException, URIValidationException {
+        // given
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setExemptions(null);
+        assertNull(companyProfile.getLinks().getExemptions());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        CompanyExemptions companyExemptions = testData.createExemptions();
+        companyExemptions.getExemptions().setPscExemptAsTradingOnEuRegulatedMarket(null);
+        assertNotNull(companyExemptions.getExemptions().getDisclosureTransparencyRulesChapterFiveApplies());
+        when(exemptionsListClient.getExemptionsList(any(), any())).thenReturn(companyExemptions);
+
+        HttpClientErrorException conflictException = HttpClientErrorException.create(
+                HttpStatus.CONFLICT,
+                "Conflict",
+                new org.springframework.http.HttpHeaders(),
+                null,
+                StandardCharsets.UTF_8
+        );
+
+        doThrow(conflictException)
+                .when(addExemptionsClient)
+                .patchLink(any());
+
+        // when, then
+        assertThrows(NonRetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+
+        // then
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addExemptionsClient).patchLink(argument.capture());
+        verifyLoggingDataMap();
+    }
+
     // FILING HISTORY TESTS
     @Test
     @DisplayName("Successfully processes a kafka message containing a Company Profile ResourceChanged payload, " +
@@ -584,6 +622,43 @@ class CompanyProfileStreamProcessorTest {
         // when, then
         assertThrows(RetryableErrorException.class,
                 () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws NonRetryableErrorException when Filing History returns non successful response !2XX")
+    void throwNonRetryableErrorExceptionWhenFilingHistoryReturnsNon2XX() throws IOException, URIValidationException {
+        // given
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setFilingHistory(null);
+        assertNull(companyProfile.getLinks().getFilingHistory());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        FilingHistoryList filingHistoryListList = testData.createFilingHistoryList();
+        assertFalse(filingHistoryListList.getItems().isEmpty());
+        when(filingHistoryService.getFilingHistory(any(),any())).thenReturn(filingHistoryListList);
+
+        HttpClientErrorException conflictException = HttpClientErrorException.create(
+                HttpStatus.CONFLICT,
+                "Conflict",
+                new org.springframework.http.HttpHeaders(),
+                null,
+                StandardCharsets.UTF_8
+        );
+
+        doThrow(conflictException)
+                .when(addFilingHistoryClient)
+                .patchLink(any());
+
+        // when, then
+        assertThrows(NonRetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+
+        // then
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addFilingHistoryClient).patchLink(argument.capture());
         verifyLoggingDataMap();
     }
 
@@ -808,6 +883,43 @@ class CompanyProfileStreamProcessorTest {
         // when, then
         assertThrows(RetryableErrorException.class,
                 () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws NonRetryableErrorException when Officers returns non successful response !2XX")
+    void throwNonRetryableErrorExceptionWhenOfficersReturnsNon2XX() throws IOException, URIValidationException {
+        // given
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setOfficers(null);
+        assertNull(companyProfile.getLinks().getOfficers());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        OfficerList officerList = testData.createOfficers();
+        assertFalse(officerList.getItems().isEmpty());
+        when(officerListClient.getOfficers(any())).thenReturn(officerList);
+
+        HttpClientErrorException conflictException = HttpClientErrorException.create(
+                HttpStatus.CONFLICT,
+                "Conflict",
+                new org.springframework.http.HttpHeaders(),
+                null,
+                StandardCharsets.UTF_8
+        );
+
+        doThrow(conflictException)
+                .when(addOfficersClient)
+                .patchLink(any());
+
+        // when, then
+        assertThrows(NonRetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+
+        // then
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addOfficersClient).patchLink(argument.capture());
         verifyLoggingDataMap();
     }
 

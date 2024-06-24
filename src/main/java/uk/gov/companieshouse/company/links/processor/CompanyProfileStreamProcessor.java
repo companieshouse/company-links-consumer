@@ -119,10 +119,10 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         }
         try {
             processExemptionsLink(contextId, companyNumber, companyProfileData);
-        } catch (HttpClientErrorException.Conflict conflictException) {
+        } catch (NonRetryableErrorException nonRetryableErrorException) {
             nonRetryableLinkException = new NonRetryableErrorException(String.format(
                     "Error retrieving Exemptions for company number %s", companyNumber),
-                    conflictException);
+                    nonRetryableErrorException);
         } catch (Exception exception) {
             retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Exemptions for company number %s", companyNumber),
@@ -130,10 +130,10 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         }
         try {
             processFilingHistoryLink(contextId, companyNumber, companyProfileData);
-        } catch (HttpClientErrorException.Conflict conflictException) {
+        } catch (NonRetryableErrorException nonRetryableErrorException) {
             nonRetryableLinkException = new NonRetryableErrorException(String.format(
                     "Error retrieving Filing History for company number %s", companyNumber),
-                    conflictException);
+                    nonRetryableErrorException);
         } catch (Exception exception) {
             retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Filing History for company number %s", companyNumber),
@@ -152,10 +152,10 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         }
         try {
             processOfficerLink(contextId, companyNumber, companyProfileData);
-        } catch (HttpClientErrorException.Conflict conflictException) {
+        } catch (NonRetryableErrorException nonRetryableErrorException) {
             nonRetryableLinkException = new NonRetryableErrorException(String.format(
                     "Error retrieving Officers for company number %s", companyNumber),
-                    conflictException);
+                    nonRetryableErrorException);
         } catch (Exception exception) {
             retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Officers for company number %s", companyNumber),
@@ -163,10 +163,10 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         }
         try {
             processPscLink(contextId, companyNumber, companyProfileData);
-        } catch (NonRetryableErrorException conflictException) {
+        } catch (NonRetryableErrorException nonRetryableErrorException) {
             nonRetryableLinkException = new NonRetryableErrorException(String.format(
                     "Error retrieving Psc for company number %s", companyNumber),
-                    conflictException);
+                    nonRetryableErrorException);
         } catch (Exception exception) {
             retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Psc for company number %s", companyNumber),
@@ -174,10 +174,10 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         }
         try {
             processPscStatementsLink(contextId, companyNumber, companyProfileData);
-        } catch (HttpClientErrorException.Conflict conflictException) {
+        } catch (NonRetryableErrorException nonRetryableErrorException) {
             nonRetryableLinkException = new NonRetryableErrorException(String.format(
                     "Error retrieving Psc Statement for company number %s", companyNumber),
-                    conflictException);
+                    nonRetryableErrorException);
         } catch (Exception exception) {
             retryableLinkException = new RetryableErrorException(String.format(
                     "Error retrieving Psc Statement for company number %s", companyNumber),

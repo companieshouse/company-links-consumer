@@ -163,7 +163,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         }
         try {
             processPscLink(contextId, companyNumber, companyProfileData);
-        } catch (HttpClientErrorException.Conflict conflictException) {
+        } catch (NonRetryableErrorException conflictException) {
             nonRetryableLinkException = new NonRetryableErrorException(String.format(
                     "Error retrieving Psc for company number %s", companyNumber),
                     conflictException);
@@ -443,6 +443,10 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             PatchLinkRequest linkRequest = new PatchLinkRequest(companyNumber, contextId);
 
             linkClient.patchLink(linkRequest);
+        } catch (HttpClientErrorException.Conflict conflictException) {
+            throw new NonRetryableErrorException(String.format(
+                    "Error updating %s link for company number %s", linkType, companyNumber),
+                    conflictException);
         } catch (Exception exception) {
             throw new RetryableErrorException(String.format(
                     "Error updating %s link for company number %s",

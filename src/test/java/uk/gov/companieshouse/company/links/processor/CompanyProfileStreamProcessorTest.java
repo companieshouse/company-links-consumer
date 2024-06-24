@@ -928,8 +928,9 @@ class CompanyProfileStreamProcessorTest {
                 StandardCharsets.UTF_8
         );
 
-        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any())).
-                thenThrow(conflictException);
+        doThrow(conflictException)
+                .when(addPscClient)
+                .patchLink(any());
 
         // when, then
         assertThrows(NonRetryableErrorException.class,
@@ -938,7 +939,6 @@ class CompanyProfileStreamProcessorTest {
         // then
         verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
         verify(addPscClient).patchLink(argument.capture());
-        verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any());
         verifyLoggingDataMap();
     }
 

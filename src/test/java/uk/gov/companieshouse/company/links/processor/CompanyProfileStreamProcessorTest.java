@@ -209,7 +209,7 @@ class CompanyProfileStreamProcessorTest {
         assertNull(companyProfile.getLinks().getCharges());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-        ApiResponse<ChargesApi> chargesResponse = new ApiResponse<> (409, null, testData.createCharges());
+        ApiResponse<ChargesApi> chargesResponse = new ApiResponse<> (200, null, testData.createCharges());
         assertFalse(chargesResponse.getData().getItems().isEmpty());
         when(chargesService.getCharges(any(), any())).thenReturn(chargesResponse);
 
@@ -625,7 +625,7 @@ class CompanyProfileStreamProcessorTest {
         assertNull(companyProfile.getLinks().getInsolvency());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-        ApiResponse<CompanyInsolvency> insolvencyResponse = new ApiResponse<> (409, null, testData.createInsolvency());
+        ApiResponse<CompanyInsolvency> insolvencyResponse = new ApiResponse<> (200, null, testData.createInsolvency());
         assertFalse(insolvencyResponse.getData().getCases().isEmpty());
         when(insolvencyService.getInsolvency(any(), any())).thenReturn(insolvencyResponse);
 
@@ -902,6 +902,43 @@ class CompanyProfileStreamProcessorTest {
         // when, then
         assertThrows(RetryableErrorException.class,
                 () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+        verifyLoggingDataMap();
+    }
+
+    @Test
+    @DisplayName("throws NonRetryableErrorException when Psc Data API returns non successful response !2XX")
+    void throwNonRetryableErrorExceptionWhenPscDataAPIReturnsNon2XX() throws IOException {
+        // given
+        ArgumentCaptor<PatchLinkRequest> argument = ArgumentCaptor.forClass(PatchLinkRequest.class);
+        Message<ResourceChangedData> mockResourceChangedMessage = testData.createCompanyProfileWithLinksMessageWithValidResourceUri();
+        Data companyProfile = testData.createCompanyProfileWithLinksFromJson();
+        companyProfile.getLinks().setPersonsWithSignificantControl(null);
+        assertNull(companyProfile.getLinks().getPersonsWithSignificantControl());
+        when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
+
+        PscList pscList = testData.createPscList();
+        assertFalse(pscList.getItems().isEmpty());
+        when(pscListClient.getPscs(any())).thenReturn(pscList);
+
+        HttpClientErrorException conflictException = HttpClientErrorException.create(
+                HttpStatus.CONFLICT,
+                "Conflict",
+                new org.springframework.http.HttpHeaders(),
+                null,
+                StandardCharsets.UTF_8
+        );
+
+        when(companyProfileService.patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any())).
+                thenThrow(conflictException);
+
+        // when, then
+        assertThrows(NonRetryableErrorException.class,
+                () -> companyProfileStreamProcessor.processDelta(mockResourceChangedMessage));
+
+        // then
+        verify(companyProfileStreamProcessor).processDelta(mockResourceChangedMessage);
+        verify(addPscClient).patchLink(argument.capture());
+        verify(companyProfileService).patchCompanyProfile(eq(CONTEXT_ID), eq(MOCK_COMPANY_NUMBER), any());
         verifyLoggingDataMap();
     }
 

@@ -56,7 +56,7 @@ public class RetrySteps {
 
     @Then("^the message should retry (\\d*) times on the company-profile topic and then error$")
     public void theMessageShouldRetryAndErrorCompanyProfile(int retries) throws InterruptedException {
-        Thread.sleep(5000);
+        Thread.sleep(500);
         ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer);
 
         Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-profile-company-links-consumer-retry");
@@ -71,7 +71,7 @@ public class RetrySteps {
 
     @Then("the message should not be placed on the retry topic")
     public void theMessageShouldNotBePlacedOnTheRetryTopic() throws InterruptedException {
-        Thread.sleep(5000);
+        Thread.sleep(500);
         ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer);
 
         Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-profile-company-links-consumer-retry");

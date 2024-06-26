@@ -60,6 +60,9 @@ public class CompanyProfileStreamConsumer {
         logger.info(String.format("A new message successfully picked up from topic: %s, "
                         + "partition: %s and offset: %s with contextId: %s",
                 topic, partition, offset, contextId), DataMapHolder.getLogMap());
+
+        logger.info("Payload for CompanyProfileStreamConsumer: " + payload.getData());
+
         try {
             String eventType = resourceChangedMessage.getPayload().getEvent().getType();
             if (eventType.equals("changed")) {

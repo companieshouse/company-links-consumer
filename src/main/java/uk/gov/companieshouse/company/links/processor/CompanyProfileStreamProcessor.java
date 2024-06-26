@@ -252,6 +252,9 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             try {
                 companyExemptions = exemptionsListClient
                         .getExemptionsList(contextId, companyNumber);
+            } catch (HttpClientErrorException.NotFound notFoundExeption) {
+                logger.info("Company exemptions not found, creating empty Company Exemptions");
+                companyExemptions = new CompanyExemptions();
             } catch (Exception exception) {
                 throw new RetryableErrorException(String.format(
                         "Error retrieving Exemptions for company number %s", companyNumber),
@@ -287,6 +290,9 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             try {
                 filingHistoryResponse = filingHistoryService
                         .getFilingHistory(contextId, companyNumber);
+            } catch (HttpClientErrorException.NotFound notFoundExeption) {
+                logger.info("Filing History not found, creating empty Filing History");
+                filingHistoryResponse = new FilingHistoryList();
             } catch (Exception exception) {
                 throw new RetryableErrorException(String.format(
                         "Error retrieving Filing History for company number %s", companyNumber),
@@ -368,6 +374,9 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                 officersList = officerListClient
                         .getOfficers(patchLinkRequest);
 
+            } catch (HttpClientErrorException.NotFound notFoundExeption) {
+                logger.info("Officer List not found, creating empty Officer List");
+                officersList = new OfficerList();
             } catch (Exception exception) {
                 throw new RetryableErrorException(String.format(
                         "Error retrieving Officers for company number %s", companyNumber),
@@ -394,6 +403,9 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             PscList pscList;
             try {
                 pscList = pscListClient.getPscs(patchLinkRequest);
+            } catch (HttpClientErrorException.NotFound notFoundExeption) {
+                logger.info("Psc List not found, creating empty Psc List");
+                pscList = new PscList();
             } catch (Exception exception) {
                 throw new RetryableErrorException(String.format(
                         "Error retrieving PSCs for company number %s", companyNumber),
@@ -421,6 +433,9 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
             StatementList statementList;
             try {
                 statementList = statementsListClient.getStatementsList(companyNumber, contextId);
+            } catch (HttpClientErrorException.NotFound notFoundExeption) {
+                logger.info("Statements not found, creating empty Statements List");
+                statementList = new StatementList();
             } catch (Exception exception) {
                 throw new RetryableErrorException(String.format(
                         "Error retrieving Statements for company number %s", companyNumber),

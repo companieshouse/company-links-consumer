@@ -29,12 +29,15 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.*;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import uk.gov.companieshouse.api.appointment.ItemLinkTypes;
 import uk.gov.companieshouse.api.appointment.OfficerList;
 import uk.gov.companieshouse.api.appointment.OfficerSummary;
+import uk.gov.companieshouse.api.company.Data;
+import uk.gov.companieshouse.company.links.config.CucumberContext;
 import uk.gov.companieshouse.company.links.consumer.ResettableCountDownLatch;
 import uk.gov.companieshouse.stream.EventRecord;
 import uk.gov.companieshouse.stream.ResourceChangedData;
@@ -63,6 +66,9 @@ public class StreamConsumerSteps {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private TestRestTemplate restTemplate;
 
     @Given("Company links consumer is available")
     public void companyLinksConsumerIsRunning() {
@@ -94,12 +100,48 @@ public class StreamConsumerSteps {
         assertMessageConsumed();
     }
 
+    @When("A valid {string} message consumed causes a conflict from the {string} stream")
+    public void consumeValidMessageAndThrowsAConflictException(String eventType, String deltaType) throws InterruptedException {
+        this.deltaType = deltaType;
+        initialiseVariablesUsingDeltaType();
+
+        stubPatchLink(HttpStatus.CONFLICT.value(), eventType);
+        kafkaTemplate.send(mainTopic, "conflict message");
+        kafkaTemplate.flush();
+
+        assertMessageConsumed();
+    }
+
     @When("An invalid message is consumed from the {string} stream")
     public void consumeInvalidMessage(String deltaType) throws InterruptedException {
         this.deltaType = deltaType;
         initialiseVariablesUsingDeltaType();
 
         kafkaTemplate.send(mainTopic, "invalid message");
+        kafkaTemplate.flush();
+
+        assertMessageConsumed();
+    }
+
+    @When("I send GET request for company {string} returning not found and updates {string} stream")
+    public void i_send_get_request_with_company_number(String companyNumber,String deltaType) throws InterruptedException {
+        this.deltaType = deltaType;
+        initialiseVariablesUsingDeltaType();
+
+        String uri = String.format("/company/%s/links/persons-with-significant-control",companyNumber);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("ERIC-Identity", "SOME_IDENTITY");
+        headers.add("ERIC-Identity-Type", "key");
+
+        ResponseEntity<Data> response = restTemplate.exchange(
+                uri, HttpMethod.GET, new HttpEntity<>(headers),
+                Data.class, companyNumber);
+
+        CucumberContext.CONTEXT.set("statusCode", response.getStatusCodeValue());
+        CucumberContext.CONTEXT.set("getResponseBody", response.getBody());
+
+        kafkaTemplate.send(mainTopic, createValidMessage("changed"));
         kafkaTemplate.flush();
 
         assertMessageConsumed();

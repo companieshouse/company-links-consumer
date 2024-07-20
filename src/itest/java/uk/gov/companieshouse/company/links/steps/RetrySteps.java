@@ -18,6 +18,8 @@ import uk.gov.companieshouse.logging.Logger;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
@@ -52,17 +54,30 @@ public class RetrySteps {
         countDown();
     }
 
-    @Then("^the message should retry (\\d*) times and then error$")
-    public void theMessageShouldRetryAndError(int retries) {
+    @Then("^the message should retry (\\d*) times on the company-profile topic and then error$")
+    public void theMessageShouldRetryAndErrorCompanyProfile(int retries) throws InterruptedException {
+        Thread.sleep(500);
         ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer);
-        Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-officers-company-links-consumer-retry");
-        Iterable<ConsumerRecord<String, Object>> errorRecords =  records.records("stream-company-officers-company-links-consumer-error");
+
+        Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-profile-company-links-consumer-retry");
+        Iterable<ConsumerRecord<String, Object>> errorRecords =  records.records("stream-company-profile-company-links-consumer-error");
 
         int actualRetries = (int) StreamSupport.stream(retryRecords.spliterator(), false).count();
         int errors = (int) StreamSupport.stream(errorRecords.spliterator(), false).count();
 
         assertThat(actualRetries).isEqualTo(retries);
         assertThat(errors).isEqualTo(1);
+    }
+
+    @Then("the message should not be placed on the retry topic")
+    public void theMessageShouldNotBePlacedOnTheRetryTopic() throws InterruptedException {
+        Thread.sleep(500);
+        ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer);
+
+        Iterable<ConsumerRecord<String, Object>> retryRecords =  records.records("stream-company-profile-company-links-consumer-retry");
+        int actualRetries = (int) StreamSupport.stream(retryRecords.spliterator(), false).count();
+
+        assertThat(actualRetries).isEqualTo(0);
     }
 
     private String loadFileFromName(String fileName) {

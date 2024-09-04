@@ -20,7 +20,8 @@ Feature: Process company links information for statements
     Given Company links consumer is available
     And   The user is unauthorized
     When A valid "changed" message is consumed from the "statements" stream
-    Then The message is placed on the "invalid" topic
+    Then The message is placed on the "retry" topic
+    And The message is placed on the "error" topic
 
   Scenario: Consume a valid statements message but the company profile api is unavailable - add link
     Given Company links consumer is available

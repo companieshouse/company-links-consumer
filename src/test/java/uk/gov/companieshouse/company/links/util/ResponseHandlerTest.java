@@ -12,6 +12,8 @@ import com.google.api.client.http.HttpResponseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -54,38 +56,30 @@ class ResponseHandlerTest {
                 "handling API response", exception.getMessage());
     }
 
-    @Test
-    void handleApiErrorResponseExceptionRetryableServiceUnavailable() {
+    @ParameterizedTest
+    @CsvSource({
+            "401 , Unauthorised",
+            "403 , Forbidden",
+            "404 , Not Found",
+            "405 , Method Not Allowed",
+            "410 , Gone",
+            "500 , Internal Server Error",
+            "503 , Service Unavailable"
+    })
+    void handleApiErrorResponseExceptionRetryableNotFound(final int code, final String status) {
         // given
-        HttpResponseException.Builder builder = new HttpResponseException.Builder(503, "service unavailable", new HttpHeaders());
+        HttpResponseException.Builder builder = new HttpResponseException.Builder(code, status, new HttpHeaders());
         ApiErrorResponseException apiErrorResponseException = new ApiErrorResponseException(builder);
 
         // when
-        Executable executable = () -> responseHandler.handle(503, "exemptions", apiErrorResponseException);
+        Executable executable = () -> responseHandler.handle(code,"filing history", apiErrorResponseException);
 
         // then
-        RetryableErrorException exception = assertThrows(RetryableErrorException.class, executable);
-        assertEquals("Server error returned with status code: [503] "
-                + "when processing add company exemptions link", exception.getMessage());
+        assertThrows(RetryableErrorException.class, executable);
     }
 
     @Test
-    void handleApiErrorResponseExceptionRetryableNotFound() {
-        // given
-        HttpResponseException.Builder builder = new HttpResponseException.Builder(404, "not found", new HttpHeaders());
-        ApiErrorResponseException apiErrorResponseException = new ApiErrorResponseException(builder);
-
-        // when
-        Executable executable = () -> responseHandler.handle(404,"filing history", apiErrorResponseException);
-
-        // then
-        RetryableErrorException exception = assertThrows(RetryableErrorException.class, executable);
-        assertEquals("HTTP 404 Not Found returned; " +
-                "company profile does not exist", exception.getMessage());
-    }
-
-    @Test
-    void handleApiErrorResponseExceptionNonRetryableConflict() {
+    void handleApiErrorResponseExceptionConflict() {
         // given
         HttpResponseException.Builder builder = new HttpResponseException.Builder(409, "conflict", new HttpHeaders());
         ApiErrorResponseException apiErrorResponseException = new ApiErrorResponseException(builder);
@@ -95,21 +89,18 @@ class ResponseHandlerTest {
 
         // then
         assertDoesNotThrow(executable);
-        verify(logger).info(eq("HTTP 409 Conflict returned; "
-                + "company profile already has a PSC statements link"), any());
+        verify(logger).info(eq("Link already present in target resource - continuing with process"), any());
     }
 
     @Test
     void handleGenericApiErrorResponseExceptionNonRetryableError(){
-        HttpResponseException.Builder builder = new HttpResponseException.Builder(405, "method not allowed", new HttpHeaders());
+        HttpResponseException.Builder builder = new HttpResponseException.Builder(400, "Bad Request", new HttpHeaders());
         ApiErrorResponseException apiErrorResponseException = new ApiErrorResponseException(builder);
 
         // when
-        Executable executable = () -> responseHandler.handle(405,"filing history", apiErrorResponseException);
+        Executable executable = () -> responseHandler.handle(400,"filing history", apiErrorResponseException);
 
         // then
-        NonRetryableErrorException exception = assertThrows(NonRetryableErrorException.class, executable);
-        assertEquals("Add filing history client error returned with "
-                + "status code: [405] when processing link request", exception.getMessage());
+        assertThrows(NonRetryableErrorException.class, executable);
     }
 }

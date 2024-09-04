@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.util;
 
+import java.util.Arrays;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
@@ -14,14 +15,6 @@ public class ResponseHandler {
 
     private final Logger logger;
 
-    private static final String SERVER_FAILED_MSG = "Server error returned with status code: [%s] "
-            + "when processing add company %s link";
-    private static final String CONFLICT_ERROR_MSG = "HTTP %s returned; "
-            + "company profile already has a %s link";
-    private static final String NOT_FOUND_ERROR_MSG = "HTTP %s returned; "
-            + "company profile does not exist";
-    private static final String CLIENT_ERROR_MSG = "Add %s client error returned with "
-            + "status code: [%s] when processing link request";
     private static final String ILLEGAL_ARG_MSG = "Illegal argument exception caught when "
             + "handling API response";
     private static final String URI_VALIDATION_MSG = "Invalid companyNumber [%s] when "
@@ -49,7 +42,7 @@ public class ResponseHandler {
     public void handle(IllegalArgumentException ex) {
         String causeMessage = ex.getCause() != null
                 ? String.format("; %s", ex.getCause().getMessage()) : "";
-        logger.error(ILLEGAL_ARG_MSG + causeMessage,
+        logger.info(ILLEGAL_ARG_MSG + causeMessage,
                 DataMapHolder.getLogMap());
         throw new RetryableErrorException(ILLEGAL_ARG_MSG, ex);
     }
@@ -60,23 +53,22 @@ public class ResponseHandler {
      * @param ex ApiErrorResponseException
      */
     public void handle(int statusCode, String linkType, ApiErrorResponseException ex) {
-        if (HttpStatus.valueOf(ex.getStatusCode()).is5xxServerError()) {
-            logger.info(String.format(SERVER_FAILED_MSG, statusCode, linkType),
+        HttpStatus httpsStatus = HttpStatus.valueOf(statusCode);
+
+        if (httpsStatus == HttpStatus.BAD_REQUEST) {
+            final String msg = String.format("PATCH %s link returned non-retryable HTTP Status: %d",
+                    linkType, statusCode);
+            logger.error(msg, ex, DataMapHolder.getLogMap());
+            throw new NonRetryableErrorException(msg, ex);
+        } else if (httpsStatus == HttpStatus.CONFLICT) {
+            logger.info("Link already present in target resource - continuing with process",
                     DataMapHolder.getLogMap());
-            throw new RetryableErrorException(String.format(SERVER_FAILED_MSG,
-                    statusCode, linkType), ex);
-        } else if (HttpStatus.valueOf(ex.getStatusCode()).equals(HttpStatus.CONFLICT)) {
-            logger.info(String.format(CONFLICT_ERROR_MSG, "409 Conflict", linkType),
-                    DataMapHolder.getLogMap());
-        } else if (HttpStatus.valueOf(ex.getStatusCode()).equals(HttpStatus.NOT_FOUND)) {
-            logger.info(String.format(NOT_FOUND_ERROR_MSG, "404 Not Found"));
-            throw new RetryableErrorException(String.format(NOT_FOUND_ERROR_MSG,
-                    "404 Not Found"), ex);
         } else {
-            logger.error(String.format(CLIENT_ERROR_MSG, linkType, ex.getStatusCode()),
-                    DataMapHolder.getLogMap());
-            throw new NonRetryableErrorException(String.format(CLIENT_ERROR_MSG, linkType,
-                    ex.getStatusCode()), ex);
+            final String msg =
+                    String.format("PATCH %s link returned retryable HTTP Status: %d - retrying: %s",
+                            linkType, statusCode, Arrays.toString(ex.getStackTrace()));
+            logger.info(msg, DataMapHolder.getLogMap());
+            throw new RetryableErrorException(msg);
         }
     }
 }

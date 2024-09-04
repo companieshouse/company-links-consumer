@@ -63,7 +63,8 @@ public class ResponseHandler {
             throw new NonRetryableErrorException(msg, ex);
         } else if (httpsStatus == HttpStatus.CONFLICT) {
             final String msg =
-                    String.format("%s link already present in target resource - continuing with process", linkType);
+                    String.format("%s link already present in target resource - continuing process",
+                            linkType);
             logger.info(msg, DataMapHolder.getLogMap());
         } else {
             final String msg =

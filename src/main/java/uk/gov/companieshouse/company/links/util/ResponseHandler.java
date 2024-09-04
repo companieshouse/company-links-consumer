@@ -54,10 +54,11 @@ public class ResponseHandler {
      */
     public void handle(int statusCode, String linkType, ApiErrorResponseException ex) {
         HttpStatus httpsStatus = HttpStatus.valueOf(statusCode);
+        final String reason = httpsStatus.getReasonPhrase();
 
         if (httpsStatus == HttpStatus.BAD_REQUEST) {
-            final String msg = String.format("PATCH %s link returned non-retryable HTTP Status: %d",
-                    linkType, statusCode);
+            final String msg = String.format("PATCH %s link returned %d %s [non-retryable]",
+                    linkType, statusCode, reason);
             logger.error(msg, ex, DataMapHolder.getLogMap());
             throw new NonRetryableErrorException(msg, ex);
         } else if (httpsStatus == HttpStatus.CONFLICT) {
@@ -65,8 +66,8 @@ public class ResponseHandler {
                     DataMapHolder.getLogMap());
         } else {
             final String msg =
-                    String.format("PATCH %s link returned retryable HTTP Status: %d - retrying: %s",
-                            linkType, statusCode, Arrays.toString(ex.getStackTrace()));
+                    String.format("PATCH %s link returned %d %s [retryable]: %s",
+                            linkType, statusCode, reason, Arrays.toString(ex.getStackTrace()));
             logger.info(msg, DataMapHolder.getLogMap());
             throw new RetryableErrorException(msg);
         }

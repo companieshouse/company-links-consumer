@@ -62,8 +62,9 @@ public class ResponseHandler {
             logger.error(msg, ex, DataMapHolder.getLogMap());
             throw new NonRetryableErrorException(msg, ex);
         } else if (httpsStatus == HttpStatus.CONFLICT) {
-            logger.info("Link already present in target resource - continuing with process",
-                    DataMapHolder.getLogMap());
+            final String msg =
+                    String.format("%s link already present in target resource - continuing with process", linkType);
+            logger.info(msg, DataMapHolder.getLogMap());
         } else {
             final String msg =
                     String.format("PATCH %s link returned %d %s [retryable]: %s",

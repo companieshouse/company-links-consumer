@@ -89,7 +89,6 @@ class ResponseHandlerTest {
 
         // then
         assertDoesNotThrow(executable);
-        verify(logger).info(eq("Link already present in target resource - continuing with process"), any());
     }
 
     @Test

@@ -170,7 +170,7 @@ public class StreamConsumerSteps {
 
     @Then("No messages are placed on the invalid, error or retry topics")
     public void verifyConsumerRecordsAreEmpty() {
-        ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer, GET_RECORDS_TIMEOUT);
+        ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(kafkaConsumer, Duration.ofMillis(GET_RECORDS_TIMEOUT));
         assertThat(records).isEmpty();
     }
 
@@ -180,17 +180,17 @@ public class StreamConsumerSteps {
 
         switch (topicSuffix) {
             case "invalid":
-                ConsumerRecord<String, Object> invalidRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, requiredTopic, GET_RECORDS_TIMEOUT);
+                ConsumerRecord<String, Object> invalidRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, requiredTopic, Duration.ofMillis(GET_RECORDS_TIMEOUT));
                 String invalidTopic = invalidRecord.topic();
                 assertThat(invalidTopic).isEqualTo(requiredTopic);
                 break;
             case "retry":
-                ConsumerRecords<String, Object> retryRecord = KafkaTestUtils.getRecords(kafkaConsumer, GET_RECORDS_TIMEOUT);
+                ConsumerRecords<String, Object> retryRecord = KafkaTestUtils.getRecords(kafkaConsumer, Duration.ofMillis(GET_RECORDS_TIMEOUT));
                 String retryTopic = retryRecord.records(requiredTopic).iterator().next().topic();
                 assertThat(retryTopic).isEqualTo(requiredTopic);
                 break;
             case "error":
-                ConsumerRecord<String, Object> errorRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, requiredTopic, GET_RECORDS_TIMEOUT);
+                ConsumerRecord<String, Object> errorRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, requiredTopic, Duration.ofMillis(GET_RECORDS_TIMEOUT));
                 assertThat(errorRecord.topic()).isEqualTo(requiredTopic);
 
                 List<Header> retryList = StreamSupport.stream(errorRecord.headers().spliterator(), false)

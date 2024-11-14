@@ -1,6 +1,7 @@
 package uk.gov.companieshouse.company.links.config;
 
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import uk.gov.companieshouse.company.links.service.LinkClient;
@@ -18,15 +19,15 @@ public class LinkClientConfig {
 
     @Bean
     Map<String, Map<String, LinkClient>> linkClientMap(
-            LinkClient addExemptionsClient,
-            LinkClient deleteExemptionsClient,
-            LinkClient addOfficersClient,
-            LinkClient removeOfficersClient,
-            LinkClient addStatementsClient,
-            LinkClient deleteStatementsClient,
-            LinkClient addPscClient,
-            LinkClient deletePscClient,
-            LinkClient addFilingHistoryClient) {
+            @Qualifier("addExemptionsClient") LinkClient addExemptionsClient,
+            @Qualifier("deleteExemptionsClient") LinkClient deleteExemptionsClient,
+            @Qualifier("addOfficersClient") LinkClient addOfficersClient,
+            @Qualifier("removeOfficersClient") LinkClient removeOfficersClient,
+            @Qualifier("addStatementsClient") LinkClient addStatementsClient,
+            @Qualifier("deleteStatementsClient") LinkClient deleteStatementsClient,
+            @Qualifier("addPscClient") LinkClient addPscClient,
+            @Qualifier("deletePscClient") LinkClient deletePscClient,
+            @Qualifier("addFilingHistoryClient") LinkClient addFilingHistoryClient) {
 
         return Map.of(
                 EXEMPTIONS, Map.of(

@@ -68,7 +68,7 @@ public class TestData {
         return MessageBuilder
                 .withPayload(resourceChangedData)
                 .setHeader(KafkaHeaders.RECEIVED_TOPIC, TOPIC)
-                .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, PARTITION)
+                .setHeader(KafkaHeaders.RECEIVED_PARTITION, PARTITION)
                 .setHeader(KafkaHeaders.OFFSET, OFFSET)
                 .build();
     }
@@ -91,7 +91,7 @@ public class TestData {
         return MessageBuilder
             .withPayload(resourceChangedData)
             .setHeader(KafkaHeaders.RECEIVED_TOPIC, TOPIC)
-            .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, PARTITION)
+            .setHeader(KafkaHeaders.RECEIVED_PARTITION, PARTITION)
             .setHeader(KafkaHeaders.OFFSET, OFFSET)
             .build();
     }
@@ -138,7 +138,7 @@ public class TestData {
         return MessageBuilder
                 .withPayload(resourceChangedData)
                 .setHeader(KafkaHeaders.RECEIVED_TOPIC, TOPIC)
-                .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, PARTITION)
+                .setHeader(KafkaHeaders.RECEIVED_PARTITION, PARTITION)
                 .setHeader(KafkaHeaders.OFFSET, OFFSET)
                 .build();
     }

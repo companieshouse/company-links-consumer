@@ -11,7 +11,7 @@ import uk.gov.companieshouse.company.links.logging.DataMapHolder;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
-@Component
+@Component("removeOfficersLinkClient")
 public class RemoveOfficersLinkClient implements LinkClient {
 
     private final Logger logger;

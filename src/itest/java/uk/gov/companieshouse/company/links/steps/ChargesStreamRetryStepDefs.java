@@ -1,5 +1,6 @@
 package uk.gov.companieshouse.company.links.steps;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -73,8 +74,9 @@ public class ChargesStreamRetryStepDefs {
 
     @Then("The message is successfully consumed only once from the {string} topic")
     public void the_message_is_successfully_consumed_only_once_from_the_topic(String topicName) {
+
         assertThatThrownBy(() -> KafkaTestUtils.getSingleRecord(kafkaConsumer,
-                topicName, 5000L)).hasStackTraceContaining("No records found for topic");
+                topicName, Duration.ofMillis(5000L))).hasStackTraceContaining("No records found for topic");
     }
 
     @Then("Failed to process and immediately moved the message into {string} topic")
@@ -147,7 +149,7 @@ public class ChargesStreamRetryStepDefs {
     public void failed_to_process_and_immediately_sent_the_the_message_into_topic_for_attempts(
             Integer numberOfAttempts, String topicName) {
         ConsumerRecord<String, Object>
-                singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, topicName, 5000L);
+                singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, topicName, Duration.ofMillis(5000L));
 
         assertThat(singleRecord.value()).isNotNull();
 

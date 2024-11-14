@@ -2,6 +2,7 @@ package uk.gov.companieshouse.company.links.steps;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -250,7 +251,7 @@ public class ChargesStreamConsumerDeleteSteps {
     @Then ("The message fails to process and retrys {int} times before being sent to the {string}")
     public void messageIsRetriedBeforeBeingSentToTopic(int retries, String errorTopic) {
         ConsumerRecord<String, Object>
-            singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, errorTopic, 5000L);
+            singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, errorTopic, Duration.ofMillis(5000L));
 
         assertThat(singleRecord.value()).isNotNull();
         // verify first attempt + number of retries
@@ -260,7 +261,7 @@ public class ChargesStreamConsumerDeleteSteps {
     @Then ("The message fails to process and sent to the {string}")
     public void messageIsRetriedBeforeBeingSentToTopic(String invalidTopic) {
         ConsumerRecord<String, Object>
-            singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, invalidTopic, 5000L);
+            singleRecord = KafkaTestUtils.getSingleRecord(kafkaConsumer, invalidTopic, Duration.ofMillis(5000L));
 
         assertThat(singleRecord.value()).isNotNull();
         verify(1, getRequestedFor(urlEqualTo("/company/" + companyNumber + "/links")));

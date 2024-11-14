@@ -6,7 +6,7 @@ import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
-@Component
+@Component("deletePscClient")
 public class DeletePscClient implements LinkClient {
 
     private final Logger logger;

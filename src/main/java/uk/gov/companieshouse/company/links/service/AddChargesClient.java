@@ -9,7 +9,7 @@ import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.company.links.util.ResponseHandler;
 
 
-@Component
+@Component("addChargesClient")
 public class AddChargesClient implements LinkClient {
 
     private final Supplier<InternalApiClient> internalApiClientFactory;

@@ -2,6 +2,7 @@ package uk.gov.companieshouse.company.links.steps;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -247,14 +248,14 @@ public class InsolvencyStreamConsumerSteps {
     @Then("the message should be moved to topic {string}")
     public void the_message_should_be_moved_to_topic(String topic) {
         ConsumerRecord<String, Object> singleRecord =
-                KafkaTestUtils.getSingleRecord(kafkaConsumer, topic, 5000L);
+                KafkaTestUtils.getSingleRecord(kafkaConsumer, topic, Duration.ofMillis(5000L));
         assertThat(singleRecord.value()).isNotNull();
     }
 
     @Then("the message should be moved to topic {string} after retry attempts of {string}")
     public void the_message_should_be_moved_to_topic_after_retry_specified_attempts(String topic, String retryAttempts) {
         ConsumerRecord<String, Object> singleRecord =
-                KafkaTestUtils.getSingleRecord(kafkaConsumer, topic, 5000L);
+                KafkaTestUtils.getSingleRecord(kafkaConsumer, topic, Duration.ofMillis(5000L));
 
         assertThat(singleRecord.value()).isNotNull();
 

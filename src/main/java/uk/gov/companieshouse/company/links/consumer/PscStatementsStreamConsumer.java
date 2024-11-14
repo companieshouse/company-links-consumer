@@ -5,7 +5,7 @@ import java.time.Instant;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.retrytopic.DltStrategy;
-import org.springframework.kafka.retrytopic.FixedDelayStrategy;
+import org.springframework.kafka.retrytopic.SameIntervalTopicReuseStrategy;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.Header;
@@ -35,7 +35,7 @@ public class PscStatementsStreamConsumer {
     @RetryableTopic(attempts = "${company-links.consumer.statements.attempts}",
             backoff = @Backoff(delayExpression =
                     "${company-links.consumer.statements.backoff-delay}"),
-            fixedDelayTopicStrategy = FixedDelayStrategy.SINGLE_TOPIC,
+            sameIntervalTopicReuseStrategy = SameIntervalTopicReuseStrategy.SINGLE_TOPIC,
             retryTopicSuffix = "-${company-links.consumer.statements.group-id}-retry",
             dltTopicSuffix = "-${company-links.consumer.statements.group-id}-error",
             dltStrategy = DltStrategy.FAIL_ON_ERROR,
@@ -49,7 +49,7 @@ public class PscStatementsStreamConsumer {
             containerFactory = "listenerContainerFactory")
     public void receive(Message<ResourceChangedData> resourceChangedMessage,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION_ID) String partition,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) String partition,
             @Header(KafkaHeaders.OFFSET) String offset) {
         Instant startTime = Instant.now();
         ResourceChangedData payload = resourceChangedMessage.getPayload();

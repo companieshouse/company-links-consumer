@@ -11,8 +11,8 @@ import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.company.Data;
 import uk.gov.companieshouse.api.company.Links;
 import uk.gov.companieshouse.api.exemptions.CompanyExemptions;
-import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
 import uk.gov.companieshouse.api.insolvency.CompanyInsolvency;
+import uk.gov.companieshouse.api.model.filinghistory.FilingHistoryApi;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.stream.EventRecord;
@@ -167,12 +167,12 @@ public class TestData {
         return objectMapper.readValue(data, CompanyExemptions.class);
     }
 
-    public FilingHistoryList createFilingHistoryList() throws IOException {
+    public FilingHistoryApi createFilingHistoryApi() throws IOException {
         String data = FileCopyUtils.copyToString(new InputStreamReader(
                 new FileInputStream("src/test/resources/filing-history-list-record.json")));
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
-        return objectMapper.readValue(data, FilingHistoryList.class);
+        return objectMapper.readValue(data, FilingHistoryApi.class);
     }
 
     public CompanyInsolvency createInsolvency() throws IOException {

@@ -16,6 +16,7 @@ import uk.gov.companieshouse.api.exemptions.Exemptions;
 import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
 import uk.gov.companieshouse.api.insolvency.CompanyInsolvency;
 import uk.gov.companieshouse.api.model.ApiResponse;
+import uk.gov.companieshouse.api.model.filinghistory.FilingHistoryApi;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.exception.NonRetryableErrorException;
@@ -283,7 +284,7 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
                 .map(Links::getFilingHistory);
 
         if (filingHistoryLink.isEmpty()) {
-            FilingHistoryList filingHistoryResponse;
+            FilingHistoryApi filingHistoryResponse;
             try {
                 filingHistoryResponse = filingHistoryService
                         .getFilingHistory(contextId, companyNumber);

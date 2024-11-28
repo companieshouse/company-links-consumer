@@ -23,14 +23,12 @@ public class OfficerListClient {
      * @param linkRequest LinkRequest
      * @return OfficerList
      */
-    public OfficerList getOfficers(PatchLinkRequest linkRequest) throws ApiErrorResponseException,
-            URIValidationException {
-        String uri = String.format("/company/%s/officers",
-                linkRequest.getCompanyNumber());
+    public OfficerList getOfficers(PatchLinkRequest linkRequest)
+            throws ApiErrorResponseException, URIValidationException {
+        String uri = String.format("/company/%s/officers", linkRequest.getCompanyNumber());
         InternalApiClient internalApiClient = internalApiClientFactory.get();
-        return internalApiClient.privateDeltaResourceHandler()
-                .getOfficers(uri)
-                .execute()
-                .getData();
+
+        return internalApiClient.privateCompanyAppointmentsListHandler()
+                .getCompanyAppointmentsList(uri).execute().getData();
     }
 }

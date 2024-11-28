@@ -5,4 +5,5 @@ import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 public interface PatchLinkRequestExtractable {
 
     PatchLinkRequest extractPatchLinkRequest(String uri, String requestId);
+    PatchLinkRequest
 }

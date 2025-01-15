@@ -22,7 +22,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
-import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 import uk.gov.companieshouse.company.links.consumer.KafkaMessageConsumerAspect;
@@ -46,12 +46,12 @@ public class KafkaTestContainerConfig {
     }
 
     @Bean
-    public KafkaContainer kafkaContainer() {
-        KafkaContainer kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:latest"));
-        kafkaContainer.setWaitStrategy(Wait.defaultWaitStrategy()
+    public ConfluentKafkaContainer confluentKafkaContainer() {
+        ConfluentKafkaContainer confluentKafkaContainer = new ConfluentKafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:latest"));
+        confluentKafkaContainer.setWaitStrategy(Wait.defaultWaitStrategy()
                 .withStartupTimeout(Duration.of(300, SECONDS)));
-        kafkaContainer.start();
-        return kafkaContainer;
+        confluentKafkaContainer.start();
+        return confluentKafkaContainer;
     }
 
     @Bean
@@ -68,14 +68,14 @@ public class KafkaTestContainerConfig {
 
     @Bean
     public ConsumerFactory<String, ResourceChangedData> kafkaConsumerFactory() {
-        return new DefaultKafkaConsumerFactory<>(consumerConfigs(kafkaContainer()), new StringDeserializer(),
+        return new DefaultKafkaConsumerFactory<>(consumerConfigs(confluentKafkaContainer()), new StringDeserializer(),
                 new ErrorHandlingDeserializer<>(resourceChangedDataDeserializer));
     }
 
     @Bean
-    public Map<String, Object> consumerConfigs(KafkaContainer kafkaContainer) {
+    public Map<String, Object> consumerConfigs(ConfluentKafkaContainer confluentKafkaContainer) {
         Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, confluentKafkaContainer.getBootstrapServers());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "company-links-consumer");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
@@ -88,9 +88,9 @@ public class KafkaTestContainerConfig {
     }
 
     @Bean
-    public ProducerFactory<String, Object> producerFactory(KafkaContainer kafkaContainer) {
+    public ProducerFactory<String, Object> producerFactory(ConfluentKafkaContainer confluentKafkaContainer) {
         Map<String, Object> props = new HashMap<>();
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, confluentKafkaContainer.getBootstrapServers());
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ResourceChangedDataSerializer.class);
         props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
@@ -102,13 +102,13 @@ public class KafkaTestContainerConfig {
 
     @Bean
     public KafkaTemplate<String, Object> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory(kafkaContainer()));
+        return new KafkaTemplate<>(producerFactory(confluentKafkaContainer()));
     }
 
     @Bean
     public KafkaConsumer<String, Object> invalidTopicConsumer() {
         Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer().getBootstrapServers());
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, confluentKafkaContainer().getBootstrapServers());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "company-links-test-consumer");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);

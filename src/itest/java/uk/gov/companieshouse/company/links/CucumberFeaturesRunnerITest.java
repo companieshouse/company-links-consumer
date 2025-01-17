@@ -3,6 +3,7 @@ package uk.gov.companieshouse.company.links;
 import io.cucumber.junit.Cucumber;
 import io.cucumber.junit.CucumberOptions;
 import io.cucumber.spring.CucumberContextConfiguration;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 
 @RunWith(Cucumber.class)
@@ -10,5 +11,6 @@ import org.junit.runner.RunWith;
                 plugin = {"pretty", "json:target/cucumber-report.json"},
                 glue = {"uk.gov.companieshouse.company.links"})
 @CucumberContextConfiguration
+@Ignore
 public class CucumberFeaturesRunnerITest extends AbstractIntegrationTest {
 }

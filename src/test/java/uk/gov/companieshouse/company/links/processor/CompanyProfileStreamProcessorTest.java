@@ -21,10 +21,10 @@ import uk.gov.companieshouse.api.exemptions.Exemptions;
 import uk.gov.companieshouse.api.exemptions.PscExemptAsSharesAdmittedOnMarketItem;
 import uk.gov.companieshouse.api.exemptions.PscExemptAsTradingOnRegulatedMarketItem;
 import uk.gov.companieshouse.api.exemptions.PscExemptAsTradingOnUkRegulatedMarketItem;
-import uk.gov.companieshouse.api.filinghistory.FilingHistoryList;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.api.insolvency.CompanyInsolvency;
 import uk.gov.companieshouse.api.model.ApiResponse;
+import uk.gov.companieshouse.api.model.filinghistory.FilingHistoryApi;
 import uk.gov.companieshouse.api.psc.PscList;
 import uk.gov.companieshouse.api.psc.StatementList;
 import uk.gov.companieshouse.company.links.consumer.CompanyProfileStreamConsumer;
@@ -545,7 +545,7 @@ class CompanyProfileStreamProcessorTest {
         assertNull(companyProfile.getLinks().getFilingHistory());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-        FilingHistoryList filingHistoryListList = testData.createFilingHistoryList();
+        FilingHistoryApi filingHistoryListList = testData.createFilingHistoryApi();
         assertFalse(filingHistoryListList.getItems().isEmpty());
         when(filingHistoryService.getFilingHistory(any(),any())).thenReturn(filingHistoryListList);
 
@@ -571,7 +571,7 @@ class CompanyProfileStreamProcessorTest {
         assertNull(companyProfile.getLinks().getFilingHistory());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-        when(filingHistoryService.getFilingHistory(any(),any())).thenReturn(new FilingHistoryList());
+        when(filingHistoryService.getFilingHistory(any(),any())).thenReturn(new FilingHistoryApi());
 
         // when
         companyProfileStreamConsumer.receive(mockResourceChangedMessage, "topic", "partition", "offset");
@@ -636,9 +636,9 @@ class CompanyProfileStreamProcessorTest {
         assertNull(companyProfile.getLinks().getFilingHistory());
         when(companyProfileDeserializer.deserialiseCompanyData(mockResourceChangedMessage.getPayload().getData())).thenReturn(companyProfile);
 
-        FilingHistoryList filingHistoryListList = testData.createFilingHistoryList();
-        assertFalse(filingHistoryListList.getItems().isEmpty());
-        when(filingHistoryService.getFilingHistory(any(),any())).thenReturn(filingHistoryListList);
+        FilingHistoryApi filingHistoryApi = testData.createFilingHistoryApi();
+        assertFalse(filingHistoryApi.getItems().isEmpty());
+        when(filingHistoryService.getFilingHistory(any(),any())).thenReturn(filingHistoryApi);
 
         HttpClientErrorException conflictException = HttpClientErrorException.create(
                 HttpStatus.CONFLICT,

@@ -10,7 +10,7 @@ import uk.gov.companieshouse.company.links.exception.RetryableErrorException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.logging.Logger;
 
-@Component
+@Component("deletePscLinkClient")
 public class DeletePscLinkClient implements LinkClient {
 
     private final Logger logger;

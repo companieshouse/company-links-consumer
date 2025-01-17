@@ -8,7 +8,7 @@ import uk.gov.companieshouse.api.handler.exception.URIValidationException;
 import uk.gov.companieshouse.company.links.type.PatchLinkRequest;
 import uk.gov.companieshouse.company.links.util.ResponseHandler;
 
-@Component
+@Component("addFilingHistoryClient")
 public class AddFilingHistoryClient implements LinkClient {
 
     private final Supplier<InternalApiClient> internalApiClientFactory;

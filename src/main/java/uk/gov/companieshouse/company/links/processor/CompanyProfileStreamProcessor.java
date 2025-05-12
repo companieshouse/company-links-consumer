@@ -99,6 +99,12 @@ public class CompanyProfileStreamProcessor extends StreamResponseProcessor {
         final ResourceChangedData payload = resourceChangedMessage.getPayload();
         final String contextId = payload.getContextId();
         final String companyNumber = payload.getResourceId();
+
+        int something = 0;
+        for (int count = 0; count < 100; count++) {
+            something++;
+        }
+
         DataMapHolder.get()
                 .companyNumber(companyNumber);
         Data companyProfileData =

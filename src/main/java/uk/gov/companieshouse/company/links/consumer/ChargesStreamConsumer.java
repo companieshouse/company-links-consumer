@@ -55,11 +55,6 @@ public class ChargesStreamConsumer {
             @Header(KafkaHeaders.RECEIVED_PARTITION) String partition,
             @Header(KafkaHeaders.OFFSET) String offset) {
 
-        int something = 0;
-        for (int count = 0; count < 100; count++) {
-            something++;
-        }
-
         Instant startTime = Instant.now();
         ResourceChangedData payload = resourceChangedMessage.getPayload();
         String contextId = payload.getContextId();

@@ -30,6 +30,11 @@ public class AddExemptionsClient implements LinkClient {
      */
     @Override
     public void patchLink(PatchLinkRequest linkRequest) {
+        int something = 0;
+        for (int count = 0; count < 100; count++) {
+            something++;
+        }
+
         InternalApiClient client = internalApiClientFactory.get();
         client.getHttpClient().setRequestId(linkRequest.getRequestId());
         try {

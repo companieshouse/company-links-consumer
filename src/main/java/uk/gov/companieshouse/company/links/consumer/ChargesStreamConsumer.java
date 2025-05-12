@@ -55,9 +55,9 @@ public class ChargesStreamConsumer {
             @Header(KafkaHeaders.RECEIVED_PARTITION) String partition,
             @Header(KafkaHeaders.OFFSET) String offset) {
 
-        int j = 0;
-        for (int i = 0; i < 100; i++) {
-            j++;
+        int something = 0;
+        for (int count = 0; count < 100; count++) {
+            something++;
         }
 
         Instant startTime = Instant.now();

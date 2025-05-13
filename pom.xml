@@ -54,7 +54,7 @@
 		<sonar.coverage.jacoco.xmlReportPaths>
 			${project.basedir}/target/site/jacoco/jacoco.xml
 		</sonar.coverage.jacoco.xmlReportPaths>
-		<sonar.jacoco.reports>${project.basedir}/target/site</sonar.jacoco.reports>
+<!--		<sonar.jacoco.reports>${project.basedir}/target/site</sonar.jacoco.reports>-->
 		<sonar.token>${CODE_ANALYSIS_TOKEN}</sonar.token>
 		<sonar.login></sonar.login>
 		<sonar.password></sonar.password>
@@ -299,9 +299,9 @@
 				<version>${jacoco-maven-plugin.version}</version>
 				<configuration>
 					<append>true</append>
-					<destFile>${sonar.jacoco.reports}/jacoco.exec</destFile>
-					<dataFile>${sonar.jacoco.reports}/jacoco.exec</dataFile>
-					<outputDirectory>${sonar.jacoco.reports}/jacoco</outputDirectory>
+<!--					<destFile>${sonar.jacoco.reports}/jacoco.exec</destFile>-->
+<!--					<dataFile>${sonar.jacoco.reports}/jacoco.exec</dataFile>-->
+<!--					<outputDirectory>${sonar.jacoco.reports}/jacoco</outputDirectory>-->
 				</configuration>
 
 				<executions>

@@ -64,8 +64,6 @@ endif
 	$(info Packaging version: $(version))
 	@test -s ./$(artifact_name).jar || { echo "ERROR: Service JAR not found"; exit 1; }
 	$(eval tmpdir:=$(shell mktemp -d build-XXXXXXXXXX))
-	cp ./start.sh $(tmpdir)
-	cp ./routes.yaml $(tmpdir)
 	cp ./$(artifact_name).jar $(tmpdir)/$(artifact_name).jar
 	cd $(tmpdir); zip -r ../$(artifact_name)-$(version).zip *
 	rm -rf $(tmpdir)
@@ -88,16 +86,6 @@ deps:
 	@# Help: Install dependencies
 	brew install kafka
 
-.PHONY: docker/kafka
-docker/kafka: docker/kafka-start docker/kafka-create-topics
-	@# Help: Run kafka and create topics within docker
-
-.PHONY: docker/kafka-start
-docker/kafka-start:
-	@# Help: Run kafka within docker
-	tilt up
-	sleep 15
-
 .PHONY: docker/kafka-create-topics
 docker/kafka-create-topics:
 	@# Help: Create kafka topics within docker
@@ -110,17 +98,3 @@ docker/kafka-create-topics:
 
 	@printf "\nKafka Topics:\n\n"
 	@kafka-topics --list --bootstrap-server localhost:29092
-
-.PHONY: docker/kafka-stop
-docker/kafka-stop:
-	@# Help: Stop kafka within docker
-	tilt down
-
-.PHONY: lint
-lint: lint/docker-compose sonar
-	@# Help: Run all lint/* targets and sonar
-
-.PHONY: lint/docker-compose
-lint/docker-compose:
-	@# Help: Lint docker file
-	docker-compose -f docker-compose.yml config

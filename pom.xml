@@ -36,7 +36,7 @@
 		<ch-kafka.version>3.0.3</ch-kafka.version>
 		<structured-logging.version>3.0.20</structured-logging.version>
     	<api-sdk-java.version>6.4.4</api-sdk-java.version>
-		<private-api-sdk-java.version>4.0.360</private-api-sdk-java.version>
+		<private-api-sdk-java.version>4.0.356</private-api-sdk-java.version>
 		<api-sdk-manager-java-library.version>3.0.6</api-sdk-manager-java-library.version>
 		<!--Testing Dependencies-->
 		<wiremock.standalone.version>3.10.0</wiremock.standalone.version>

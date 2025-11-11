@@ -2,7 +2,7 @@ package uk.gov.companieshouse.company.links.service;
 
 import java.util.function.Supplier;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import uk.gov.companieshouse.api.InternalApiClient;

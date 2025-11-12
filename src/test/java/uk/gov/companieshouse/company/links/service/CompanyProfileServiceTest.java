@@ -20,7 +20,7 @@ import org.springframework.http.HttpStatus;
 import uk.gov.companieshouse.api.InternalApiClient;
 import uk.gov.companieshouse.api.company.CompanyProfile;
 import uk.gov.companieshouse.api.error.ApiErrorResponseException;
-import uk.gov.companieshouse.api.handler.company.PrivateCompanyResourceHandler;
+import uk.gov.companieshouse.api.handler.company.PrivateCompanyLinksResourceHandler;
 import uk.gov.companieshouse.api.handler.company.request.PrivateCompanyProfileGet;
 import uk.gov.companieshouse.api.handler.company.request.PrivateCompanyProfilePatch;
 import uk.gov.companieshouse.api.handler.exception.URIValidationException;
@@ -54,7 +54,7 @@ class CompanyProfileServiceTest {
     HttpClient httpClient;
 
     @Mock
-    private PrivateCompanyResourceHandler companyResourceHandler;
+    private PrivateCompanyLinksResourceHandler companyResourceHandler;
 
     @Mock
     private PrivateCompanyProfileGet privateCompanyProfileGet;
@@ -67,7 +67,7 @@ class CompanyProfileServiceTest {
         companyProfileService = spy(new CompanyProfileService(logger, internalApiClientSupplier));
         when(internalApiClientSupplier.get()).thenReturn(internalApiClient);
         when(internalApiClient.getHttpClient()).thenReturn(httpClient);
-        when(internalApiClient.privateCompanyResourceHandler()).thenReturn(companyResourceHandler);
+        when(internalApiClient.privateCompanyLinksResourceHandler()).thenReturn(companyResourceHandler);
     }
 
     @Test

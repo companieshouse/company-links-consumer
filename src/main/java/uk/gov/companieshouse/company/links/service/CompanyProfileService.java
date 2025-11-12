@@ -44,7 +44,7 @@ public class CompanyProfileService extends BaseApiClientService {
         internalApiClient.getHttpClient().setRequestId(contextId);
 
         return executeOp(contextId, internalApiClient
-                .privateCompanyResourceHandler()
+                .privateCompanyLinksResourceHandler()
                 .getCompanyProfile(uri));
     }
 
@@ -66,7 +66,7 @@ public class CompanyProfileService extends BaseApiClientService {
         internalApiClient.getHttpClient().setRequestId(contextId);
 
         return executeOp(contextId, internalApiClient
-                .privateCompanyResourceHandler()
+                .privateCompanyLinksResourceHandler()
                 .patchCompanyProfile(uri, companyProfile));
     }
 }

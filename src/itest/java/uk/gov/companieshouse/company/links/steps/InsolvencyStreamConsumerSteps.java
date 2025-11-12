@@ -78,7 +78,6 @@ public class InsolvencyStreamConsumerSteps {
 
     @Given("Company links consumer api service is running")
     public void company_links_consumer_api_service_is_running() {
-        WiremockTestConfig.setupWiremock();
         assertThat(companyProfileService).isNotNull();
         WiremockTestConfig.setupWiremock();
     }

@@ -25,23 +25,78 @@ test-integration     Run integration tests
 test-unit            Run unit & integration tests (see 'Makefile Changes' section below for explanation)
 
 ```
-## Running kafka locally
-From root folder of this project run ```docker-compose up -d```
+## Running locally
 
-Once containers up, run ```docker-compose exec kafka bash``` to enter kafka bash to create topics
+### Prerequisites
+- Java 21
+- Maven
+- Docker
 
-### Create kafka topics locally
-kafka-topics.sh --create   --zookeeper zookeeper:2181   --replication-factor 1 --partitions 1   --topic main-topic
+### Quick start
 
-kafka-topics.sh --create   --zookeeper zookeeper:2181   --replication-factor 1 --partitions 1   --topic retry-topic
+1. Start Kafka and Zookeeper:
+   ```bash
+   docker-compose up -d
+   ```
+   > **Note:** If you see a conflict error for the `kafka-manager` container, remove the old one first:
+   > ```bash
+   > docker stop kafka-manager && docker rm kafka-manager
+   > ```
 
-kafka-topics.sh --create   --zookeeper zookeeper:2181   --replication-factor 1 --partitions 1   --topic error-topic
+2. Build the project:
+   ```bash
+   make all
+   ```
+   > **Note:** On macOS you may encounter a JaCoCo report permission error during the build. This does not affect compilation or tests. To work around it, run:
+   > ```bash
+   > mvn clean install -Djacoco.skip=true
+   > ```
 
-### Create kafka topics locally
+3. Run the application:
+   ```bash
+   make run-local
+   ```
+
+The application starts on **port 8081**. The health endpoint is available at:
+```
+http://localhost:8081/company-links-consumer/healthcheck
+```
+
+### Kafka topics
+
+The Makefile provides targets for managing Kafka topics locally via `make docker/kafka-create-topics`. Alternatively, you can create topics manually:
+
+```bash
+docker-compose exec kafka bash
+```
+
+Then inside the container:
+```bash
+kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-filing-history
+kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-insolvency
+kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-charges
+kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-psc
+kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-officers
+kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-exemptions
+kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-profile
+kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-psc-statements
+kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-registers
+```
+
+### List kafka topics
+```bash
 kafka-topics.sh --list --zookeeper zookeeper:2181
+```
 
 ### Produce kafka test messages locally
-kafka-console-producer.sh --topic delta-topic --broker-list localhost:9092
+```bash
+kafka-console-producer.sh --topic stream-filing-history --broker-list localhost:9092
+```
+
+### Stop Kafka
+```bash
+docker-compose down
+```
 
 ## Makefile Changes
 The jacoco exec file that SonarQube uses on GitHub is incomplete and, therefore, produces incorrect test coverage

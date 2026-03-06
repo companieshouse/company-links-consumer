@@ -37,6 +37,9 @@
     <private-api-sdk-java.version>4.0.473</private-api-sdk-java.version>
     <api-sdk-manager-java-library.version>3.0.15</api-sdk-manager-java-library.version>
 
+    <!--Dependency overrides-->
+    <log4j2.version>2.25.3</log4j2.version>
+
     <!--Testing Dependencies-->
     <wiremock.standalone.version>3.13.1</wiremock.standalone.version>
     <cucumber.version>7.31.0</cucumber.version>

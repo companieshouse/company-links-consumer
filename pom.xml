@@ -30,12 +30,12 @@
     <jib-maven-plugin.version>3.4.6</jib-maven-plugin.version>
 
     <!--CH Dependencies-->
-    <kafka-models.version>3.0.25</kafka-models.version>
-    <ch-kafka.version>3.0.6</ch-kafka.version>
-    <structured-logging.version>3.0.43</structured-logging.version>
-    <api-sdk-java.version>6.5.0</api-sdk-java.version>
-    <private-api-sdk-java.version>4.0.411</private-api-sdk-java.version>
-    <api-sdk-manager-java-library.version>3.0.13</api-sdk-manager-java-library.version>
+    <kafka-models.version>3.0.29</kafka-models.version>
+    <ch-kafka.version>3.0.7</ch-kafka.version>
+    <structured-logging.version>3.0.51</structured-logging.version>
+    <api-sdk-java.version>6.6.7</api-sdk-java.version>
+    <private-api-sdk-java.version>4.0.473</private-api-sdk-java.version>
+    <api-sdk-manager-java-library.version>3.0.15</api-sdk-manager-java-library.version>
 
     <!--Testing Dependencies-->
     <wiremock.standalone.version>3.13.1</wiremock.standalone.version>

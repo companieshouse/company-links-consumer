@@ -34,14 +34,10 @@ test-unit            Run unit & integration tests (see 'Makefile Changes' sectio
 
 ### Quick start
 
-1. Start Kafka and Zookeeper:
+1. Start Kafka:
    ```bash
    docker-compose up -d
    ```
-   > **Note:** If you see a conflict error for the `kafka-manager` container, remove the old one first:
-   > ```bash
-   > docker stop kafka-manager && docker rm kafka-manager
-   > ```
 
 2. Build the project:
    ```bash
@@ -72,20 +68,20 @@ docker-compose exec kafka bash
 
 Then inside the container:
 ```bash
-kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-filing-history
-kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-insolvency
-kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-charges
-kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-psc
-kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-officers
-kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-exemptions
-kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-company-profile
-kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-psc-statements
-kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic stream-registers
+kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic stream-filing-history
+kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic stream-company-insolvency
+kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic stream-company-charges
+kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic stream-company-psc
+kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic stream-company-officers
+kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic stream-company-exemptions
+kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic stream-company-profile
+kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic stream-psc-statements
+kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic stream-registers
 ```
 
 ### List kafka topics
 ```bash
-kafka-topics.sh --list --zookeeper zookeeper:2181
+kafka-topics.sh --list --bootstrap-server localhost:9092
 ```
 
 ### Produce kafka test messages locally
